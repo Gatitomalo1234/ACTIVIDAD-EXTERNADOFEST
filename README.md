@@ -28,12 +28,23 @@ Una experiencia visual interactiva donde **5,000 partículas** se organizan en f
 
 | Gesto | Efecto |
 |---|---|
-| **Mover la mano** (izq/der, arriba/abajo) | La figura se mueve siguiendo la posición de la mano |
+| ✌️ **Peace** (índice + medio arriba) | Muestra el mensaje de bienvenida como texto de partículas |
+| **Mover la mano** (izq/der, arriba/abajo) | La figura se mueve siguiendo la posición |
 | **Rotar/inclinar la mano** | La figura rota en el eje Z |
 | **Abrir la mano** | Las partículas se expanden hacia afuera |
 | **Cerrar el puño** | Las partículas se contraen a su forma original |
-| **Quitar la mano** | La figura vuelve suavemente al centro |
+| **Quitar la mano** | Las partículas vuelven a una **nube dispersa** |
 | **Arrastrar con el mouse** | Orbitar manualmente la cámara |
+
+---
+
+## 💬 Frases
+
+| Gesto | Frase |
+|---|---|
+| ✌️ Peace | `BIENVENIDOS A LA DEMOSTRACION Y PRESENTACION DE CIENCIA DE DATOS` |
+
+El texto se renderiza convirtiendo los caracteres a posiciones de partículas mediante un canvas oculto.
 
 ---
 
@@ -41,6 +52,7 @@ Una experiencia visual interactiva donde **5,000 partículas** se organizan en f
 
 | Forma | Descripción |
 |---|---|
+| ☁️ Cloud | Nube dispersa (estado por defecto sin mano) |
 | ❤️ Heart | Corazón paramétrico |
 | 🌌 Galaxy | Galaxia espiral con 3 brazos |
 | 🪐 Saturn | Esfera + anillo orbital |
@@ -48,6 +60,7 @@ Una experiencia visual interactiva donde **5,000 partículas** se organizan en f
 | 🧬 DNA | Doble hélice |
 | 🔮 Sphere | Esfera uniforme |
 | 🧠 Brain | Cerebro con hemisferios y surcos |
+| ✌️ Welcome | Texto de bienvenida |
 
 ---
 
@@ -55,7 +68,9 @@ Una experiencia visual interactiva donde **5,000 partículas** se organizan en f
 
 1. Abre `particle_system.html` en **Google Chrome** (recomendado)
 2. Permite el acceso a la **cámara web** cuando el navegador lo solicite
-3. Muestra tu mano frente a la cámara para controlar las partículas
+3. Las partículas empiezan como una nube dispersa
+4. Muestra tu mano frente a la cámara y haz ✌️ para ver el mensaje de bienvenida
+5. Usa los botones del panel para cambiar entre formas manualmente
 
 > **Nota:** Requiere conexión a internet para cargar las librerías (Three.js y MediaPipe) desde CDN.
 
@@ -63,15 +78,23 @@ Una experiencia visual interactiva donde **5,000 partículas** se organizan en f
 
 ## ⚙️ Detalles Técnicos
 
-### Detección de la Mano
+### Detección de Gestos
 
-- Se usa el **landmark 9** (base del dedo medio / centro de la palma) para rastrear la posición X/Y de la mano.
-- La **rotación** se calcula con `Math.atan2()` entre el landmark 0 (muñeca) y el landmark 9 (centro de la palma).
-- La **apertura** de la mano se mide comparando la distancia de cada punta de dedo a la muñeca vs. la distancia de la articulación base a la muñeca.
+- **Peace (✌️)**: Se detecta cuando solo el índice y medio están extendidos (comparando distancia punta-muñeca vs articulación PIP-muñeca)
+- **Posición**: landmark 9 (centro de la palma) para tracking X/Y
+- **Rotación**: `Math.atan2()` entre landmarks 0 (muñeca) y 9 (palma)
+- **Apertura**: ratio de distancia punta-muñeca vs base-muñeca para cada dedo
+
+### Text-to-Particles Engine
+
+- Renderiza texto en un **canvas oculto** (1024×320 px)
+- Escanea los píxeles y muestrea 5,000 posiciones donde hay texto visible
+- Mapea las coordenadas 2D del canvas a posiciones 3D
+- Auto-rotación deshabilitada para mantener el texto legible
 
 ### Suavizado
 
-Todos los valores de tracking usan **interpolación lineal (lerp)** para evitar movimientos bruscos:
+Todos los valores usan **lerp** para evitar movimientos bruscos:
 
 ```
 smoothValue += (rawValue - smoothValue) * SMOOTH_FACTOR
@@ -79,7 +102,7 @@ smoothValue += (rawValue - smoothValue) * SMOOTH_FACTOR
 
 - `HAND_TRACK_SMOOTH = 0.07` para posición y rotación
 - `GESTURE_SMOOTH = 0.08` para apertura de la mano
-- Cuando no se detecta mano, los valores regresan a 0 con suavizado más lento (`× 0.5`)
+- Sin mano: valores regresan a 0 con suavizado más lento (`× 0.5`)
 
 ### Renderizado
 
@@ -102,5 +125,6 @@ EXTERNADO FEST/
 
 ## 📝 Changelog
 
+- **v3.0** — Detección de gesto ✌️ Peace, texto de bienvenida como partículas, nube por defecto sin mano
 - **v2.0** — Tracking de posición y rotación de la mano para mover/rotar la figura 3D
 - **v1.0** — Sistema de partículas con 7 formas y control de expansión/contracción por apertura de mano

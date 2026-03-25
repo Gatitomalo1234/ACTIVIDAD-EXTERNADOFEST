@@ -296,13 +296,15 @@
     <div>
       <div class="section-label">Shape</div>
       <div class="shapes-grid">
-        <button class="shape-btn active" data-shape="heart"><span class="icon">❤️</span>Heart</button>
+        <button class="shape-btn" data-shape="heart"><span class="icon">❤️</span>Heart</button>
         <button class="shape-btn" data-shape="galaxy"><span class="icon">🌌</span>Galaxy</button>
         <button class="shape-btn" data-shape="saturn"><span class="icon">🪐</span>Saturn</button>
         <button class="shape-btn" data-shape="flower"><span class="icon">🌸</span>Flower</button>
         <button class="shape-btn" data-shape="dna"><span class="icon">🧬</span>DNA</button>
         <button class="shape-btn" data-shape="sphere"><span class="icon">🔮</span>Sphere</button>
         <button class="shape-btn" data-shape="brain"><span class="icon">🧠</span>Brain</button>
+        <button class="shape-btn" data-shape="welcome"><span class="icon">✌️</span>Welcome</button>
+        <button class="shape-btn active" data-shape="cloud"><span class="icon">☁️</span>Cloud</button>
       </div>
     </div>
 
@@ -372,6 +374,11 @@
     scene.add(points);
 
     // ========== SHAPE GENERATORS ==========
+    function cloudShape(i, count) {
+      // Random scattered cloud
+      return [(Math.random() - 0.5) * 5, (Math.random() - 0.5) * 5, (Math.random() - 0.5) * 5];
+    }
+
     function heartShape(i, count) {
       const t = (i / count) * Math.PI * 2;
       const r = Math.random() * 0.15;
@@ -393,13 +400,11 @@
 
     function saturnShape(i, count) {
       if (i < count * 0.55) {
-        // Sphere body
         const phi = Math.acos(2 * Math.random() - 1);
         const theta = Math.random() * Math.PI * 2;
         const r = 0.7 + Math.random() * 0.05;
         return [r * Math.sin(phi) * Math.cos(theta), r * Math.cos(phi), r * Math.sin(phi) * Math.sin(theta)];
       } else {
-        // Ring
         const angle = Math.random() * Math.PI * 2;
         const r = 1.1 + Math.random() * 0.5;
         return [r * Math.cos(angle), (Math.random() - 0.5) * 0.04, r * Math.sin(angle)];
@@ -435,52 +440,111 @@
     }
 
     function brainShape(i, count) {
-      // Ciencia de Datos-inspired brain: two hemispheres with sulci folds
-      const side = i < count / 2 ? -1 : 1; // left or right hemisphere
-
+      const side = i < count / 2 ? -1 : 1;
       if (i % 50 === 0) {
-        // Central fissure (midline split) — a vertical line of particles
         const yy = (Math.random() - 0.5) * 2.0;
         const zz = (Math.random() - 0.5) * 0.3;
         return [0, yy * 0.8, zz];
       }
-
-      // Brain hemisphere as deformed sphere with sulcus waves
       const phi = Math.acos(2 * Math.random() - 1);
-      const theta = Math.random() * Math.PI; // half-sphere per side
-
-      // Base hemisphere radius with brain-like proportions
+      const theta = Math.random() * Math.PI;
       const baseR = 0.85;
-      // Sulci: wavy surface using sin of multiple frequencies
       const sulcus = 1.0
         + 0.08 * Math.sin(phi * 6.0 + theta * 3.0)
         + 0.05 * Math.sin(phi * 10.0 - theta * 5.0)
         + 0.04 * Math.cos(theta * 8.0 + phi * 4.0);
       const r = baseR * sulcus + Math.random() * 0.04;
-
-      // Flatten vertically to create brain-like oval shape (wider than tall)
       let x = r * Math.sin(phi) * Math.cos(theta) * side;
-      let y = r * Math.cos(phi) * 0.85; // slightly flattened top-bottom
-      let z = r * Math.sin(phi) * Math.sin(theta) * 0.7; // flattened front-back
-
-      // Shift hemispheres apart to show the midline gap
+      let y = r * Math.cos(phi) * 0.85;
+      let z = r * Math.sin(phi) * Math.sin(theta) * 0.7;
       x += side * 0.08;
-
-      // Slight downward taper at the bottom (brain stem hint)
       if (y < -0.5) {
         x *= 0.6 + (y + 0.5) * 0.3;
         z *= 0.6 + (y + 0.5) * 0.3;
       }
-
       return [x, y, z];
     }
 
-    const shapeGenerators = { heart: heartShape, galaxy: galaxyShape, saturn: saturnShape, flower: flowerShape, dna: dnaShape, sphere: sphereShape, brain: brainShape };
+    // ========== TEXT-TO-PARTICLES ENGINE ==========
+    let welcomePositions = null; // cached positions for the welcome text
+
+    function generateTextPositions(text, count) {
+      const offCanvas = document.createElement('canvas');
+      const W = 1024, H = 320;
+      offCanvas.width = W;
+      offCanvas.height = H;
+      const ctx = offCanvas.getContext('2d');
+
+      ctx.fillStyle = '#000';
+      ctx.fillRect(0, 0, W, H);
+      ctx.fillStyle = '#fff';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+
+      // Split into lines
+      const lines = text.split('\n');
+      const fontSize = Math.min(48, W / (Math.max(...lines.map(l => l.length)) * 0.65));
+      ctx.font = `bold ${fontSize}px Inter, Arial, sans-serif`;
+
+      const lineHeight = fontSize * 1.4;
+      const totalHeight = lines.length * lineHeight;
+      const startY = (H - totalHeight) / 2 + lineHeight / 2;
+
+      for (let li = 0; li < lines.length; li++) {
+        ctx.fillText(lines[li], W / 2, startY + li * lineHeight);
+      }
+
+      // Sample pixels where text was drawn
+      const imageData = ctx.getImageData(0, 0, W, H).data;
+      const filledPixels = [];
+      for (let py = 0; py < H; py += 2) {
+        for (let px = 0; px < W; px += 2) {
+          if (imageData[(py * W + px) * 4] > 128) {
+            filledPixels.push([px, py]);
+          }
+        }
+      }
+
+      // Sample 'count' positions from filled pixels
+      const result = [];
+      for (let i = 0; i < count; i++) {
+        if (filledPixels.length > 0) {
+          const idx = Math.floor(Math.random() * filledPixels.length);
+          const [px, py] = filledPixels[idx];
+          // Map to 3D coords: center at origin, scale to reasonable size
+          const x = ((px / W) - 0.5) * 6;
+          const y = -((py / H) - 0.5) * 2;
+          const z = (Math.random() - 0.5) * 0.15;
+          result.push([x, y, z]);
+        } else {
+          // Fallback: random position if text produced no pixels
+          result.push([(Math.random() - 0.5) * 4, (Math.random() - 0.5) * 2, (Math.random() - 0.5) * 0.5]);
+        }
+      }
+      return result;
+    }
+
+    function welcomeShape(i, count) {
+      if (!welcomePositions) {
+        welcomePositions = generateTextPositions(
+          'BIENVENIDOS A LA DEMOSTRACION\nY PRESENTACION DE\nCIENCIA DE DATOS',
+          count
+        );
+      }
+      return welcomePositions[i];
+    }
+
+    const shapeGenerators = { cloud: cloudShape, heart: heartShape, galaxy: galaxyShape, saturn: saturnShape, flower: flowerShape, dna: dnaShape, sphere: sphereShape, brain: brainShape, welcome: welcomeShape };
 
     // ========== SET SHAPE TARGETS ==========
-    let currentShape = 'heart';
+    let currentShape = 'cloud';
+    let gestureShape = null;      // shape triggered by gesture (overrides buttons)
+    let lastGestureShape = null;  // to avoid re-setting targets every frame
 
     function setTargets(shapeName) {
+      if (shapeName === 'welcome') {
+        welcomePositions = null; // regenerate for fresh randomization
+      }
       const gen = shapeGenerators[shapeName];
       for (let i = 0; i < PARTICLE_COUNT; i++) {
         const [x, y, z] = gen(i, PARTICLE_COUNT);
@@ -490,7 +554,7 @@
       }
     }
 
-    // Init positions randomly
+    // Init positions randomly (cloud)
     for (let i = 0; i < PARTICLE_COUNT; i++) {
       positions[i * 3] = (Math.random() - 0.5) * 6;
       positions[i * 3 + 1] = (Math.random() - 0.5) * 6;
@@ -499,7 +563,7 @@
       velocities[i * 3 + 1] = 0;
       velocities[i * 3 + 2] = 0;
     }
-    setTargets('heart');
+    setTargets('cloud');
 
     // ========== GESTURE STATE ==========
     let gestureFactor = 0;       // 0 = closed/no hand, 1 = fully open
@@ -523,10 +587,9 @@
     const gestureText = document.getElementById('gesture-text');
 
     function calcOpenness(landmarks) {
-      // Average distance from each fingertip to the wrist, normalized
       const wrist = landmarks[0];
-      const tips = [4, 8, 12, 16, 20]; // thumb, index, middle, ring, pinky
-      const mids = [2, 5, 9, 13, 17];  // corresponding base joints
+      const tips = [4, 8, 12, 16, 20];
+      const mids = [2, 5, 9, 13, 17];
       let openScore = 0;
       for (let j = 0; j < tips.length; j++) {
         const tip = landmarks[tips[j]];
@@ -536,8 +599,35 @@
         openScore += tipDist / (midDist + 0.001);
       }
       openScore /= tips.length;
-      // Map to 0-1 range (empirical thresholds)
       return Math.max(0, Math.min(1, (openScore - 1.2) / 1.0));
+    }
+
+    // ========== GESTURE DETECTION ==========
+    function isFingerExtended(landmarks, tipIdx, pipIdx, mcpIdx) {
+      // A finger is extended if the tip is farther from wrist than the PIP joint
+      const wrist = landmarks[0];
+      const tipDist = Math.hypot(
+        landmarks[tipIdx].x - wrist.x,
+        landmarks[tipIdx].y - wrist.y
+      );
+      const pipDist = Math.hypot(
+        landmarks[pipIdx].x - wrist.x,
+        landmarks[pipIdx].y - wrist.y
+      );
+      return tipDist > pipDist * 1.1;
+    }
+
+    function detectGesture(landmarks) {
+      // Check each finger: [tip, pip, mcp]
+      const index = isFingerExtended(landmarks, 8, 6, 5);
+      const middle = isFingerExtended(landmarks, 12, 10, 9);
+      const ring = isFingerExtended(landmarks, 16, 14, 13);
+      const pinky = isFingerExtended(landmarks, 20, 18, 17);
+
+      // ✌️ Peace: only index + middle extended
+      if (index && middle && !ring && !pinky) return 'peace';
+
+      return null;
     }
 
     const hands = new Hands({
@@ -561,15 +651,31 @@
         gestureFactor = calcOpenness(lm);
         handDetected = true;
 
-        // --- Hand position: palm center (landmark 9) ---
+        // --- Hand position ---
         const palm = lm[9];
-        handX = palm.x;  // 0 (left of camera) to 1 (right)
-        handY = palm.y;  // 0 (top) to 1 (bottom)
+        handX = palm.x;
+        handY = palm.y;
 
-        // --- Hand rotation: angle between wrist (0) and middle finger base (9) ---
+        // --- Hand rotation ---
         const wrist = lm[0];
         const midBase = lm[9];
         handRotZ = Math.atan2(midBase.x - wrist.x, wrist.y - midBase.y);
+
+        // --- Gesture detection ---
+        const gesture = detectGesture(lm);
+        if (gesture === 'peace') {
+          gestureShape = 'welcome';
+          gestureDot.className = 'open';
+          gestureText.textContent = '✌️ Peace — Welcome Message';
+        } else if (gestureFactor > 0.5) {
+          gestureShape = null; // no special gesture, keep current button shape
+          gestureDot.className = 'open';
+          gestureText.textContent = 'Hand Open — Expanding';
+        } else {
+          gestureShape = null;
+          gestureDot.className = 'closed';
+          gestureText.textContent = 'Fist Closed — Contracting';
+        }
 
         // Draw landmarks
         overlayCtx.fillStyle = 'rgba(167,139,250,0.7)';
@@ -578,17 +684,10 @@
           overlayCtx.arc(p.x * overlayCanvas.width, p.y * overlayCanvas.height, 2, 0, Math.PI * 2);
           overlayCtx.fill();
         }
-
-        if (gestureFactor > 0.5) {
-          gestureDot.className = 'open';
-          gestureText.textContent = 'Hand Open — Expanding';
-        } else {
-          gestureDot.className = 'closed';
-          gestureText.textContent = 'Fist Closed — Contracting';
-        }
       } else {
         gestureFactor = 0;
         handDetected = false;
+        gestureShape = null;
         gestureDot.className = '';
         gestureText.textContent = 'Waiting for hand…';
       }
@@ -622,6 +721,22 @@
     function animate() {
       requestAnimationFrame(animate);
       const dt = Math.min(clock.getDelta(), 0.05);
+
+      // --- Gesture-driven shape switching ---
+      let activeShape = currentShape;
+      if (gestureShape) {
+        activeShape = gestureShape;
+      } else if (!handDetected) {
+        activeShape = 'cloud';
+      }
+      if (activeShape !== lastGestureShape) {
+        setTargets(activeShape);
+        lastGestureShape = activeShape;
+        // Update button highlight
+        document.querySelectorAll('.shape-btn').forEach(b => {
+          b.classList.toggle('active', b.dataset.shape === activeShape);
+        });
+      }
 
       // Smooth gesture
       smoothGesture += (gestureFactor - smoothGesture) * GESTURE_SMOOTH;
@@ -658,14 +773,22 @@
       }
       geometry.attributes.position.needsUpdate = true;
 
-      // Slow auto-rotate + mouse orbit
+      // Slow auto-rotate + mouse orbit (disabled for text shapes)
+      const isTextShape = (lastGestureShape === 'welcome');
       const t = clock.elapsedTime;
       rotX += (mouseX - rotX) * 0.05;
       rotY += (mouseY - rotY) * 0.05;
 
-      points.rotation.y = t * 0.12 + rotX;
-      points.rotation.x = rotY;
-      points.rotation.z = smoothHandRotZ;  // Hand rotation controls Z axis
+      if (isTextShape) {
+        // Keep text face-on: no auto-rotation, gentle hand influence only
+        points.rotation.y = rotX * 0.3;
+        points.rotation.x = rotY * 0.3;
+        points.rotation.z = 0;
+      } else {
+        points.rotation.y = t * 0.12 + rotX;
+        points.rotation.x = rotY;
+        points.rotation.z = smoothHandRotZ;
+      }
 
       // Hand position controls figure translation
       points.position.x = smoothHandX;
