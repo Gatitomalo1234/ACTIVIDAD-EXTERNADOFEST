@@ -724,7 +724,7 @@
     });
 
     hands.setOptions({
-      maxNumHands: 1,
+      maxNumHands: 2,
       modelComplexity: 1,
       minDetectionConfidence: 0.6,
       minTrackingConfidence: 0.5,
@@ -736,35 +736,54 @@
       overlayCtx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
 
       if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
-        const lm = results.multiHandLandmarks[0];
-        gestureFactor = calcOpenness(lm);
         handDetected = true;
+        let maxOpenness = 0;
+        let bestGesture = null;
 
-        // --- Hand position ---
-        const palm = lm[9];
-        handX = palm.x;
-        handY = palm.y;
+        results.multiHandLandmarks.forEach((lm, index) => {
+          // --- Aggregate Openness (Zoom) ---
+          const open = calcOpenness(lm);
+          if (open > maxOpenness) maxOpenness = open;
 
-        // --- Hand rotation ---
-        const wrist = lm[0];
-        const midBase = lm[9];
-        handRotZ = Math.atan2(midBase.x - wrist.x, wrist.y - midBase.y);
+          // --- Gesture Detection (Shape) ---
+          const g = detectGesture(lm);
+          if (g && !bestGesture) bestGesture = g;
 
-        // --- Gesture detection ---
-        const gesture = detectGesture(lm);
-        if (gesture === 'peace') {
+          // --- Position/Rotation (Follow 1st hand) ---
+          if (index === 0) {
+            const palm = lm[9];
+            handX = palm.x;
+            handY = palm.y;
+            const wrist = lm[0];
+            const midBase = lm[9];
+            handRotZ = Math.atan2(midBase.x - wrist.x, wrist.y - midBase.y);
+          }
+
+          // Draw landmarks for each hand
+          overlayCtx.fillStyle = index === 0 ? 'rgba(167,139,250,0.7)' : 'rgba(74,222,128,0.7)';
+          for (const p of lm) {
+            overlayCtx.beginPath();
+            overlayCtx.arc(p.x * overlayCanvas.width, p.y * overlayCanvas.height, 2, 0, Math.PI * 2);
+            overlayCtx.fill();
+          }
+        });
+
+        gestureFactor = maxOpenness;
+
+        // --- Apply Special Gesture Shape ---
+        if (bestGesture === 'peace') {
           gestureShape = 'welcome';
-          gestureFactor = 2.0; // Force maximum expansion
+          if (gestureFactor < 1.0) gestureFactor = 2.0; // Force large if hand doing gesture is closed
           gestureDot.className = 'open';
           gestureText.textContent = '✌️ Peace — Welcome Message';
-        } else if (gesture === 'point') {
+        } else if (bestGesture === 'point') {
           gestureShape = 'logo';
-          gestureFactor = 2.0; // Force maximum expansion
+          if (gestureFactor < 1.0) gestureFactor = 2.0; // Force large if hand doing gesture is closed
           gestureDot.className = 'open';
           gestureText.style.background = 'rgba(0, 154, 205, 0.3)';
           gestureText.textContent = '☝️ Index Up — Identity';
         } else if (gestureFactor > 0.5) {
-          gestureShape = null; // no special gesture, keep current button shape
+          gestureShape = null;
           gestureDot.className = 'open';
           gestureText.style.background = 'rgba(167, 139, 250, 0.2)';
           gestureText.textContent = 'Hand Open — Expanding';
@@ -773,14 +792,6 @@
           gestureDot.className = 'closed';
           gestureText.style.background = 'rgba(167, 139, 250, 0.2)';
           gestureText.textContent = 'Fist Closed — Contracting';
-        }
-
-        // Draw landmarks
-        overlayCtx.fillStyle = 'rgba(167,139,250,0.7)';
-        for (const p of lm) {
-          overlayCtx.beginPath();
-          overlayCtx.arc(p.x * overlayCanvas.width, p.y * overlayCanvas.height, 2, 0, Math.PI * 2);
-          overlayCtx.fill();
         }
       } else {
         gestureFactor = 0;

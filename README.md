@@ -131,10 +131,11 @@ EXTERNADO FEST/
 
 ## 📝 Changelog
 
-- **v4.2** — Un-mirroring de texto (Lectura natural), fijación de tamaño para gestos (Proximidad) y limpieza de UI (4 botones).
+- **v4.5** — Soporte Dual-Hand (Gesto con una mano, Zoom con la otra) y landmarks en color.
+- **v4.4** — Gesto ☝️ (Index Up) para Logo, un-mirroring de texto y escala aumentada (8.5).
+- **v4.2** — Limpieza de UI (4 botones) y fijación de tamaño para gestos de proximidad.
 - **v4.1** — Gesto 👌 OK para el Logo, auto-rotación y suavizado de movimiento profesional.
 - **v4.0** — Reconstrucción de Logo "CIENCIA DE DATOS", colores dinámicos por partícula y nodos brillantes.
-- **v3.1** — Aumento a 15,000 partículas, centrado perfecto de texto y botón de ON/OFF para cámara
 - **v3.0** — Detección de gesto ✌️ Peace, texto de bienvenida como partículas, nube por defecto sin mano
 - **v2.0** — Tracking de posición y rotación de la mano para mover/rotar la figura 3D
 - **v1.0** — Sistema de partículas con 7 formas y control de expansión/contracción por apertura de mano
