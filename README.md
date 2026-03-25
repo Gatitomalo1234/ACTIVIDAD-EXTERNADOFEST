@@ -10,7 +10,7 @@ Sistema de partículas 3D interactivo controlado por **gestos de la mano** en ti
 
 ## 🎯 Descripción
 
-Una experiencia visual interactiva donde **5,000 partículas** se organizan en formas 3D y responden a los movimientos de tu mano capturados por la webcam. Ideal para demostraciones, festivales y eventos de tecnología.
+Una experiencia visual interactiva donde **15,000 partículas** se organizan en formas 3D y responden a los movimientos de tu mano capturados por la webcam. Ideal para demostraciones, festivales y eventos de tecnología.
 
 ---
 
@@ -70,7 +70,8 @@ El texto se renderiza convirtiendo los caracteres a posiciones de partículas me
 2. Permite el acceso a la **cámara web** cuando el navegador lo solicite
 3. Las partículas empiezan como una nube dispersa
 4. Muestra tu mano frente a la cámara y haz ✌️ para ver el mensaje de bienvenida
-5. Usa los botones del panel para cambiar entre formas manualmente
+5. Usa el botón **"Apagar Cámara"** en el preview si necesitas pausar el tracking sin cerrar la aplicación
+6. Usa los botones del panel para cambiar entre formas manualmente
 
 > **Nota:** Requiere conexión a internet para cargar las librerías (Three.js y MediaPipe) desde CDN.
 
@@ -106,9 +107,10 @@ smoothValue += (rawValue - smoothValue) * SMOOTH_FACTOR
 
 ### Renderizado
 
-- **5,000 partículas** con `THREE.Points`
+- **15,000 partículas** con `THREE.Points`
 - `AdditiveBlending` para efecto de brillo acumulativo
 - Las partículas se mueven un **4% por frame** hacia su objetivo (`LERP_SPEED = 0.04`)
+- Centrado dinámico: El texto se centra calculando el centroide de los píxeles muestreados.
 - Rotación automática lenta en Y + control por mouse + control por mano
 
 ---
@@ -125,6 +127,7 @@ EXTERNADO FEST/
 
 ## 📝 Changelog
 
+- **v3.1** — Aumento a 15,000 partículas, centrado perfecto de texto y botón de ON/OFF para cámara
 - **v3.0** — Detección de gesto ✌️ Peace, texto de bienvenida como partículas, nube por defecto sin mano
 - **v2.0** — Tracking de posición y rotación de la mano para mover/rotar la figura 3D
 - **v1.0** — Sistema de partículas con 7 formas y control de expansión/contracción por apertura de mano

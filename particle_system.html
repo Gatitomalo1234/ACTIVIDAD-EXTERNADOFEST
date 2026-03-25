@@ -193,6 +193,25 @@
       border-radius: 10px;
       overflow: hidden;
       border: 1px solid rgba(255, 255, 255, 0.08);
+      background: #05050a;
+    }
+
+    #cam-off-message {
+      position: absolute;
+      inset: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      color: rgba(255, 255, 255, 0.4);
+      text-align: center;
+      padding: 20px;
+      background: rgba(0, 0, 0, 0.8);
+      z-index: 5;
+    }
+
+    #cam-wrapper.off #cam-off-message {
+      display: flex;
     }
 
     #cam-wrapper video,
@@ -207,6 +226,7 @@
       position: absolute;
       inset: 0;
       pointer-events: none;
+      z-index: 2;
     }
 
     #cam-badge {
@@ -220,6 +240,28 @@
       border-radius: 6px;
       letter-spacing: 0.5px;
       color: rgba(255, 255, 255, 0.6);
+      z-index: 10;
+    }
+
+    #cam-toggle-btn {
+      position: absolute;
+      bottom: 6px;
+      right: 6px;
+      font-size: 10px;
+      font-weight: 600;
+      background: rgba(167, 139, 250, 0.3);
+      border: 1px solid rgba(167, 139, 250, 0.5);
+      padding: 4px 8px;
+      border-radius: 6px;
+      cursor: pointer;
+      color: #fff;
+      backdrop-filter: blur(4px);
+      z-index: 10;
+      transition: all 0.2s;
+    }
+
+    #cam-toggle-btn:hover {
+      background: rgba(167, 139, 250, 0.5);
     }
 
     /* Fullscreen btn */
@@ -322,6 +364,8 @@
         <video id="cam-video" playsinline></video>
         <canvas id="cam-overlay"></canvas>
         <div id="cam-badge">LIVE</div>
+        <div id="cam-off-message">Cámara Desactivada<br><span style="font-size: 9px; opacity: 0.6;">(Tracking pausado)</span></div>
+        <button id="cam-toggle-btn">Apagar Cámara</button>
       </div>
     </div>
 
@@ -338,7 +382,7 @@
 
   <script>
     // ========== CONFIG ==========
-    const PARTICLE_COUNT = 5000;
+    const PARTICLE_COUNT = 15000;
     const LERP_SPEED = 0.04;
 
     // ========== THREE.JS SETUP ==========
@@ -354,10 +398,10 @@
     // Particle material
     const particleColor = new THREE.Color('#a78bfa');
     const material = new THREE.PointsMaterial({
-      size: 0.03,
+      size: 0.02,
       color: particleColor,
       transparent: true,
-      opacity: 0.85,
+      opacity: 0.9,
       blending: THREE.AdditiveBlending,
       depthWrite: false,
       sizeAttenuation: true,
@@ -497,13 +541,25 @@
       // Sample pixels where text was drawn
       const imageData = ctx.getImageData(0, 0, W, H).data;
       const filledPixels = [];
-      for (let py = 0; py < H; py += 2) {
-        for (let px = 0; px < W; px += 2) {
-          if (imageData[(py * W + px) * 4] > 128) {
+      let minX = W, maxX = 0, minY = H, maxY = 0;
+
+      for (let py = 0; py < H; py += 1) { // Finer sampling for 15k
+        for (let px = 0; px < W; px += 1) {
+          const idx = (py * W + px) * 4;
+          if (imageData[idx] > 128) {
             filledPixels.push([px, py]);
+            if (px < minX) minX = px;
+            if (px > maxX) maxX = px;
+            if (py < minY) minY = py;
+            if (py > maxY) maxY = py;
           }
         }
       }
+
+      // Calculate centroid of the text block for perfect centering
+      const centerX = (minX + maxX) / 2;
+      const centerY = (minY + maxY) / 2;
+      const scale = 5.5 / W; // Unified scale factor
 
       // Sample 'count' positions from filled pixels
       const result = [];
@@ -511,13 +567,13 @@
         if (filledPixels.length > 0) {
           const idx = Math.floor(Math.random() * filledPixels.length);
           const [px, py] = filledPixels[idx];
-          // Map to 3D coords: center at origin, scale to reasonable size
-          const x = ((px / W) - 0.5) * 6;
-          const y = -((py / H) - 0.5) * 2;
-          const z = (Math.random() - 0.5) * 0.15;
+          
+          // Map to 3D coords relative to centroid
+          const x = (px - centerX) * scale;
+          const y = -(py - centerY) * scale * 1.5; // Slightly taller for readability
+          const z = (Math.random() - 0.5) * 0.05;
           result.push([x, y, z]);
         } else {
-          // Fallback: random position if text produced no pixels
           result.push([(Math.random() - 0.5) * 4, (Math.random() - 0.5) * 2, (Math.random() - 0.5) * 0.5]);
         }
       }
@@ -694,12 +750,38 @@
     });
 
     // Start camera
+    let isCamRunning = true;
     const camUtil = new Camera(videoEl, {
-      onFrame: async () => { await hands.send({ image: videoEl }); },
+      onFrame: async () => { 
+        if (isCamRunning) {
+          await hands.send({ image: videoEl }); 
+        }
+      },
       width: 320,
       height: 240,
     });
     camUtil.start();
+
+    document.getElementById('cam-toggle-btn').addEventListener('click', (e) => {
+      isCamRunning = !isCamRunning;
+      const wrapper = document.getElementById('cam-wrapper');
+      const btn = e.target;
+      
+      if (isCamRunning) {
+        btn.textContent = 'Apagar Cámara';
+        wrapper.classList.remove('off');
+        camUtil.start();
+      } else {
+        btn.textContent = 'Encender Cámara';
+        wrapper.classList.add('off');
+        camUtil.stop();
+        // Reset hand state
+        handDetected = false;
+        gestureShape = null;
+        gestureDot.className = '';
+        gestureText.textContent = 'Cámara apagada';
+      }
+    });
 
     // ========== MOUSE ORBIT ==========
     let mouseX = 0, mouseY = 0;
