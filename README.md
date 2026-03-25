@@ -69,7 +69,9 @@ El texto se renderiza convirtiendo los caracteres a posiciones de partículas me
 1. Abre `particle_system.html` en **Google Chrome** (recomendado)
 2. Permite el acceso a la **cámara web** cuando el navegador lo solicite
 3. Las partículas empiezan como una nube dispersa
-4. Muestra tu mano frente a la cámara y haz ✌️ para ver el mensaje de bienvenida
+4. Muestra tu mano frente a la cámara:
+    - ✌️ **Peace**: Mensaje de bienvenida
+    - 👌 **OK**: Logo oficial "Ciencia de Datos"
 5. Usa el botón **"Apagar Cámara"** en el preview si necesitas pausar el tracking sin cerrar la aplicación
 6. Usa los botones del panel para cambiar entre formas manualmente
 
@@ -112,8 +114,8 @@ smoothValue += (rawValue - smoothValue) * SMOOTH_FACTOR
 - `AdditiveBlending` para efecto de brillo acumulativo
 - Las partículas se mueven un **4% por frame** hacia su objetivo (`LERP_SPEED = 0.04`)
 - Centrado dinámico: El texto se centra calculando el centroide de los píxeles muestreados.
-- Logo Reconstruido: 2.5D con cerebro bicolor y nodos brillantes.
-- Rotación automática lenta en Y + control por mouse + control por mano
+- Logo Reconstruido: 2.5D con cerebro bicolor, nodos brillantes y **auto-rotación**.
+- Rotación automática lenta en Y + control por mouse + control por mano (con inercia para el logo)
 
 ---
 
@@ -129,6 +131,7 @@ EXTERNADO FEST/
 
 ## 📝 Changelog
 
+- **v4.1** — Gesto 👌 OK para el Logo, auto-rotación y suavizado de movimiento profesional.
 - **v4.0** — Reconstrucción de Logo "CIENCIA DE DATOS", colores dinámicos por partícula y nodos brillantes.
 - **v3.1** — Aumento a 15,000 partículas, centrado perfecto de texto y botón de ON/OFF para cámara
 - **v3.0** — Detección de gesto ✌️ Peace, texto de bienvenida como partículas, nube por defecto sin mano

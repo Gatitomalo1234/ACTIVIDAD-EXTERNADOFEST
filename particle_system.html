@@ -799,6 +799,12 @@
       // ✌️ Peace: only index + middle extended
       if (index && middle && !ring && !pinky) return 'peace';
 
+      // 👌 OK: thumb and index tips close, others extended
+      const thumbTip = landmarks[4];
+      const indexTip = landmarks[8];
+      const dist = Math.hypot(thumbTip.x - indexTip.x, thumbTip.y - indexTip.y);
+      if (dist < 0.05 && middle && ring && pinky) return 'ok';
+
       return null;
     }
 
@@ -839,13 +845,20 @@
           gestureShape = 'welcome';
           gestureDot.className = 'open';
           gestureText.textContent = '✌️ Peace — Welcome Message';
+        } else if (gesture === 'ok') {
+          gestureShape = 'logo';
+          gestureDot.className = 'open';
+          gestureText.style.background = 'rgba(0, 154, 205, 0.3)';
+          gestureText.textContent = '👌 OK — Identity Ciencia de Datos';
         } else if (gestureFactor > 0.5) {
           gestureShape = null; // no special gesture, keep current button shape
           gestureDot.className = 'open';
+          gestureText.style.background = 'rgba(167, 139, 250, 0.2)';
           gestureText.textContent = 'Hand Open — Expanding';
         } else {
           gestureShape = null;
           gestureDot.className = 'closed';
+          gestureText.style.background = 'rgba(167, 139, 250, 0.2)';
           gestureText.textContent = 'Fist Closed — Contracting';
         }
 
@@ -940,18 +953,26 @@
       smoothGesture += (gestureFactor - smoothGesture) * GESTURE_SMOOTH;
 
       // --- Smooth hand tracking ---
+      const isLogo = (lastGestureShape === 'logo');
+      const moveInertia = isLogo ? 0.04 : HAND_TRACK_SMOOTH;
+
       if (handDetected) {
         // Map camera coords to 3D space (mirror X so moving hand right moves figure right)
         const targetX = -(handX - 0.5) * HAND_MOVE_RANGE * 2;
         const targetY = -(handY - 0.5) * HAND_MOVE_RANGE * 2;
-        smoothHandX += (targetX - smoothHandX) * HAND_TRACK_SMOOTH;
-        smoothHandY += (targetY - smoothHandY) * HAND_TRACK_SMOOTH;
-        smoothHandRotZ += (handRotZ - smoothHandRotZ) * HAND_TRACK_SMOOTH;
+        smoothHandX += (targetX - smoothHandX) * moveInertia;
+        smoothHandY += (targetY - smoothHandY) * moveInertia;
+        smoothHandRotZ += (handRotZ - smoothHandRotZ) * moveInertia;
       } else {
         // Smoothly return to center when no hand detected
-        smoothHandX += (0 - smoothHandX) * HAND_TRACK_SMOOTH * 0.5;
-        smoothHandY += (0 - smoothHandY) * HAND_TRACK_SMOOTH * 0.5;
-        smoothHandRotZ += (0 - smoothHandRotZ) * HAND_TRACK_SMOOTH * 0.5;
+        smoothHandX += (0 - smoothHandX) * moveInertia * 0.5;
+        smoothHandY += (0 - smoothHandY) * moveInertia * 0.5;
+        smoothHandRotZ += (0 - smoothHandRotZ) * moveInertia * 0.5;
+      }
+
+      // Add auto-rotation specifically for the logo
+      if (isLogo) {
+        rotX += 0.01;
       }
 
       // Expansion factor: when hand is open particles expand outward
