@@ -506,6 +506,15 @@
     let smoothGesture = 0;       // smoothed value
     const GESTURE_SMOOTH = 0.08;
 
+    // ========== HAND TRACKING STATE ==========
+    let handX = 0.5, handY = 0.5;           // raw hand position (0-1, from camera)
+    let handRotZ = 0;                        // raw hand rotation angle (radians)
+    let smoothHandX = 0, smoothHandY = 0;    // smoothed position (mapped to 3D coords)
+    let smoothHandRotZ = 0;                  // smoothed rotation
+    let handDetected = false;
+    const HAND_TRACK_SMOOTH = 0.07;          // smoothing factor for hand tracking
+    const HAND_MOVE_RANGE = 3.5;             // max displacement in 3D units
+
     // ========== MEDIAPIPE HANDS ==========
     const videoEl = document.getElementById('cam-video');
     const overlayCanvas = document.getElementById('cam-overlay');
@@ -550,6 +559,17 @@
       if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
         const lm = results.multiHandLandmarks[0];
         gestureFactor = calcOpenness(lm);
+        handDetected = true;
+
+        // --- Hand position: palm center (landmark 9) ---
+        const palm = lm[9];
+        handX = palm.x;  // 0 (left of camera) to 1 (right)
+        handY = palm.y;  // 0 (top) to 1 (bottom)
+
+        // --- Hand rotation: angle between wrist (0) and middle finger base (9) ---
+        const wrist = lm[0];
+        const midBase = lm[9];
+        handRotZ = Math.atan2(midBase.x - wrist.x, wrist.y - midBase.y);
 
         // Draw landmarks
         overlayCtx.fillStyle = 'rgba(167,139,250,0.7)';
@@ -568,6 +588,7 @@
         }
       } else {
         gestureFactor = 0;
+        handDetected = false;
         gestureDot.className = '';
         gestureText.textContent = 'Waiting for hand…';
       }
@@ -605,6 +626,21 @@
       // Smooth gesture
       smoothGesture += (gestureFactor - smoothGesture) * GESTURE_SMOOTH;
 
+      // --- Smooth hand tracking ---
+      if (handDetected) {
+        // Map camera coords to 3D space (mirror X so moving hand right moves figure right)
+        const targetX = -(handX - 0.5) * HAND_MOVE_RANGE * 2;
+        const targetY = -(handY - 0.5) * HAND_MOVE_RANGE * 2;
+        smoothHandX += (targetX - smoothHandX) * HAND_TRACK_SMOOTH;
+        smoothHandY += (targetY - smoothHandY) * HAND_TRACK_SMOOTH;
+        smoothHandRotZ += (handRotZ - smoothHandRotZ) * HAND_TRACK_SMOOTH;
+      } else {
+        // Smoothly return to center when no hand detected
+        smoothHandX += (0 - smoothHandX) * HAND_TRACK_SMOOTH * 0.5;
+        smoothHandY += (0 - smoothHandY) * HAND_TRACK_SMOOTH * 0.5;
+        smoothHandRotZ += (0 - smoothHandRotZ) * HAND_TRACK_SMOOTH * 0.5;
+      }
+
       // Expansion factor: when hand is open particles expand outward
       const expansionScale = 1.0 + smoothGesture * 2.5;
 
@@ -629,6 +665,11 @@
 
       points.rotation.y = t * 0.12 + rotX;
       points.rotation.x = rotY;
+      points.rotation.z = smoothHandRotZ;  // Hand rotation controls Z axis
+
+      // Hand position controls figure translation
+      points.position.x = smoothHandX;
+      points.position.y = smoothHandY;
 
       // Particle size responds to gesture
       material.size = 0.025 + smoothGesture * 0.025;
