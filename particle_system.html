@@ -737,30 +737,39 @@
 
       if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
         handDetected = true;
-        let maxOpenness = 0;
         let bestGesture = null;
+        let currentOpenness = 0;
+        let gestureFromSpecificHand = null;
 
         results.multiHandLandmarks.forEach((lm, index) => {
-          // --- Aggregate Openness (Zoom) ---
-          const open = calcOpenness(lm);
-          if (open > maxOpenness) maxOpenness = open;
-
-          // --- Gesture Detection (Shape) ---
-          const g = detectGesture(lm);
-          if (g && !bestGesture) bestGesture = g;
-
-          // --- Position/Rotation (Follow 1st hand) ---
-          if (index === 0) {
-            const palm = lm[9];
-            handX = palm.x;
-            handY = palm.y;
-            const wrist = lm[0];
-            const midBase = lm[9];
-            handRotZ = Math.atan2(midBase.x - wrist.x, wrist.y - midBase.y);
+          // MediaPipe label: 'Left' or 'Right'. Be careful with Mirroring.
+          // Usually, in a mirrored view, the 'Right' label corresponds to the physical right hand.
+          const label = results.multiHandedness[index].label; 
+          
+          // ROLE: NAVIGATION & ZOOM (Typically Left Hand by convention or user preference)
+          // We'll treat 'Left' hand as Navigation and 'Right' as Gestures.
+          if (label === 'Left' || results.multiHandLandmarks.length === 1) {
+             const open = calcOpenness(lm);
+             currentOpenness = open;
+             
+             // Update Position/Rotation only from the Navigation hand (or only hand)
+             const palm = lm[9];
+             handX = palm.x;
+             handY = palm.y;
+             const wrist = lm[0];
+             const midBase = lm[9];
+             handRotZ = Math.atan2(midBase.x - wrist.x, wrist.y - midBase.y);
           }
 
-          // Draw landmarks for each hand
-          overlayCtx.fillStyle = index === 0 ? 'rgba(167,139,250,0.7)' : 'rgba(74,222,128,0.7)';
+          // ROLE: GESTURES (Typically Right Hand)
+          if (label === 'Right' || results.multiHandLandmarks.length === 1) {
+             const g = detectGesture(lm);
+             if (g) bestGesture = g;
+          }
+
+          // Draw landmarks with role-based colors
+          // Navigation: Cyan/Blue-ish | Command: Pink/Magenta
+          overlayCtx.fillStyle = label === 'Left' ? 'rgba(74,222,128,0.7)' : 'rgba(255,48,107,0.7)';
           for (const p of lm) {
             overlayCtx.beginPath();
             overlayCtx.arc(p.x * overlayCanvas.width, p.y * overlayCanvas.height, 2, 0, Math.PI * 2);
@@ -768,30 +777,32 @@
           }
         });
 
-        gestureFactor = maxOpenness;
+        gestureFactor = currentOpenness;
 
         // --- Apply Special Gesture Shape ---
         if (bestGesture === 'peace') {
           gestureShape = 'welcome';
-          if (gestureFactor < 1.0) gestureFactor = 2.0; // Force large if hand doing gesture is closed
+          // Force scale for visibility
+          if (gestureFactor < 0.8) gestureFactor = 1.6; 
           gestureDot.className = 'open';
-          gestureText.textContent = '✌️ Peace — Welcome Message';
+          gestureText.textContent = '✌️ Right Hand [Peace] — Welcome';
+          gestureText.style.background = 'rgba(255, 48, 107, 0.3)';
         } else if (bestGesture === 'point') {
           gestureShape = 'logo';
-          if (gestureFactor < 1.0) gestureFactor = 2.0; // Force large if hand doing gesture is closed
+          if (gestureFactor < 0.8) gestureFactor = 1.6;
           gestureDot.className = 'open';
-          gestureText.style.background = 'rgba(0, 154, 205, 0.3)';
-          gestureText.textContent = '☝️ Index Up — Identity';
-        } else if (gestureFactor > 0.5) {
+          gestureText.style.background = 'rgba(0, 154, 205, 0.4)';
+          gestureText.textContent = '☝️ Right Hand [Index] — Identity';
+        } else if (currentOpenness > 0.5) {
           gestureShape = null;
           gestureDot.className = 'open';
-          gestureText.style.background = 'rgba(167, 139, 250, 0.2)';
-          gestureText.textContent = 'Hand Open — Expanding';
+          gestureText.style.background = 'rgba(74, 222, 128, 0.2)';
+          gestureText.textContent = 'Left Hand [Open] — Navigation & Zoom';
         } else {
           gestureShape = null;
           gestureDot.className = 'closed';
-          gestureText.style.background = 'rgba(167, 139, 250, 0.2)';
-          gestureText.textContent = 'Fist Closed — Contracting';
+          gestureText.style.background = 'rgba(74, 222, 128, 0.2)';
+          gestureText.textContent = 'Left Hand [Closed] — Fixed Position';
         }
       } else {
         gestureFactor = 0;

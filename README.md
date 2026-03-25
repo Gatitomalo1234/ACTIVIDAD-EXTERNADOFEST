@@ -112,6 +112,10 @@ smoothValue += (rawValue - smoothValue) * SMOOTH_FACTOR
 - **15,000 partículas** con `THREE.Points`
 - **Colores por Partícula**: Cada punto tiene su propio color (Soporte RGB individual).
 - `AdditiveBlending` para efecto de brillo acumulativo.
+- **Separación de Roles por Mano**: Usa la mano **Izquierda** (verde) para navegar y hacer zoom, y la mano **Derecha** (rosa) para disparar comandos de forma (✌️ o ☝️).
+- **Control de Privacidad**: Botón dedicado para apagar la cámara y detener el tracking.
+- **Visualización de Alta Densidad**: 15,000 partículas para máxima definición en texto y logos.
+- **Diseño Premium**: Colores corporativos, transiciones fluidas y **auto-rotación** del logo.
 - **Lectura Natural**: Texto y logos orientados correctamente de izquierda a derecha.
 - Centrado dinámico: El texto se centra calculando el centroide de los píxeles muestreados.
 - Logo Reconstruido: 2.5D con cerebro bicolor, nodos brillantes y **auto-rotación**.
@@ -131,9 +135,9 @@ EXTERNADO FEST/
 
 ## 📝 Changelog
 
+- **v4.6** — Roles Estrictos por Mano (Izquierda: Navegación/Zoom, Derecha: Gestos/Comandos).
 - **v4.5** — Soporte Dual-Hand (Gesto con una mano, Zoom con la otra) y landmarks en color.
 - **v4.4** — Gesto ☝️ (Index Up) para Logo, un-mirroring de texto y escala aumentada (8.5).
-- **v4.2** — Limpieza de UI (4 botones) y fijación de tamaño para gestos de proximidad.
 - **v4.1** — Gesto 👌 OK para el Logo, auto-rotación y suavizado de movimiento profesional.
 - **v4.0** — Reconstrucción de Logo "CIENCIA DE DATOS", colores dinámicos por partícula y nodos brillantes.
 - **v3.0** — Detección de gesto ✌️ Peace, texto de bienvenida como partículas, nube por defecto sin mano
