@@ -516,9 +516,9 @@
         const idx = Math.floor(Math.random() * points.length);
         const p = points[idx];
         const c = colors[idx];
-        const scale = 6 / W;
+        const scale = 8.5 / W;
         result.push({
-          pos: [(p[0] - W/2) * scale, -(p[1] - H/2) * scale - 0.5, (Math.random()-0.5)*0.05],
+          pos: [-(p[0] - W/2) * scale, -(p[1] - H/2) * scale - 0.5, (Math.random()-0.5)*0.05],
           col: c
         });
       }
@@ -575,7 +575,7 @@
       // Calculate centroid of the text block for perfect centering
       const centerX = (minX + maxX) / 2;
       const centerY = (minY + maxY) / 2;
-      const scale = 5.5 / W; // Unified scale factor
+      const scale = 8.5 / W; // Unified scale factor
 
       // Sample 'count' positions from filled pixels
       const result = [];
@@ -584,8 +584,8 @@
           const idx = Math.floor(Math.random() * filledPixels.length);
           const [px, py] = filledPixels[idx];
           
-          // Map to 3D coords relative to centroid
-          const x = (px - centerX) * scale;
+          // Map to 3D coords relative to centroid (mirrored for camera)
+          const x = -(px - centerX) * scale;
           const y = -(py - centerY) * scale * 1.5; 
           const z = (Math.random() - 0.5) * 0.05;
           result.push([x, y, z]);
@@ -713,11 +713,8 @@
       // ✌️ Peace: only index + middle extended
       if (index && middle && !ring && !pinky) return 'peace';
 
-      // 👌 OK: thumb and index tips close, others extended
-      const thumbTip = landmarks[4];
-      const indexTip = landmarks[8];
-      const dist = Math.hypot(thumbTip.x - indexTip.x, thumbTip.y - indexTip.y);
-      if (dist < 0.05 && middle && ring && pinky) return 'ok';
+      // ☝️ Index Up: only index extended
+      if (index && !middle && !ring && !pinky) return 'point';
 
       return null;
     }
@@ -757,15 +754,15 @@
         const gesture = detectGesture(lm);
         if (gesture === 'peace') {
           gestureShape = 'welcome';
-          gestureFactor = 1.1; // Force expansion
+          gestureFactor = 2.0; // Force maximum expansion
           gestureDot.className = 'open';
           gestureText.textContent = '✌️ Peace — Welcome Message';
-        } else if (gesture === 'ok') {
+        } else if (gesture === 'point') {
           gestureShape = 'logo';
-          gestureFactor = 1.1; // Force expansion
+          gestureFactor = 2.0; // Force maximum expansion
           gestureDot.className = 'open';
           gestureText.style.background = 'rgba(0, 154, 205, 0.3)';
-          gestureText.textContent = '👌 OK — Identity Ciencia de Datos';
+          gestureText.textContent = '☝️ Index Up — Identity';
         } else if (gestureFactor > 0.5) {
           gestureShape = null; // no special gesture, keep current button shape
           gestureDot.className = 'open';
