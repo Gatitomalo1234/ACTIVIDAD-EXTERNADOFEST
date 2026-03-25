@@ -453,55 +453,59 @@
       ctx.fillStyle = 'rgba(255,255,255,0.05)';
       ctx.beginPath(); ctx.arc(W/2, H/2 - 100, 380, 0, Math.PI*2); ctx.fill();
 
-      // Draw Brain - Left Side (Pink - Organic Lobes)
-      ctx.fillStyle = '#FF306B';
+      // Draw Brain - Left Side (Pink - Bumpy/Lobular)
+      const cx = W/2;
+      const cy = H/2 - 80;
+      ctx.fillStyle = '#D81B60';
       ctx.beginPath();
-      ctx.moveTo(W/2 - 10, H/2 - 400);
-      ctx.bezierCurveTo(W/2 - 100, H/2 - 430, W/2 - 250, H/2 - 400, W/2 - 320, H/2 - 280);
-      ctx.bezierCurveTo(W/2 - 400, H/2 - 200, W/2 - 380, H/2 - 50, W/2 - 300, H/2 + 50);
-      ctx.bezierCurveTo(W/2 - 350, H/2 + 150, W/2 - 250, H/2 + 250, W/2 - 100, H/2 + 250);
-      ctx.bezierCurveTo(W/2 - 50, H/2 + 250, W/2 - 20, H/2 + 200, W/2 - 10, H/2 + 150);
-      ctx.closePath();
+      ctx.moveTo(cx - 15, cy - 300);
+      // Top lobes
+      ctx.bezierCurveTo(cx - 80, cy - 320, cx - 110, cy - 310, cx - 130, cy - 280);
+      ctx.bezierCurveTo(cx - 200, cy - 300, cx - 280, cy - 240, cx - 300, cy - 150);
+      // Middle lobes
+      ctx.bezierCurveTo(cx - 330, cy - 100, cx - 330, cy - 20, cx - 290, cy + 40);
+      ctx.bezierCurveTo(cx - 330, cy + 100, cx - 280, cy + 200, cx - 180, cy + 220);
+      // Bottom lobes
+      ctx.bezierCurveTo(cx - 120, cy + 250, cx - 60, cy + 230, cx - 15, cy + 180);
+      ctx.lineTo(cx - 15, cy - 300);
       ctx.fill();
 
-      // Draw Brain - Right Side (Blue - Organic Lobes)
-      ctx.fillStyle = '#009ACD';
+      // Draw Brain - Right Side (Blue - Semicircle Circuit)
+      ctx.fillStyle = '#00B0FF';
       ctx.beginPath();
-      ctx.moveTo(W/2 + 10, H/2 - 400);
-      ctx.bezierCurveTo(W/2 + 100, H/2 - 430, W/2 + 250, H/2 - 400, W/2 + 320, H/2 - 280);
-      ctx.bezierCurveTo(W/2 + 400, H/2 - 200, W/2 + 380, H/2 - 50, W/2 + 300, H/2 + 50);
-      ctx.bezierCurveTo(W/2 + 350, H/2 + 150, W/2 + 250, H/2 + 250, W/2 + 100, H/2 + 250);
-      ctx.bezierCurveTo(W/2 + 50, H/2 + 250, W/2 + 20, H/2 + 200, W/2 + 10, H/2 + 150);
-      ctx.closePath();
+      ctx.arc(cx + 15, cy - 60, 240, -Math.PI/2, Math.PI/2, false);
+      ctx.lineTo(cx + 15, cy - 300);
       ctx.fill();
 
-      // Draw Circuit Lines & Nodes
-      ctx.strokeStyle = '#fff'; ctx.lineWidth = 8;
-      const drawNode = (x, y, color) => {
-        ctx.fillStyle = color; ctx.beginPath(); ctx.arc(x, y, 20, 0, Math.PI*2); ctx.fill();
-        ctx.strokeStyle = '#fff'; ctx.stroke();
+      // Draw Circuit Lines & Nodes (v4.9 style)
+      ctx.strokeStyle = '#000'; ctx.lineWidth = 14; // Black borders for circuit lines
+      const drawCircuit = (y, length, nodeColor) => {
+        ctx.beginPath();
+        ctx.moveTo(cx + 15, y);
+        ctx.lineTo(cx + 15 + length, y);
+        ctx.stroke();
+        
+        // Node
+        ctx.fillStyle = nodeColor;
+        ctx.beginPath();
+        ctx.arc(cx + 15 + length, y, 22, 0, Math.PI*2);
+        ctx.fill();
+        ctx.strokeStyle = '#000'; ctx.lineWidth = 4;
+        ctx.stroke();
       };
 
-      // Circuit paths on the BLUE side (right)
-      ctx.beginPath();
-      ctx.moveTo(W/2 + 50, H/2 - 350); ctx.lineTo(W/2 + 200, H/2 - 350);
-      ctx.moveTo(W/2 + 50, H/2 - 200); ctx.lineTo(W/2 + 250, H/2 - 200);
-      ctx.moveTo(W/2 + 50, H/2 - 50); ctx.lineTo(W/2 + 220, H/2 - 50);
-      ctx.moveTo(W/2 + 50, H/2 + 100); ctx.lineTo(W/2 + 250, H/2 + 100);
-      ctx.stroke();
-
-      drawNode(W/2 + 200, H/2 - 350, '#FFD700'); 
-      drawNode(W/2 + 250, H/2 - 200, '#4ade80'); 
-      drawNode(W/2 + 220, H/2 - 50, '#f97316');  
-      drawNode(W/2 + 250, H/2 + 100, '#FFD700'); 
+      drawCircuit(cy - 200, 160, '#FFD700'); // Top Node
+      drawCircuit(cy - 100, 210, '#4ade80'); // Mid Top
+      drawCircuit(cy, 180, '#f97316');       // Mid
+      drawCircuit(cy + 100, 200, '#FFD700'); // Bottom
 
       // Text "CIENCIA DE DATOS"
       ctx.fillStyle = '#ffffff';
       ctx.textAlign = 'center';
       ctx.font = 'bold 110px Inter, sans-serif';
-      ctx.fillText('CIENCIA', W/2, H/2 + 400);
+      ctx.fillText('CIENCIA', cx, cy + 450);
       ctx.font = 'bold 85px Inter, sans-serif';
-      ctx.fillText('DE DATOS', W/2, H/2 + 510);
+      ctx.fillText('DE DATOS', cx, cy + 560);
 
       // Muestreo
       const imageData = ctx.getImageData(0, 0, W, H).data;
