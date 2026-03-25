@@ -108,9 +108,11 @@ smoothValue += (rawValue - smoothValue) * SMOOTH_FACTOR
 ### Renderizado
 
 - **15,000 partículas** con `THREE.Points`
+- **Colores por Partícula**: Cada punto puede tener su propio color (Soporte RGB individual).
 - `AdditiveBlending` para efecto de brillo acumulativo
 - Las partículas se mueven un **4% por frame** hacia su objetivo (`LERP_SPEED = 0.04`)
 - Centrado dinámico: El texto se centra calculando el centroide de los píxeles muestreados.
+- Logo Reconstruido: 2.5D con cerebro bicolor y nodos brillantes.
 - Rotación automática lenta en Y + control por mouse + control por mano
 
 ---
@@ -127,6 +129,7 @@ EXTERNADO FEST/
 
 ## 📝 Changelog
 
+- **v4.0** — Reconstrucción de Logo "CIENCIA DE DATOS", colores dinámicos por partícula y nodos brillantes.
 - **v3.1** — Aumento a 15,000 partículas, centrado perfecto de texto y botón de ON/OFF para cámara
 - **v3.0** — Detección de gesto ✌️ Peace, texto de bienvenida como partículas, nube por defecto sin mano
 - **v2.0** — Tracking de posición y rotación de la mano para mover/rotar la figura 3D
