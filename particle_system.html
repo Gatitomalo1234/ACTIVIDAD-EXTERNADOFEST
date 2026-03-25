@@ -739,20 +739,18 @@
         handDetected = true;
         let bestGesture = null;
         let currentOpenness = 0;
-        let gestureFromSpecificHand = null;
+        let navHandFound = false;
+        let cmdHandFound = false;
 
         results.multiHandLandmarks.forEach((lm, index) => {
-          // MediaPipe label: 'Left' or 'Right'. Be careful with Mirroring.
-          // Usually, in a mirrored view, the 'Right' label corresponds to the physical right hand.
           const label = results.multiHandedness[index].label; 
           
-          // ROLE: NAVIGATION & ZOOM (Typically Left Hand by convention or user preference)
-          // We'll treat 'Left' hand as Navigation and 'Right' as Gestures.
+          // ROLE: NAVIGATION & ZOOM (Typically Left Hand)
           if (label === 'Left' || results.multiHandLandmarks.length === 1) {
+             navHandFound = true;
              const open = calcOpenness(lm);
              currentOpenness = open;
              
-             // Update Position/Rotation only from the Navigation hand (or only hand)
              const palm = lm[9];
              handX = palm.x;
              handY = palm.y;
@@ -763,12 +761,12 @@
 
           // ROLE: GESTURES (Typically Right Hand)
           if (label === 'Right' || results.multiHandLandmarks.length === 1) {
+             cmdHandFound = true;
              const g = detectGesture(lm);
              if (g) bestGesture = g;
           }
 
-          // Draw landmarks with role-based colors
-          // Navigation: Cyan/Blue-ish | Command: Pink/Magenta
+          // Draw landmarks
           overlayCtx.fillStyle = label === 'Left' ? 'rgba(74,222,128,0.7)' : 'rgba(255,48,107,0.7)';
           for (const p of lm) {
             overlayCtx.beginPath();
@@ -782,14 +780,14 @@
         // --- Apply Special Gesture Shape ---
         if (bestGesture === 'peace') {
           gestureShape = 'welcome';
-          // Force scale for visibility
-          if (gestureFactor < 0.8) gestureFactor = 1.6; 
+          // Force scale ONLY if we don't have a dedicated navigation hand for zoom
+          if (!navHandFound && gestureFactor < 0.8) gestureFactor = 1.6; 
           gestureDot.className = 'open';
           gestureText.textContent = '✌️ Right Hand [Peace] — Welcome';
-          gestureText.style.background = 'rgba(255, 48, 107, 0.3)';
+          gestureText.style.background = 'rgba(255, 48, 107, 0.4)';
         } else if (bestGesture === 'point') {
           gestureShape = 'logo';
-          if (gestureFactor < 0.8) gestureFactor = 1.6;
+          if (!navHandFound && gestureFactor < 0.8) gestureFactor = 1.6;
           gestureDot.className = 'open';
           gestureText.style.background = 'rgba(0, 154, 205, 0.4)';
           gestureText.textContent = '☝️ Right Hand [Index] — Identity';
@@ -797,7 +795,7 @@
           gestureShape = null;
           gestureDot.className = 'open';
           gestureText.style.background = 'rgba(74, 222, 128, 0.2)';
-          gestureText.textContent = 'Left Hand [Open] — Navigation & Zoom';
+          gestureText.textContent = 'Left Hand [Open] — Zoom Libre';
         } else {
           gestureShape = null;
           gestureDot.className = 'closed';
