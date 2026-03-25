@@ -380,6 +380,7 @@
       </div>
     </div>
 
+    <button class="action-btn" id="rotate-toggle-btn">⏸ Pausar Giro</button>
     <button class="action-btn" id="fullscreen-btn">⛶ Fullscreen</button>
   </div>
 
@@ -387,6 +388,7 @@
     // ========== CONFIG ==========
     const PARTICLE_COUNT = 15000;
     const LERP_SPEED = 0.04;
+    let autoRotate = true; // Global rotation toggle
 
     // ========== THREE.JS SETUP ==========
     const canvas = document.getElementById('three-canvas');
@@ -451,22 +453,26 @@
       ctx.fillStyle = 'rgba(255,255,255,0.05)';
       ctx.beginPath(); ctx.arc(W/2, H/2 - 100, 380, 0, Math.PI*2); ctx.fill();
 
-      // Draw Brain - Left Side (Pink)
+      // Draw Brain - Left Side (Pink - Organic Lobes)
       ctx.fillStyle = '#FF306B';
       ctx.beginPath();
-      ctx.moveTo(W/2 - 20, H/2 - 450);
-      ctx.bezierCurveTo(W/2 - 150, H/2 - 450, W/2 - 350, H/2 - 350, W/2 - 350, H/2 - 100);
-      ctx.bezierCurveTo(W/2 - 350, H/2 + 100, W/2 - 150, H/2 + 250, W/2 - 20, H/2 + 250);
-      ctx.lineTo(W/2 - 20, H/2 - 450);
+      ctx.moveTo(W/2 - 10, H/2 - 400);
+      ctx.bezierCurveTo(W/2 - 100, H/2 - 430, W/2 - 250, H/2 - 400, W/2 - 320, H/2 - 280);
+      ctx.bezierCurveTo(W/2 - 400, H/2 - 200, W/2 - 380, H/2 - 50, W/2 - 300, H/2 + 50);
+      ctx.bezierCurveTo(W/2 - 350, H/2 + 150, W/2 - 250, H/2 + 250, W/2 - 100, H/2 + 250);
+      ctx.bezierCurveTo(W/2 - 50, H/2 + 250, W/2 - 20, H/2 + 200, W/2 - 10, H/2 + 150);
+      ctx.closePath();
       ctx.fill();
 
-      // Draw Brain - Right Side (Blue/Circuit)
+      // Draw Brain - Right Side (Blue - Organic Lobes)
       ctx.fillStyle = '#009ACD';
       ctx.beginPath();
-      ctx.moveTo(W/2 + 20, H/2 - 450);
-      ctx.bezierCurveTo(W/2 + 150, H/2 - 450, W/2 + 350, H/2 - 350, W/2 + 350, H/2 - 100);
-      ctx.bezierCurveTo(W/2 + 350, H/2 + 100, W/2 + 150, H/2 + 250, W/2 + 20, H/2 + 250);
-      ctx.lineTo(W/2 + 20, H/2 - 450);
+      ctx.moveTo(W/2 + 10, H/2 - 400);
+      ctx.bezierCurveTo(W/2 + 100, H/2 - 430, W/2 + 250, H/2 - 400, W/2 + 320, H/2 - 280);
+      ctx.bezierCurveTo(W/2 + 400, H/2 - 200, W/2 + 380, H/2 - 50, W/2 + 300, H/2 + 50);
+      ctx.bezierCurveTo(W/2 + 350, H/2 + 150, W/2 + 250, H/2 + 250, W/2 + 100, H/2 + 250);
+      ctx.bezierCurveTo(W/2 + 50, H/2 + 250, W/2 + 20, H/2 + 200, W/2 + 10, H/2 + 150);
+      ctx.closePath();
       ctx.fill();
 
       // Draw Circuit Lines & Nodes
@@ -516,9 +522,9 @@
         const idx = Math.floor(Math.random() * points.length);
         const p = points[idx];
         const c = colors[idx];
-        const scale = 8.5 / W;
+        const scale = 6.8 / W; // Made smaller (Logo further away)
         result.push({
-          pos: [-(p[0] - W/2) * scale, -(p[1] - H/2) * scale - 0.5, (Math.random()-0.5)*0.05],
+          pos: [(p[0] - W/2) * scale, -(p[1] - H/2) * scale - 0.2, (Math.random()-0.5)*0.05],
           col: c
         });
       }
@@ -584,8 +590,8 @@
           const idx = Math.floor(Math.random() * filledPixels.length);
           const [px, py] = filledPixels[idx];
           
-          // Map to 3D coords relative to centroid (mirrored for camera)
-          const x = -(px - centerX) * scale;
+          // Map to 3D coords relative to centroid (Unmirrored for readability)
+          const x = (px - centerX) * scale;
           const y = -(py - centerY) * scale * 1.5; 
           const z = (Math.random() - 0.5) * 0.05;
           result.push([x, y, z]);
@@ -903,13 +909,14 @@
         smoothHandRotZ += (0 - smoothHandRotZ) * moveInertia * 0.5;
       }
 
-      // Add auto-rotation specifically for the logo
-      if (isLogo) {
-        rotX += 0.01;
-      }
-
       // Expansion factor: when hand is open particles expand outward
       const expansionScale = 1.0 + smoothGesture * 2.5;
+
+      // Add auto-rotation (with toggle)
+      if (autoRotate) {
+        if (isLogo) rotX += 0.012;
+        else rotX += 0.005;
+      }
 
       // Lerp particles toward targets (with expansion)
       const pos = geometry.attributes.position.array;
@@ -940,11 +947,11 @@
 
       if (isTextShape) {
         // Keep text face-on: no auto-rotation, gentle hand influence only
-        points.rotation.y = rotX * 0.3;
-        points.rotation.x = rotY * 0.3;
+        points.rotation.y = rotX * 0.2;
+        points.rotation.x = rotY * 0.2;
         points.rotation.z = 0;
       } else {
-        points.rotation.y = t * 0.12 + rotX;
+        points.rotation.y = (autoRotate ? t * 0.12 : 0) + rotX;
         points.rotation.x = rotY;
         points.rotation.z = smoothHandRotZ;
       }
@@ -985,6 +992,12 @@
           targetColors[i3+2] = c.b;
         }
       }
+    });
+
+    // Rotation Toggle
+    document.getElementById('rotate-toggle-btn').addEventListener('click', (e) => {
+      autoRotate = !autoRotate;
+      e.target.textContent = autoRotate ? '⏸ Pausar Giro' : '▶️ Reanudar Giro';
     });
 
     // Fullscreen
