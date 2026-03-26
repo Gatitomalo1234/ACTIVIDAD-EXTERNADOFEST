@@ -451,69 +451,95 @@
       ctx.fillStyle = 'rgba(255,255,255,0.05)';
       ctx.beginPath(); ctx.arc(W / 2, H / 2 - 100, 380, 0, Math.PI * 2); ctx.fill();
 
-      // Draw Brain - Left Side (Pink - Fixed Size & Texture)
+      // DRAWING SETTINGS
       const cx = W / 2;
       const cy = H / 2 - 80;
-      ctx.fillStyle = '#D81B60';
+      const blueColor = '#00B0FF';
+      const redColor = '#E91E63'; // Slightly more vibrant pink/red
+      const darkBorder = '#111';
+
+      // 1. DRAW BRAIN (LEFT SIDE - RED)
+      ctx.fillStyle = redColor;
+      ctx.strokeStyle = darkBorder;
+      ctx.lineWidth = 18; // Bold vector outline
+      ctx.lineJoin = 'round';
+
       ctx.beginPath();
-      ctx.moveTo(cx - 20, cy - 280);
-      // More compact/lobed path
-      ctx.bezierCurveTo(cx - 70, cy - 300, cx - 100, cy - 290, cx - 120, cy - 260);
-      ctx.bezierCurveTo(cx - 190, cy - 280, cx - 260, cy - 220, cx - 280, cy - 130);
-      ctx.bezierCurveTo(cx - 310, cy - 80, cx - 310, cy - 0, cx - 270, cy + 60);
-      ctx.bezierCurveTo(cx - 310, cy + 120, cx - 260, cy + 220, cx - 160, cy + 230);
-      ctx.bezierCurveTo(cx - 100, cy + 260, cx - 40, cy + 240, cx - 20, cy + 190);
-      ctx.lineTo(cx - 20, cy - 280);
+      // Starting from top center
+      ctx.moveTo(cx - 20, cy - 260);
+      
+      // 9 Puffy Lobes (Puffiness Factor)
+      // Top lobes
+      ctx.bezierCurveTo(cx - 50, cy - 280, cx - 80, cy - 290, cx - 110, cy - 270); // L1
+      ctx.bezierCurveTo(cx - 150, cy - 310, cx - 210, cy - 300, cx - 240, cy - 240); // L2
+      ctx.bezierCurveTo(cx - 290, cy - 220, cx - 310, cy - 160, cx - 280, cy - 110); // L3
+      // Outer side
+      ctx.bezierCurveTo(cx - 330, cy - 80, cx - 340, cy + 10, cx - 290, cy + 60);    // L4
+      ctx.bezierCurveTo(cx - 320, cy + 120, cx - 290, cy + 200, cx - 210, cy + 220); // L5
+      ctx.bezierCurveTo(cx - 180, cy + 260, cx - 110, cy + 270, cx - 70, cy + 230);  // L6
+      ctx.bezierCurveTo(cx - 40, cy + 250, cx - 30, cy + 220, cx - 20, cy + 190);   // L7
+      
+      ctx.lineTo(cx - 20, cy - 260);
       ctx.fill();
+      ctx.stroke();
 
-      // Brain Textures (Internal Squiggles) - Darker pink
-      ctx.strokeStyle = '#880E4F'; ctx.lineWidth = 12; ctx.lineCap = 'round';
-      const drawSquiggle = (mx, my, tx, ty, cpx1, cpy1) => {
-        ctx.beginPath(); ctx.moveTo(mx, my); ctx.quadraticCurveTo(cpx1, cpy1, tx, ty); ctx.stroke();
+      // Brain Creases (Thick internal lines)
+      ctx.strokeStyle = darkBorder;
+      ctx.lineWidth = 14;
+      const drawCrease = (mx, my, tx, ty, cpx, cpy) => {
+        ctx.beginPath(); ctx.moveTo(mx, my); ctx.quadraticCurveTo(cpx, cpy, tx, ty); ctx.stroke();
       };
-      drawSquiggle(cx - 100, cy - 180, cx - 200, cy - 120, cx - 150, cy - 200);
-      drawSquiggle(cx - 80, cy, cx - 220, cy + 50, cx - 150, cy + 30);
-      drawSquiggle(cx - 120, cy + 120, cx - 220, cy + 80, cx - 180, cy + 150);
+      drawCrease(cx - 110, cy - 200, cx - 210, cy - 150, cx - 180, cy - 210);
+      drawCrease(cx - 80, cy - 50, cx - 240, cy + 10, cx - 180, cy - 20);
+      drawCrease(cx - 110, cy + 140, cx - 220, cy + 90, cx - 180, cy + 160);
+      drawCrease(cx - 20, cy, cx - 100, cy + 40, cx - 60, cy + 10);
 
-      // Draw Brain - Right Side (Blue - Clearly Divided Segments)
-      const drawSegment = (startAngle, endAngle, color) => {
-        ctx.fillStyle = color;
+      // 2. DRAW CIRCUIT (RIGHT SIDE - BLUE)
+      ctx.fillStyle = blueColor;
+      ctx.strokeStyle = darkBorder;
+      ctx.lineWidth = 18;
+
+      ctx.beginPath();
+      ctx.arc(cx + 20, cy - 35, 270, -Math.PI * 0.5, Math.PI * 0.5, false);
+      ctx.lineTo(cx + 20, cy - 305);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+
+      // Stepped Circuit Lines (Horizontal with Elbows)
+      const drawStepLine = (y1, x_step, y2, x_final, nodeCol) => {
+        ctx.strokeStyle = darkBorder;
+        ctx.lineWidth = 16;
         ctx.beginPath();
-        ctx.moveTo(cx + 20, cy - 50); // Center point offset
-        ctx.arc(cx + 20, cy - 50, 240, startAngle, endAngle, false);
-        ctx.lineTo(cx + 20, cy - 50);
-        ctx.fill();
-        // Thick black divider
-        ctx.strokeStyle = '#000'; ctx.lineWidth = 10; ctx.stroke();
-      };
-
-      const skyBlue = '#00B0FF';
-      drawSegment(-Math.PI * 0.5, -Math.PI * 0.25, skyBlue);
-      drawSegment(-Math.PI * 0.25, 0, skyBlue);
-      drawSegment(0, Math.PI * 0.25, skyBlue);
-      drawSegment(Math.PI * 0.25, Math.PI * 0.5, skyBlue);
-
-      // Draw Circuit Lines & Nodes (v4.9.1 - Sharper)
-      ctx.strokeStyle = '#000'; ctx.lineWidth = 16;
-      const drawCircuit = (y, length, nodeColor) => {
-        ctx.beginPath(); ctx.moveTo(cx + 20, y); ctx.lineTo(cx + 20 + length, y); ctx.stroke();
+        ctx.moveTo(cx + 20, y1);
+        ctx.lineTo(cx + 20 + x_step, y1);
+        ctx.lineTo(cx + 20 + x_step + 40, y2); // The diagonal step
+        ctx.lineTo(cx + 20 + x_final, y2);
+        ctx.stroke();
+        
         // Node
-        ctx.fillStyle = nodeColor; ctx.beginPath(); ctx.arc(cx + 20 + length, y, 24, 0, Math.PI * 2); ctx.fill();
-        ctx.strokeStyle = '#000'; ctx.lineWidth = 6; ctx.stroke();
+        ctx.fillStyle = nodeCol;
+        ctx.beginPath();
+        ctx.arc(cx + 20 + x_final, y2, 28, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = darkBorder; ctx.lineWidth = 6;
+        ctx.stroke();
       };
 
-      drawCircuit(cy - 180, 160, '#FFD700'); 
-      drawCircuit(cy - 80, 220, '#4ade80'); 
-      drawCircuit(cy + 20, 190, '#f97316');  
-      drawCircuit(cy + 120, 180, '#FFD700'); 
+      // Y-coordinates and colors matching logo
+      drawStepLine(cy - 220, 40, cy - 220, 150, '#FFD54F'); // Top Yellow
+      drawStepLine(cy - 120, 60, cy - 120, 220, '#F06292'); // Pink Node (data)
+      drawStepLine(cy - 30, 40, cy - 30, 190, '#FF8A65');  // Orange Node
+      drawStepLine(cy + 60, 50, cy + 60, 230, '#81C784');  // Green Node
+      drawStepLine(cy + 160, 30, cy + 160, 170, '#FFD54F'); // Bottom Yellow
 
       // Text "CIENCIA DE DATOS"
       ctx.fillStyle = '#ffffff';
       ctx.textAlign = 'center';
-      ctx.font = 'bold 110px Inter, sans-serif';
-      ctx.fillText('CIENCIA', cx, cy + 450);
-      ctx.font = 'bold 85px Inter, sans-serif';
-      ctx.fillText('DE DATOS', cx, cy + 560);
+      ctx.font = 'bold 120px Inter, Montserrat, sans-serif';
+      ctx.fillText('CIENCIA', cx, cy + 460);
+      ctx.font = 'bold 90px Inter, Montserrat, sans-serif';
+      ctx.fillText('DE DATOS', cx, cy + 580);
 
       // Muestreo
       const imageData = ctx.getImageData(0, 0, W, H).data;
