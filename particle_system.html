@@ -344,14 +344,8 @@
         <button class="shape-btn active" data-shape="cloud">
           <span class="shape-icon">☁️</span> Cloud
         </button>
-        <button class="shape-btn" data-shape="heart">
-          <span class="shape-icon">❤️</span> Heart
-        </button>
         <button class="shape-btn" data-shape="welcome">
           <span class="shape-icon">✌️</span> Welcome
-        </button>
-        <button class="shape-btn" data-shape="covifactura">
-          <span class="shape-icon">📄</span> CoviFactura
         </button>
       </div>
     </div>
@@ -457,51 +451,61 @@
       ctx.fillStyle = 'rgba(255,255,255,0.05)';
       ctx.beginPath(); ctx.arc(W / 2, H / 2 - 100, 380, 0, Math.PI * 2); ctx.fill();
 
-      // Draw Brain - Left Side (Pink - Bumpy/Lobular)
+      // Draw Brain - Left Side (Pink - Fixed Size & Texture)
       const cx = W / 2;
       const cy = H / 2 - 80;
       ctx.fillStyle = '#D81B60';
       ctx.beginPath();
-      ctx.moveTo(cx - 15, cy - 300);
-      // Top lobes
-      ctx.bezierCurveTo(cx - 80, cy - 320, cx - 110, cy - 310, cx - 130, cy - 280);
-      ctx.bezierCurveTo(cx - 200, cy - 300, cx - 280, cy - 240, cx - 300, cy - 150);
-      // Middle lobes
-      ctx.bezierCurveTo(cx - 330, cy - 100, cx - 330, cy - 20, cx - 290, cy + 40);
-      ctx.bezierCurveTo(cx - 330, cy + 100, cx - 280, cy + 200, cx - 180, cy + 220);
-      // Bottom lobes
-      ctx.bezierCurveTo(cx - 120, cy + 250, cx - 60, cy + 230, cx - 15, cy + 180);
-      ctx.lineTo(cx - 15, cy - 300);
+      ctx.moveTo(cx - 20, cy - 280);
+      // More compact/lobed path
+      ctx.bezierCurveTo(cx - 70, cy - 300, cx - 100, cy - 290, cx - 120, cy - 260);
+      ctx.bezierCurveTo(cx - 190, cy - 280, cx - 260, cy - 220, cx - 280, cy - 130);
+      ctx.bezierCurveTo(cx - 310, cy - 80, cx - 310, cy - 0, cx - 270, cy + 60);
+      ctx.bezierCurveTo(cx - 310, cy + 120, cx - 260, cy + 220, cx - 160, cy + 230);
+      ctx.bezierCurveTo(cx - 100, cy + 260, cx - 40, cy + 240, cx - 20, cy + 190);
+      ctx.lineTo(cx - 20, cy - 280);
       ctx.fill();
 
-      // Draw Brain - Right Side (Blue - Semicircle Circuit)
-      ctx.fillStyle = '#00B0FF';
-      ctx.beginPath();
-      ctx.arc(cx + 15, cy - 60, 240, -Math.PI / 2, Math.PI / 2, false);
-      ctx.lineTo(cx + 15, cy - 300);
-      ctx.fill();
+      // Brain Textures (Internal Squiggles) - Darker pink
+      ctx.strokeStyle = '#880E4F'; ctx.lineWidth = 12; ctx.lineCap = 'round';
+      const drawSquiggle = (mx, my, tx, ty, cpx1, cpy1) => {
+        ctx.beginPath(); ctx.moveTo(mx, my); ctx.quadraticCurveTo(cpx1, cpy1, tx, ty); ctx.stroke();
+      };
+      drawSquiggle(cx - 100, cy - 180, cx - 200, cy - 120, cx - 150, cy - 200);
+      drawSquiggle(cx - 80, cy, cx - 220, cy + 50, cx - 150, cy + 30);
+      drawSquiggle(cx - 120, cy + 120, cx - 220, cy + 80, cx - 180, cy + 150);
 
-      // Draw Circuit Lines & Nodes (v4.9 style)
-      ctx.strokeStyle = '#000'; ctx.lineWidth = 14; // Black borders for circuit lines
-      const drawCircuit = (y, length, nodeColor) => {
+      // Draw Brain - Right Side (Blue - Clearly Divided Segments)
+      const drawSegment = (startAngle, endAngle, color) => {
+        ctx.fillStyle = color;
         ctx.beginPath();
-        ctx.moveTo(cx + 15, y);
-        ctx.lineTo(cx + 15 + length, y);
-        ctx.stroke();
-
-        // Node
-        ctx.fillStyle = nodeColor;
-        ctx.beginPath();
-        ctx.arc(cx + 15 + length, y, 22, 0, Math.PI * 2);
+        ctx.moveTo(cx + 20, cy - 50); // Center point offset
+        ctx.arc(cx + 20, cy - 50, 240, startAngle, endAngle, false);
+        ctx.lineTo(cx + 20, cy - 50);
         ctx.fill();
-        ctx.strokeStyle = '#000'; ctx.lineWidth = 4;
-        ctx.stroke();
+        // Thick black divider
+        ctx.strokeStyle = '#000'; ctx.lineWidth = 10; ctx.stroke();
       };
 
-      drawCircuit(cy - 200, 160, '#FFD700'); // Top Node
-      drawCircuit(cy - 100, 210, '#4ade80'); // Mid Top
-      drawCircuit(cy, 180, '#f97316');       // Mid
-      drawCircuit(cy + 100, 200, '#FFD700'); // Bottom
+      const skyBlue = '#00B0FF';
+      drawSegment(-Math.PI * 0.5, -Math.PI * 0.25, skyBlue);
+      drawSegment(-Math.PI * 0.25, 0, skyBlue);
+      drawSegment(0, Math.PI * 0.25, skyBlue);
+      drawSegment(Math.PI * 0.25, Math.PI * 0.5, skyBlue);
+
+      // Draw Circuit Lines & Nodes (v4.9.1 - Sharper)
+      ctx.strokeStyle = '#000'; ctx.lineWidth = 16;
+      const drawCircuit = (y, length, nodeColor) => {
+        ctx.beginPath(); ctx.moveTo(cx + 20, y); ctx.lineTo(cx + 20 + length, y); ctx.stroke();
+        // Node
+        ctx.fillStyle = nodeColor; ctx.beginPath(); ctx.arc(cx + 20 + length, y, 24, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = '#000'; ctx.lineWidth = 6; ctx.stroke();
+      };
+
+      drawCircuit(cy - 180, 160, '#FFD700'); 
+      drawCircuit(cy - 80, 220, '#4ade80'); 
+      drawCircuit(cy + 20, 190, '#f97316');  
+      drawCircuit(cy + 120, 180, '#FFD700'); 
 
       // Text "CIENCIA DE DATOS"
       ctx.fillStyle = '#ffffff';
@@ -535,68 +539,6 @@
           pos: [(p[0] - W / 2) * scale, -(p[1] - H / 2) * scale - 0.2, (Math.random() - 0.5) * 0.05],
           col: c
         });
-      }
-      return result;
-    }
-
-    function generateCoviFacturaPositions(count) {
-      const W = 1024, H = 512;
-      const canvas = document.createElement('canvas');
-      canvas.width = W; canvas.height = H;
-      const ctx = canvas.getContext('2d');
-      
-      const blue = '#005696';
-      ctx.fillStyle = blue;
-      
-      const cx = W / 2;
-      const cy = H / 2;
-      
-      // Draw Icon (Stylized CF)
-      const ix = 180, iy = cy;
-      ctx.beginPath();
-      // Left part (C-curve)
-      ctx.arc(ix - 100, iy, 100, Math.PI * 0.5, Math.PI * 1.5, false);
-      ctx.lineTo(ix - 40, iy - 100);
-      ctx.lineTo(ix - 40, iy + 100);
-      ctx.closePath();
-      ctx.fill();
-      
-      // Right part (F-stem and bars)
-      ctx.fillRect(ix - 40, iy - 100, 35, 200);   // Stem
-      ctx.fillRect(ix - 40, iy - 100, 110, 35);  // Top bar
-      ctx.fillRect(ix - 40, iy - 15, 80, 35);    // Mid bar
-      
-      // Text "CoviFactura"
-      ctx.fillStyle = blue;
-      ctx.font = 'bold 115px Inter, sans-serif';
-      ctx.textAlign = 'left';
-      ctx.fillText('CoviFactura', ix + 100, iy + 40);
-
-      const imageData = ctx.getImageData(0, 0, W, H).data;
-      const points = [];
-      const colors = [];
-      for (let y = 0; y < H; y += 1) {
-        for (let x = 0; x < W; x += 1) {
-          const idx = (y * W + x) * 4;
-          if (imageData[idx + 3] > 128) {
-            points.push([x, y]);
-            colors.push([imageData[idx]/255, imageData[idx+1]/255, imageData[idx+2]/255]);
-          }
-        }
-      }
-
-      const result = [];
-      const scale = 7.8 / W;
-      for (let i = 0; i < count; i++) {
-        if (points.length > 0) {
-          const idx = Math.floor(Math.random() * points.length);
-          const p = points[idx];
-          const c = colors[idx];
-          result.push({
-            pos: [(p[0] - W/2) * scale, -(p[1] - H/2) * scale, (Math.random()-0.5)*0.05],
-            col: c
-          });
-        }
       }
       return result;
     }
@@ -684,24 +626,13 @@
         return res;
       },
       logo: generateLogoPositions,
-      heart: (count) => {
-        const res = [];
-        for (let i = 0; i < count; i++) {
-          const t = Math.random() * Math.PI * 2;
-          const x = 16 * Math.pow(Math.sin(t), 3);
-          const y = 13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t);
-          res.push({ pos: [x * 0.1, y * 0.1, (Math.random() - 0.5) * 0.5], col: [0.9, 0.2, 0.3] });
-        }
-        return res;
-      },
       welcome: (count) => {
         const data = generateTextPositions(
           'BIENVENIDOS A LA DEMOSTRACION\nY PRESENTACION DE\nCIENCIA DE DATOS',
           count
         );
         return data.map(p => ({ pos: p, col: [1.0, 1.0, 1.0] }));
-      },
-      covifactura: generateCoviFacturaPositions
+      }
     };
 
     function setTargets(shapeName) {
@@ -785,13 +716,11 @@
       const middle = isFingerExtended(landmarks, 12, 10, 9);
       const ring = isFingerExtended(landmarks, 16, 14, 13);
       const pinky = isFingerExtended(landmarks, 20, 18, 17);
-      // ✌️ Peace: only index + middle
+
+      // ✌️ Peace: only index + middle extended
       if (index && middle && !ring && !pinky) return 'peace';
 
-      // 🤟 Three: index + middle + ring
-      if (index && middle && ring && !pinky) return 'three';
-
-      // ☝️ Point: only index extended
+      // ☝️ Index Up: only index extended
       if (index && !middle && !ring && !pinky) return 'point';
 
       return null;
@@ -869,12 +798,6 @@
           gestureDot.className = 'open';
           gestureText.style.background = 'rgba(0, 154, 205, 0.4)';
           gestureText.textContent = '☝️ Right Hand [Index] — Identity';
-        } else if (bestGesture === 'three') {
-          gestureShape = 'covifactura';
-          if (!navHandFound && gestureFactor < 0.8) gestureFactor = 1.6;
-          gestureDot.className = 'open';
-          gestureText.style.background = 'rgba(0, 86, 150, 0.6)';
-          gestureText.textContent = '🤟 Right Hand [Three] — CoviFactura';
         } else if (currentOpenness > 0.5) {
           gestureShape = null;
           gestureDot.className = 'open';
