@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neon Hand-Maze | Externado Fest v8.0</title>
+    <style>
+        :root {
+            --neon-blue: #00d2ff;
+            --neon-pink: #ff007f;
+            --neon-green: #39ff14;
+            --neon-gold: #ffcc00;
+            --bg-color: #050505;
+            --glass-bg: rgba(255, 255, 255, 0.03);
+            --glass-border: rgba(255, 255, 255, 0.1);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background-color: var(--bg-color);
+            color: white;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+        }
+
+        /* Ambient Glow */
+        body::before {
+            content: '';
+            position: absolute;
+            width: 300px;
+            height: 300px;
+            background: radial-gradient(circle, rgba(0, 210, 255, 0.15) 0%, transparent 70%);
+            top: 10%; left: 10%;
+            pointer-events: none;
+        }
+        body::after {
+            content: '';
+            position: absolute;
+            width: 400px;
+            height: 400px;
+            background: radial-gradient(circle, rgba(255, 0, 127, 0.1) 0%, transparent 70%);
+            bottom: 5%; right: 5%;
+            pointer-events: none;
+        }
+
+        #game-container {
+            position: relative;
+            width: 1024px;
+            height: 768px;
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 0 50px rgba(0,0,0,0.5), 0 0 20px rgba(255,255,255,0.05);
+            background: #000;
+            border: 1px solid var(--glass-border);
+        }
+
+        canvas {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            display: block;
+        }
+
+        #ui-layer {
+            position: absolute;
+            top: 20px; left: 20px; right: 20px;
+            display: flex;
+            justify-content: space-between;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        .glass-panel {
+            background: var(--glass-bg);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            border: 1px solid var(--glass-border);
+            padding: 15px 25px;
+            border-radius: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .label { font-size: 10px; text-transform: uppercase; letter-spacing: 2px; color: rgba(255,255,255,0.5); }
+        .value { font-size: 24px; font-weight: 800; font-variant-numeric: tabular-nums; }
+
+        #camera-preview {
+            position: absolute;
+            bottom: 20px; left: 20px;
+            width: 160px; height: 120px;
+            border-radius: 12px;
+            border: 1px solid var(--glass-border);
+            background: #000;
+            transform: scaleX(-1);
+            object-fit: cover;
+            opacity: 0.6;
+            transition: opacity 0.3s;
+        }
+        #camera-preview:hover { opacity: 1; }
+
+        /* Welcome/Victory Overlays */
+        .overlay {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0,0,0,0.85);
+            backdrop-filter: blur(10px);
+            z-index: 100;
+            transition: opacity 0.5s;
+            text-align: center;
+            padding: 40px;
+        }
+        .hidden { opacity: 0; pointer-events: none; }
+
+        h1 { font-size: 48px; margin-bottom: 10px; background: linear-gradient(45deg, var(--neon-blue), var(--neon-pink)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        p { font-size: 18px; color: rgba(255,255,255,0.7); max-width: 500px; margin-bottom: 30px; line-height: 1.6; }
+
+        .btn {
+            background: white; color: black; border: none;
+            padding: 15px 40px; border-radius: 30px;
+            font-size: 16px; font-weight: 700; cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 20px rgba(255,255,255,0.4);
+        }
+
+        #instructions {
+            position: absolute;
+            bottom: 20px; right: 20px;
+            font-size: 12px; color: rgba(255,255,255,0.4);
+            letter-spacing: 1px;
+        }
+
+        /* Status indicators */
+        .status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 5px; }
+        .status-active { background: var(--neon-green); box-shadow: 0 0 10px var(--neon-green); }
+        .status-inactive { background: #555; }
+    </style>
+</head>
+<body>
+
+    <div id="game-container">
+        <!-- The Game Logic -->
+        <canvas id="gameCanvas"></canvas>
+        
+        <!-- UI Layer -->
+        <div id="ui-layer">
+            <div class="glass-panel">
+                <span class="label">Puntos</span>
+                <span id="score-val" class="value">000</span>
+            </div>
+            <div class="glass-panel" style="align-items: flex-end;">
+                <span class="label">Estado de Seguimiento</span>
+                <div style="display: flex; align-items: center;">
+                    <span id="track-dot" class="status-dot status-inactive"></span>
+                    <span id="track-text" class="value" style="font-size: 14px; text-transform: uppercase;">Aguardando...</span>
+                </div>
+            </div>
+        </div>
+
+        <video id="camera-preview" autoplay playsinline></video>
+
+        <!-- Initial Overlay -->
+        <div id="welcome-overlay" class="overlay">
+            <h1>NEON MAZE</h1>
+            <p>Usa la punta de tu dedo índice derecho para arrastrar la esfera azul hasta la meta. No toques las líneas de energía rosadas.</p>
+            <button class="btn" onclick="startGame()">INICIAR DESAFÍO</button>
+        </div>
+
+        <!-- Victory Overlay -->
+        <div id="victory-overlay" class="overlay hidden">
+            <h1>¡VICTORIA!</h1>
+            <p id="victory-msg">Has completado el laberinto con precisión quirúrgica.</p>
+            <button class="btn" onclick="resetGame()">VOLVER A JUGAR</button>
+        </div>
+
+        <div id="instructions">MAZE ENGINE v8.0 | EXTERNADO FEST</div>
+    </div>
+
+    <!-- MediaPipe Scripts via CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision/vision_bundle.js" crossorigin="anonymous"></script>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const video = document.getElementById('camera-preview');
+        
+        let handLandmarker;
+        let isCameraActive = false;
+        let isTracking = false;
+        let gameActive = false;
+
+        // Maze Geometry
+        const WIDTH = 1024;
+        const HEIGHT = 768;
+        canvas.width = WIDTH;
+        canvas.height = HEIGHT;
+
+        let player = { x: 100, y: 100, r: 25, isDragging: false };
+        let startPos = { x: 100, y: 100 };
+        let goal = { x: 850, y: 650, w: 100, h: 100 };
+        
+        // Define Obstacles (Neon Walls)
+        const walls = [
+            { x: 300, y: 0, w: 30, h: 500 },
+            { x: 500, y: 268, w: 30, h: 500 },
+            { x: 700, y: 0, w: 30, h: 500 },
+            { x: 100, y: 300, w: 200, h: 30 },
+            { x: 600, y: 550, w: 250, h: 30 }
+        ];
+
+        let particles = [];
+        let score = 0;
+
+        async function initMediaPipe() {
+            const vision = await FilesetResolver.forVisionTasks(
+                "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision/wasm"
+            );
+            handLandmarker = await HandLandmarker.createFromOptions(vision, {
+                baseOptions: {
+                    modelAssetPath: "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task",
+                    delegate: "GPU"
+                },
+                runningMode: "VIDEO",
+                numHands: 2
+            });
+            console.log("MediaPipe Ready");
+        }
+
+        async function initCamera() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480 } });
+                video.srcObject = stream;
+                isCameraActive = true;
+            } catch (err) {
+                console.error("Camera error:", err);
+            }
+        }
+
+        function startGame() {
+            document.getElementById('welcome-overlay').classList.add('hidden');
+            gameActive = true;
+            animate();
+        }
+
+        function resetGame() {
+            document.getElementById('victory-overlay').classList.add('hidden');
+            player.x = startPos.x;
+            player.y = startPos.y;
+            gameActive = true;
+            particles = [];
+        }
+
+        function winGame() {
+            gameActive = false;
+            document.getElementById('victory-overlay').classList.remove('hidden');
+            // Fireworks
+            for(let i=0; i<50; i++) {
+                particles.push(new Particle(player.x, player.y));
+            }
+        }
+
+        // --- Physics Helpers ---
+        function checkCollision(cx, cy, r, rx, ry, rw, rh) {
+            const closestX = Math.max(rx, Math.min(cx, rx + rw));
+            const closestY = Math.max(ry, Math.min(cy, ry + rh));
+            const distX = cx - closestX;
+            const distY = cy - closestY;
+            return (distX * distX + distY * distY) < (r * r);
+        }
+
+        class Particle {
+            constructor(x, y) {
+                this.x = x; this.y = y;
+                this.vx = (Math.random() - 0.5) * 20;
+                this.vy = (Math.random() - 0.5) * 20;
+                this.life = 1.0;
+                this.color = `hsl(${Math.random() * 360}, 100%, 70%)`;
+            }
+            update() {
+                this.x += this.vx; this.y += this.vy;
+                this.life -= 0.02;
+            }
+            draw() {
+                ctx.fillStyle = this.color;
+                ctx.globalAlpha = this.life;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, 4, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.globalAlpha = 1;
+            }
+        }
+
+        // --- Rendering ---
+        function drawMaze() {
+            // Draw Walls
+            ctx.shadowBlur = 15;
+            walls.forEach(w => {
+                ctx.shadowColor = '#ff007f';
+                ctx.fillStyle = 'rgba(255, 0, 127, 0.8)';
+                ctx.fillRect(w.x, w.y, w.w, w.h);
+                // Inner glow
+                ctx.fillStyle = '#fff';
+                ctx.globalAlpha = 0.3;
+                ctx.fillRect(w.x + w.w/2 - 2, w.y, 4, w.h);
+                ctx.globalAlpha = 1;
+            });
+
+            // Draw Goal
+            const pulse = 10 + Math.sin(Date.now() / 200) * 5;
+            ctx.shadowColor = '#39ff14';
+            ctx.shadowBlur = pulse;
+            ctx.fillStyle = 'rgba(57, 255, 20, 0.2)';
+            ctx.fillRect(goal.x, goal.y, goal.w, goal.h);
+            ctx.strokeStyle = '#39ff14';
+            ctx.lineWidth = 4;
+            ctx.strokeRect(goal.x, goal.y, goal.w, goal.h);
+            
+            ctx.fillStyle = '#39ff14';
+            ctx.font = 'bold 16px Inter';
+            ctx.textAlign = 'center';
+            ctx.fillText('META', goal.x + goal.w/2, goal.y + goal.h/2 + 5);
+        }
+
+        function drawPlayer() {
+            if (!gameActive) return;
+            const glow = player.isDragging ? 30 : 15;
+            ctx.shadowColor = '#00d2ff';
+            ctx.shadowBlur = glow;
+            ctx.fillStyle = player.isDragging ? '#00d2ff' : '#0095b6';
+            ctx.beginPath();
+            ctx.arc(player.x, player.y, player.r, 0, Math.PI * 2);
+            ctx.fill();
+            // Core
+            ctx.fillStyle = '#fff';
+            ctx.beginPath();
+            ctx.arc(player.x, player.y, player.r * 0.4, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        async function animate() {
+            ctx.clearRect(0, 0, WIDTH, HEIGHT);
+
+            if (handLandmarker && video.readyState >= 2) {
+                const results = handLandmarker.detectForVideo(video, Date.now());
+                if (results.landmarks && results.landmarks.length > 0) {
+                    isTracking = true;
+                    document.getElementById('track-dot').className = 'status-dot status-active';
+                    document.getElementById('track-text').innerText = 'Detección Activa';
+                    
+                    // Mirroring and Scaling (landmark x is 0-1)
+                    // We look for the main hand (index 0 usually, but we filter for physical right)
+                    // MediaPipe flips handedness in mirrored video: Physical Right = "Left" category
+                    let handIdx = results.handedness.findIndex(h => h[0].categoryName === 'Left');
+                    if(handIdx === -1) handIdx = 0; // Fallback
+
+                    const landmarks = results.landmarks[handIdx];
+                    const indexTip = landmarks[8]; // Index finger tip
+                    
+                    // Convert to screen space (mirroring x)
+                    const targetX = (1 - indexTip.x) * WIDTH;
+                    const targetY = indexTip.y * HEIGHT;
+
+                    // Interaction Logic
+                    const dist = Math.sqrt((targetX - player.x)**2 + (targetY - player.y)**2);
+                    if (dist < player.r + 50) {
+                        player.isDragging = true;
+                        player.x = targetX;
+                        player.y = targetY;
+                    } else {
+                        player.isDragging = false;
+                    }
+
+                    // Collision checking
+                    if (player.isDragging) {
+                        for (let w of walls) {
+                            if (checkCollision(player.x, player.y, player.r, w.x, w.y, w.w, w.h)) {
+                                player.x = startPos.x;
+                                player.y = startPos.y;
+                                player.isDragging = false;
+                                break;
+                            }
+                        }
+                        if (checkCollision(player.x, player.y, player.r, goal.x, goal.y, goal.w, goal.h)) {
+                            winGame();
+                        }
+                    }
+
+                    // Draw cursor at finger tip
+                    ctx.shadowBlur = 10;
+                    ctx.shadowColor = '#fff';
+                    ctx.fillStyle = 'white';
+                    ctx.beginPath();
+                    ctx.arc(targetX, targetY, 8, 0, Math.PI * 2);
+                    ctx.fill();
+                } else {
+                    isTracking = false;
+                    player.isDragging = false;
+                    document.getElementById('track-dot').className = 'status-dot status-inactive';
+                    document.getElementById('track-text').innerText = 'Buscando mano...';
+                }
+            }
+
+            drawMaze();
+            drawPlayer();
+
+            // Particles
+            particles.forEach((p, index) => {
+                p.update();
+                p.draw();
+                if (p.life <= 0) particles.splice(index, 1);
+            });
+
+            requestAnimationFrame(animate);
+        }
+
+        // Start everything
+        initMediaPipe().then(initCamera);
+
+    </script>
+</body>
+</html>
