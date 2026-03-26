@@ -90,10 +90,15 @@
         .label { font-size: 10px; text-transform: uppercase; letter-spacing: 2px; color: rgba(255,255,255,0.5); }
         .value { font-size: 24px; font-weight: 800; font-variant-numeric: tabular-nums; }
 
-        #camera-preview {
+        #camera-container {
             position: absolute;
             bottom: 20px; left: 20px;
             width: 160px; height: 120px;
+            z-index: 10;
+        }
+
+        #camera-preview {
+            width: 100%; height: 100%;
             border-radius: 12px;
             border: 1px solid var(--glass-border);
             background: #000;
@@ -102,7 +107,16 @@
             opacity: 0.6;
             transition: opacity 0.3s;
         }
-        #camera-preview:hover { opacity: 1; }
+
+        #preview-canvas {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            pointer-events: none;
+            z-index: 11;
+        }
+
+        #camera-container:hover #camera-preview { opacity: 1; }
 
         /* Welcome/Victory Overlays */
         .overlay {
@@ -137,9 +151,11 @@
 
         #instructions {
             position: absolute;
-            bottom: 20px; right: 20px;
-            font-size: 12px; color: rgba(255,255,255,0.4);
-            letter-spacing: 1px;
+            bottom: 20px; left: 50%;
+            transform: translateX(-50%);
+            font-size: 11px; color: rgba(255,255,255,0.3);
+            letter-spacing: 2px;
+            white-space: nowrap;
         }
 
         /* Status indicators */
@@ -169,7 +185,10 @@
             </div>
         </div>
 
-        <video id="camera-preview" autoplay playsinline></video>
+        <div id="camera-container">
+            <video id="camera-preview" autoplay playsinline></video>
+            <canvas id="preview-canvas"></canvas>
+        </div>
 
         <!-- Initial Overlay -->
         <div id="welcome-overlay" class="overlay">
@@ -185,7 +204,7 @@
             <button class="btn" onclick="resetGame()">VOLVER A JUGAR</button>
         </div>
 
-        <div id="instructions">MAZE ENGINE v8.0 | EXTERNADO FEST</div>
+        <div id="instructions">MAZE ENGINE v8.3 | EXTERNADO FEST</div>
     </div>
 
     <!-- MediaPipe Scripts via CDN (Module-based for reliability) -->
@@ -195,6 +214,8 @@
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
         const video = document.getElementById('camera-preview');
+        const previewCanvas = document.getElementById('preview-canvas');
+        const pctx = previewCanvas.getContext('2d');
         
         let handLandmarker;
         let isCameraActive = false;
@@ -209,6 +230,9 @@
         canvas.height = HEIGHT;
 
         let player = { x: 100, y: 100, r: 25, isDragging: false };
+        let smoothX = 100, smoothY = 100;
+        const lerpFactor = 0.25; // Suavizado EMA
+        
         let startPos = { x: 100, y: 100 };
         let goal = { x: 850, y: 650, w: 100, h: 100 };
         
@@ -225,6 +249,10 @@
         async function init() {
             const trackText = document.getElementById('track-text');
             const trackDot = document.getElementById('track-dot');
+            
+            // Setup preview canvas
+            previewCanvas.width = 160;
+            previewCanvas.height = 120;
             
             // Iniciar el bucle de renderizado inmediatamente para que la UI responda
             animate();
@@ -370,10 +398,7 @@
         }
 
         function animate() {
-            ctx.clearRect(0, 0, WIDTH, HEIGHT);
-
-            const trackDot = document.getElementById('track-dot');
-            const trackText = document.getElementById('track-text');
+            pctx.clearRect(0, 0, 160, 120);
 
             if (modelsLoaded && handLandmarker && isCameraActive && video.readyState >= 2) {
                 const results = handLandmarker.detectForVideo(video, Date.now());
@@ -389,11 +414,15 @@
                     const targetX = (1 - indexTip.x) * WIDTH;
                     const targetY = indexTip.y * HEIGHT;
 
-                    const dist = Math.sqrt((targetX - player.x)**2 + (targetY - player.y)**2);
+                    // EMA Smoothing
+                    smoothX += (targetX - smoothX) * lerpFactor;
+                    smoothY += (targetY - smoothY) * lerpFactor;
+
+                    const dist = Math.sqrt((smoothX - player.x)**2 + (smoothY - player.y)**2);
                     if (dist < player.r + 60) {
                         player.isDragging = true;
-                        player.x = targetX;
-                        player.y = targetY;
+                        player.x = smoothX;
+                        player.y = smoothY;
                     } else {
                         player.isDragging = false;
                     }
@@ -403,6 +432,8 @@
                             if (checkCollision(player.x, player.y, player.r, w.x, w.y, w.w, w.h)) {
                                 player.x = startPos.x;
                                 player.y = startPos.y;
+                                smoothX = startPos.x;
+                                smoothY = startPos.y;
                                 player.isDragging = false;
                                 break;
                             }
@@ -412,12 +443,27 @@
                         }
                     }
 
+                    // Main cursor
                     ctx.shadowBlur = 15;
                     ctx.shadowColor = '#fff';
                     ctx.fillStyle = 'white';
                     ctx.beginPath();
-                    ctx.arc(targetX, targetY, 10, 0, Math.PI * 2);
+                    ctx.arc(smoothX, smoothY, 10, 0, Math.PI * 2);
                     ctx.fill();
+
+                    // Camera preview dot
+                    const previewX = (1 - indexTip.x) * 160;
+                    const previewY = indexTip.y * 120;
+                    pctx.shadowBlur = 10;
+                    pctx.shadowColor = '#00d2ff';
+                    pctx.fillStyle = '#00d2ff';
+                    pctx.beginPath();
+                    pctx.arc(previewX, previewY, 4, 0, Math.PI * 2);
+                    pctx.fill();
+                    pctx.fillStyle = '#fff';
+                    pctx.beginPath();
+                    pctx.arc(previewX, previewY, 1.5, 0, Math.PI * 2);
+                    pctx.fill();
                 } else {
                     isTracking = false;
                     player.isDragging = false;
@@ -441,10 +487,6 @@
         }
 
         init();
-    </script>
-</body>
-</html>
-
     </script>
 </body>
 </html>
