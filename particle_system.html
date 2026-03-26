@@ -625,6 +625,9 @@
       const textParticleCount = Math.floor(count * 0.75); // 75% for text
       const fireworkParticleCount = count - textParticleCount; // 25% for fireworks
 
+      // Global metadata for animation loop
+      window.particleMetadata = new Float32Array(count); 
+
       // 1. GENERATE TEXT PARTICLES WITH GRADIENT & SPARKLES
       for (let i = 0; i < textParticleCount; i++) {
         if (filledPixels.length > 0) {
@@ -634,6 +637,9 @@
           const x = (px - centerX) * scale;
           const y = -(py - centerY) * scale * 1.5;
           const z = (Math.random() - 0.5) * 0.05;
+
+          // Metadata: 0 = Text
+          window.particleMetadata[i] = 0;
 
           // Color Gradient: Top Pink (#E91E63) to Bottom Blue (#00B0FF)
           const normY = (py - minY) / (maxY - minY);
@@ -659,15 +665,17 @@
       ];
 
       const centers = [
-        [-3.5, 1.5], [3.5, 1.5],   // Top corners
-        [-4.0, 0.0], [4.0, 0.0],   // Middle sides
-        [-3.2, -1.2], [3.2, -1.2]  // Bottom corners
+        [-3.8, 1.8], [3.8, 1.8],   // Top corners
+        [-4.5, 0.0], [4.5, 0.0],   // Middle sides
+        [-3.6, -1.5], [3.6, -1.5]  // Bottom corners
       ];
 
       const particlesPerBurst = Math.floor(fireworkParticleCount / centers.length);
-      centers.forEach((center, idx) => {
-        const burstCol = fireworkColors[idx % fireworkColors.length];
+      let pIdx = textParticleCount;
+      centers.forEach((center, cIdx) => {
+        const burstCol = fireworkColors[cIdx % fireworkColors.length];
         for (let i = 0; i < particlesPerBurst; i++) {
+          if (pIdx >= count) break;
           const r = Math.random() * 0.8;
           const theta = Math.random() * Math.PI * 2;
           const phi = Math.random() * Math.PI;
@@ -676,9 +684,13 @@
           const ry = r * Math.sin(phi) * Math.sin(theta);
           const rz = r * Math.cos(phi);
           
+          // Metadata: >0 = Firework (Value encodes burst center index + 1)
+          window.particleMetadata[pIdx++] = cIdx + 1;
+
           result.push({
             pos: [center[0] + rx, center[1] + ry, rz],
-            col: burstCol
+            col: burstCol,
+            fireworkCenter: center // for animation reference
           });
         }
       });
@@ -993,27 +1005,50 @@
       // Lerp particles toward targets (with expansion)
       const pos = geometry.attributes.position.array;
       const col = geometry.attributes.color.array;
+      const t = clock.elapsedTime;
+
       for (let i = 0; i < PARTICLE_COUNT; i++) {
         const i3 = i * 3;
-        const tx = targets[i3] * expansionScale;
-        const ty = targets[i3 + 1] * expansionScale;
-        const tz = targets[i3 + 2] * expansionScale;
+        let tx = targets[i3] * expansionScale;
+        let ty = targets[i3 + 1] * expansionScale;
+        let tz = targets[i3 + 2] * expansionScale;
+        let tr = targetColors[i3];
+        let tg = targetColors[i3+1];
+        let tb = targetColors[i3+2];
+
+        // v5.2 DYNAMIC EFFECTS: Color Wave & Pulsing Fireworks
+        const isWelcome = (lastGestureShape === 'welcome');
+        if (isWelcome && window.particleMetadata) {
+          const meta = window.particleMetadata[i];
+          if (meta === 0) {
+            // Text Color Wave: Shift hue based on Y + Time
+            const wave = Math.sin(ty * 2.5 + t * 3.5) * 0.15;
+            tr = Math.max(0, Math.min(1, tr + wave));
+            tb = Math.max(0, Math.min(1, tb - wave));
+          } else if (meta > 0) {
+            // Fireworks Pulse: Expand/Contract relative to burst centers
+            const pulse = 1.0 + 0.15 * Math.sin(t * 6.0 + meta);
+            const bx = [-3.8, 3.8, -4.5, 4.5, -3.6, 3.2][(meta - 1) % 6];
+            const by = [1.8, 1.8, 0.0, 0.0, -1.5, -1.2][(meta - 1) % 6];
+            tx = bx + (tx - bx) * pulse;
+            ty = by + (ty - by) * pulse;
+          }
+        }
 
         pos[i3] += (tx - pos[i3]) * LERP_SPEED;
         pos[i3 + 1] += (ty - pos[i3 + 1]) * LERP_SPEED;
         pos[i3 + 2] += (tz - pos[i3 + 2]) * LERP_SPEED;
 
         // Color lerp
-        col[i3] += (targetColors[i3] - col[i3]) * LERP_SPEED;
-        col[i3 + 1] += (targetColors[i3 + 1] - col[i3 + 1]) * LERP_SPEED;
-        col[i3 + 2] += (targetColors[i3 + 2] - col[i3 + 2]) * LERP_SPEED;
+        col[i3] += (tr - col[i3]) * LERP_SPEED;
+        col[i3 + 1] += (tg - col[i3 + 1]) * LERP_SPEED;
+        col[i3 + 2] += (tb - col[i3 + 2]) * LERP_SPEED;
       }
       geometry.attributes.position.needsUpdate = true;
       geometry.attributes.color.needsUpdate = true;
 
       // Slow auto-rotate + mouse orbit (disabled for text shapes)
       const isTextShape = (lastGestureShape === 'welcome');
-      const t = clock.elapsedTime;
       rotX += (mouseX - rotX) * 0.05;
       rotY += (mouseY - rotY) * 0.05;
 
