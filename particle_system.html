@@ -507,16 +507,24 @@
       ctx.fill();
       ctx.stroke();
 
-      // Brain Creases (Thick internal lines)
+      // Brain Creases (High-Density v5.8)
       ctx.strokeStyle = darkBorder;
       ctx.lineWidth = 14;
       const drawCrease = (mx, my, tx, ty, cpx, cpy) => {
         ctx.beginPath(); ctx.moveTo(mx, my); ctx.quadraticCurveTo(cpx, cpy, tx, ty); ctx.stroke();
       };
+      // Main folds
       drawCrease(cx - 110, cy - 200, cx - 210, cy - 150, cx - 180, cy - 210);
       drawCrease(cx - 80, cy - 50, cx - 240, cy + 10, cx - 180, cy - 20);
       drawCrease(cx - 110, cy + 140, cx - 220, cy + 90, cx - 180, cy + 160);
       drawCrease(cx - 20, cy, cx - 100, cy + 40, cx - 60, cy + 10);
+      // v5.8: Secondary folds for density
+      drawCrease(cx - 150, cy - 240, cx - 230, cy - 210, cx - 200, cy - 250);
+      drawCrease(cx - 250, cy - 100, cx - 200, cy - 30, cx - 260, cy - 60);
+      drawCrease(cx - 240, cy + 140, cx - 180, cy + 190, cx - 220, cy + 180);
+      drawCrease(cx - 100, cy - 120, cx - 50, cy - 140, cx - 80, cy - 100);
+      drawCrease(cx - 100, cy + 60, cx - 40, cy + 80, cx - 70, cy + 50);
+      drawCrease(cx - 50, cy - 220, cx - 20, cy - 180, cx - 40, cy - 210);
 
       // 2. DRAW CIRCUIT (RIGHT SIDE - BLUE)
       ctx.fillStyle = blueColor;
@@ -556,6 +564,18 @@
       drawStepLine(cy - 30, 40, cy - 30, 190, '#FF8A65');  // Orange Node
       drawStepLine(cy + 60, 50, cy + 60, 230, '#81C784');  // Green Node
       drawStepLine(cy + 160, 30, cy + 160, 170, '#FFD54F'); // Bottom Yellow
+
+      // v5.8: Circuit Interconnects (Vertical/Diagonal pipes)
+      ctx.strokeStyle = darkBorder; ctx.lineWidth = 12;
+      const drawInter = (x1, y1, x2, y2) => {
+        ctx.beginPath(); ctx.moveTo(cx + 20 + x1, cy + y1); ctx.lineTo(cx + 20 + x2, cy + y2); ctx.stroke();
+        // Micro-node
+        ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.arc(cx + 20 + x2, cy + y2, 10, 0, Math.PI * 2); ctx.fill();
+      };
+      drawInter(80, -220, 100, -120);
+      drawInter(120, -120, 90, -30);
+      drawInter(60, 60, 120, 160);
+      drawInter(180, -120, 150, -30);
 
       // Text "CIENCIA DE DATOS"
       ctx.fillStyle = '#ffffff';
