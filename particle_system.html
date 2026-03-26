@@ -708,14 +708,19 @@
           const ry = r * Math.sin(phi) * Math.sin(theta);
           const rz = r * Math.cos(phi);
 
-          // Metadata: Type=1 (Firework), BurstIdx, Velocity(vX,vY,vZ)
+          // v5.6: Spherical velocity distribution for a perfectly round explosion
+          const vPhi = Math.random() * Math.PI * 2;
+          const vCosAlpha = Math.random() * 2 - 1;
+          const vSinAlpha = Math.sqrt(1 - vCosAlpha * vCosAlpha);
+          const speed = 3.5 + Math.random() * 3.0; // Explosion force
+
           const mIdx = pIdx * 5;
           window.particleMetadata[mIdx] = 1;
           window.particleMetadata[mIdx + 1] = cIdx; // Burst index
-          // High initial velocity for "explosion"
-          window.particleMetadata[mIdx + 2] = (Math.random() - 0.5) * 4.5;
-          window.particleMetadata[mIdx + 3] = (Math.random() - 0.1) * 5.0; // biased upward
-          window.particleMetadata[mIdx + 4] = (Math.random() - 0.5) * 2.5;
+          
+          window.particleMetadata[mIdx + 2] = speed * vSinAlpha * Math.cos(vPhi); // vx
+          window.particleMetadata[mIdx + 3] = speed * vSinAlpha * Math.sin(vPhi) + 1.2; // vy (biased up)
+          window.particleMetadata[mIdx + 4] = speed * vCosAlpha; // vz
 
           pIdx++;
 
