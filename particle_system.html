@@ -467,7 +467,7 @@
       ctx.beginPath();
       // Starting from top center
       ctx.moveTo(cx - 20, cy - 260);
-      
+
       // 9 Puffy Lobes (Puffiness Factor)
       // Top lobes
       ctx.bezierCurveTo(cx - 50, cy - 280, cx - 80, cy - 290, cx - 110, cy - 270); // L1
@@ -478,7 +478,7 @@
       ctx.bezierCurveTo(cx - 320, cy + 120, cx - 290, cy + 200, cx - 210, cy + 220); // L5
       ctx.bezierCurveTo(cx - 180, cy + 260, cx - 110, cy + 270, cx - 70, cy + 230);  // L6
       ctx.bezierCurveTo(cx - 40, cy + 250, cx - 30, cy + 220, cx - 20, cy + 190);   // L7
-      
+
       ctx.lineTo(cx - 20, cy - 260);
       ctx.fill();
       ctx.stroke();
@@ -516,7 +516,7 @@
         ctx.lineTo(cx + 20 + x_step + 40, y2); // The diagonal step
         ctx.lineTo(cx + 20 + x_final, y2);
         ctx.stroke();
-        
+
         // Node
         ctx.fillStyle = nodeCol;
         ctx.beginPath();
@@ -625,8 +625,8 @@
       const textParticleCount = Math.floor(count * 0.75); // 75% for text
       const fireworkParticleCount = count - textParticleCount; // 25% for fireworks
 
-      // Global metadata for animation loop
-      window.particleMetadata = new Float32Array(count); 
+      // Global metadata for animation loop: [type, burstIdx, vx, vy, vz]
+      window.particleMetadata = new Float32Array(count * 5);
 
       // 1. GENERATE TEXT PARTICLES WITH GRADIENT & SPARKLES
       for (let i = 0; i < textParticleCount; i++) {
@@ -638,8 +638,8 @@
           const y = -(py - centerY) * scale * 1.5;
           const z = (Math.random() - 0.5) * 0.05;
 
-          // Metadata: 0 = Text
-          window.particleMetadata[i] = 0;
+          // Metadata [i*5]: 0=Text, 1=BurstIdx (NA), 2,3,4=NA
+          window.particleMetadata[i * 5] = 0;
 
           // Color Gradient: Top Pink (#E91E63) to Bottom Blue (#00B0FF)
           const normY = (py - minY) / (maxY - minY);
@@ -679,18 +679,26 @@
           const r = Math.random() * 0.8;
           const theta = Math.random() * Math.PI * 2;
           const phi = Math.random() * Math.PI;
-          
+
           const rx = r * Math.sin(phi) * Math.cos(theta);
           const ry = r * Math.sin(phi) * Math.sin(theta);
           const rz = r * Math.cos(phi);
-          
-          // Metadata: >0 = Firework (Value encodes burst center index + 1)
-          window.particleMetadata[pIdx++] = cIdx + 1;
+
+          // Metadata: Type=1 (Firework), BurstIdx, Velocity(vX,vY,vZ)
+          const mIdx = pIdx * 5;
+          window.particleMetadata[mIdx] = 1;
+          window.particleMetadata[mIdx + 1] = cIdx; // Burst index
+          // High initial velocity for "explosion"
+          window.particleMetadata[mIdx + 2] = (Math.random() - 0.5) * 4.5;
+          window.particleMetadata[mIdx + 3] = (Math.random() - 0.1) * 5.0; // biased upward
+          window.particleMetadata[mIdx + 4] = (Math.random() - 0.5) * 2.5;
+
+          pIdx++;
 
           result.push({
-            pos: [center[0] + rx, center[1] + ry, rz],
+            pos: [center[0], center[1], 0], // Start at center
             col: burstCol,
-            fireworkCenter: center // for animation reference
+            fireworkCenter: center
           });
         }
       });
@@ -1013,25 +1021,48 @@
         let ty = targets[i3 + 1] * expansionScale;
         let tz = targets[i3 + 2] * expansionScale;
         let tr = targetColors[i3];
-        let tg = targetColors[i3+1];
-        let tb = targetColors[i3+2];
+        let tg = targetColors[i3 + 1];
+        let tb = targetColors[i3 + 2];
 
-        // v5.2 DYNAMIC EFFECTS: Color Wave & Pulsing Fireworks
+        // v5.3 DYNAMIC EFFECTS: Color Wave & Kinematic Fireworks
         const isWelcome = (lastGestureShape === 'welcome');
-        if (isWelcome && window.particleMetadata) {
-          const meta = window.particleMetadata[i];
-          if (meta === 0) {
-            // Text Color Wave: Shift hue based on Y + Time
-            const wave = Math.sin(ty * 2.5 + t * 3.5) * 0.15;
-            tr = Math.max(0, Math.min(1, tr + wave));
-            tb = Math.max(0, Math.min(1, tb - wave));
-          } else if (meta > 0) {
-            // Fireworks Pulse: Expand/Contract relative to burst centers
-            const pulse = 1.0 + 0.15 * Math.sin(t * 6.0 + meta);
-            const bx = [-3.8, 3.8, -4.5, 4.5, -3.6, 3.2][(meta - 1) % 6];
-            const by = [1.8, 1.8, 0.0, 0.0, -1.5, -1.2][(meta - 1) % 6];
-            tx = bx + (tx - bx) * pulse;
-            ty = by + (ty - by) * pulse;
+        if (isWelcome && window.particleMetadata && window.particleMetadata.length > i * 5) {
+          const mIdx = i * 5;
+          const type = window.particleMetadata[mIdx];
+          
+          if (type === 0) {
+            // v5.3: SMOOTH COLOR CYCLE for text
+            const hueShift = Math.sin(t * 1.2 + ty * 0.5) * 0.2;
+            tr = Math.max(0, Math.min(1, tr + hueShift));
+            tb = Math.max(0, Math.min(1, tb - hueShift));
+          } else if (type === 1) {
+            // v5.3: KINEMATIC FIREWORKS (Explode -> Gravity -> Fade)
+            const burstIdx = window.particleMetadata[mIdx + 1];
+            const vx = window.particleMetadata[mIdx + 2];
+            const vy = window.particleMetadata[mIdx + 3];
+            const vz = window.particleMetadata[mIdx + 4];
+
+            // Life cycle: 3.5 second loop per burst center
+            const life = (t + burstIdx * 0.6) % 3.5; 
+            const age = life;
+            
+            if (age < 3.0) {
+              // Kinematics: pos = p0 + v*t - 0.5*g*t^2
+              const gravity = 2.2;
+              const drag = Math.pow(0.5, age); // air friction
+              tx = tx + vx * age * drag;
+              ty = ty + vy * age * drag - 0.5 * gravity * age * age;
+              tz = tz + vz * age * drag;
+
+              // Fade to black: starts fading at 1.2s
+              if (age > 1.2) {
+                const fade = 1.0 - Math.min(1, (age - 1.2) / 1.5);
+                tr *= fade; tg *= fade; tb *= fade;
+              }
+            } else {
+              // Particle is "invisible" (black) while resetting
+              tr = tg = tb = 0;
+            }
           }
         }
 
