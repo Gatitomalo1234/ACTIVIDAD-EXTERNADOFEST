@@ -406,13 +406,13 @@
       const tCtx = tCanvas.getContext('2d');
       const center = size / 2;
       const radius = size / 2 - 2;
-      
+
       const grad = tCtx.createRadialGradient(center, center, 0, center, center, radius);
       grad.addColorStop(0, 'rgba(255,255,255,1)');
-      grad.addColorStop(0.3, 'rgba(255,255,255,0.9)'); 
+      grad.addColorStop(0.3, 'rgba(255,255,255,0.9)');
       grad.addColorStop(0.6, 'rgba(255,255,255,0.25)'); // Larger core
       grad.addColorStop(1, 'rgba(255,255,255,0)');
-      
+
       tCtx.fillStyle = grad;
       tCtx.beginPath();
       tCtx.arc(center, center, radius, 0, Math.PI * 2);
@@ -471,69 +471,69 @@
       canvas.width = W; canvas.height = H;
       const ctx = canvas.getContext('2d');
 
-      // v6.0: CLEAN LOGO - Background haze removed for maximum clarity
+      // Draw Circular Background (subtle)
+      ctx.fillStyle = 'rgba(255,255,255,0.05)';
+      ctx.beginPath(); ctx.arc(W / 2, H / 2 - 100, 380, 0, Math.PI * 2); ctx.fill();
 
       // DRAWING SETTINGS
       const cx = W / 2;
       const cy = H / 2 - 80;
       const blueColor = '#00B0FF';
-      const redColor = '#E91E63'; 
-      const darkBorder = 'rgba(0,0,0,0)'; // v6.1: Transparent borders for pure contrast
+      const redColor = '#E91E63'; // Slightly more vibrant pink/red
+      const darkBorder = '#111';
 
       // 1. DRAW BRAIN (LEFT SIDE - RED)
       ctx.fillStyle = redColor;
       ctx.strokeStyle = darkBorder;
-      ctx.lineWidth = 18; 
+      ctx.lineWidth = 18; // Bold vector outline
       ctx.lineJoin = 'round';
 
       ctx.beginPath();
-      // v5.9: Symmetric height alignment
-      ctx.moveTo(cx - 20, cy - 270);
+      // Starting from top center
+      ctx.moveTo(cx - 20, cy - 260);
 
       // 9 Puffy Lobes (Puffiness Factor)
       // Top lobes
-      ctx.bezierCurveTo(cx - 50, cy - 280, cx - 80, cy - 290, cx - 110, cy - 270); 
-      ctx.bezierCurveTo(cx - 150, cy - 290, cx - 210, cy - 280, cx - 240, cy - 220); 
-      ctx.bezierCurveTo(cx - 290, cy - 200, cx - 310, cy - 140, cx - 280, cy - 90); 
+      ctx.bezierCurveTo(cx - 50, cy - 280, cx - 80, cy - 290, cx - 110, cy - 270); // L1
+      ctx.bezierCurveTo(cx - 150, cy - 310, cx - 210, cy - 300, cx - 240, cy - 240); // L2
+      ctx.bezierCurveTo(cx - 290, cy - 220, cx - 310, cy - 160, cx - 280, cy - 110); // L3
       // Outer side
-      ctx.bezierCurveTo(cx - 330, cy - 60, cx - 340, cy + 30, cx - 290, cy + 80);    
-      ctx.bezierCurveTo(cx - 320, cy + 140, cx - 290, cy + 220, cx - 210, cy + 240); 
-      ctx.bezierCurveTo(cx - 180, cy + 270, cx - 110, cy + 280, cx - 70, cy + 250);  
-      ctx.bezierCurveTo(cx - 40, cy + 270, cx - 30, cy + 240, cx - 20, cy + 210);   
+      ctx.bezierCurveTo(cx - 330, cy - 80, cx - 340, cy + 10, cx - 290, cy + 60);    // L4
+      ctx.bezierCurveTo(cx - 320, cy + 120, cx - 290, cy + 200, cx - 210, cy + 220); // L5
+      ctx.bezierCurveTo(cx - 180, cy + 260, cx - 110, cy + 270, cx - 70, cy + 230);  // L6
+      ctx.bezierCurveTo(cx - 40, cy + 250, cx - 30, cy + 220, cx - 20, cy + 190);   // L7
 
-      ctx.lineTo(cx - 20, cy - 270);
+      ctx.lineTo(cx - 20, cy - 260);
       ctx.fill();
       ctx.stroke();
 
       // Brain Creases (High-Density v5.8)
-      // Brain Creases (High-Density v5.8/v5.9)
       ctx.strokeStyle = darkBorder;
       ctx.lineWidth = 14;
       const drawCrease = (mx, my, tx, ty, cpx, cpy) => {
         ctx.beginPath(); ctx.moveTo(mx, my); ctx.quadraticCurveTo(cpx, cpy, tx, ty); ctx.stroke();
       };
-      // Main folds (aligned to v5.9)
+      // Main folds
       drawCrease(cx - 110, cy - 200, cx - 210, cy - 150, cx - 180, cy - 210);
       drawCrease(cx - 80, cy - 50, cx - 240, cy + 10, cx - 180, cy - 20);
       drawCrease(cx - 110, cy + 140, cx - 220, cy + 90, cx - 180, cy + 160);
       drawCrease(cx - 20, cy, cx - 100, cy + 40, cx - 60, cy + 10);
-      // v5.8 Secondary folds
+      // v5.8: Secondary folds for density
       drawCrease(cx - 150, cy - 240, cx - 230, cy - 210, cx - 200, cy - 250);
       drawCrease(cx - 250, cy - 100, cx - 200, cy - 30, cx - 260, cy - 60);
       drawCrease(cx - 240, cy + 140, cx - 180, cy + 190, cx - 220, cy + 180);
       drawCrease(cx - 100, cy - 120, cx - 50, cy - 140, cx - 80, cy - 100);
       drawCrease(cx - 100, cy + 60, cx - 40, cy + 80, cx - 70, cy + 50);
       drawCrease(cx - 50, cy - 220, cx - 20, cy - 180, cx - 40, cy - 210);
-      
+
       // 2. DRAW CIRCUIT (RIGHT SIDE - BLUE)
       ctx.fillStyle = blueColor;
       ctx.strokeStyle = darkBorder;
       ctx.lineWidth = 18;
 
       ctx.beginPath();
-      // v5.9: Match arc height to red side (radius 270, centered at cy - 10 to balance)
-      ctx.arc(cx + 20, cy - 10, 275, -Math.PI * 0.5, Math.PI * 0.5, false);
-      ctx.lineTo(cx + 20, cy - 285);
+      ctx.arc(cx + 20, cy - 35, 270, -Math.PI * 0.5, Math.PI * 0.5, false);
+      ctx.lineTo(cx + 20, cy - 305);
       ctx.closePath();
       ctx.fill();
       ctx.stroke();
@@ -565,18 +565,17 @@
       drawStepLine(cy + 60, 50, cy + 60, 230, '#81C784');  // Green Node
       drawStepLine(cy + 160, 30, cy + 160, 170, '#FFD54F'); // Bottom Yellow
 
-      // v6.0: Circuit Interconnects with themed micro-nodes
+      // v5.8: Circuit Interconnects (Vertical/Diagonal pipes)
       ctx.strokeStyle = darkBorder; ctx.lineWidth = 12;
-      const drawInter = (x1, y1, x2, y2, color) => {
+      const drawInter = (x1, y1, x2, y2) => {
         ctx.beginPath(); ctx.moveTo(cx + 20 + x1, cy + y1); ctx.lineTo(cx + 20 + x2, cy + y2); ctx.stroke();
-        // Micro-node (now themed)
-        ctx.fillStyle = color || blueColor; ctx.beginPath(); ctx.arc(cx + 20 + x2, cy + y2, 12, 0, Math.PI * 2); ctx.fill();
-        ctx.strokeStyle = darkBorder; ctx.lineWidth = 4; ctx.stroke();
+        // Micro-node
+        ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.arc(cx + 20 + x2, cy + y2, 10, 0, Math.PI * 2); ctx.fill();
       };
-      drawInter(80, -220, 100, -120, '#FFD54F');
-      drawInter(120, -120, 90, -30, blueColor);
-      drawInter(60, 60, 120, 160, '#81C784');
-      drawInter(180, -120, 150, -30, '#FF8A65');
+      drawInter(80, -220, 100, -120);
+      drawInter(120, -120, 90, -30);
+      drawInter(60, 60, 120, 160);
+      drawInter(180, -120, 150, -30);
 
       // Text "CIENCIA DE DATOS"
       ctx.fillStyle = '#ffffff';
@@ -593,17 +592,9 @@
       for (let y = 0; y < H; y += 2) {
         for (let x = 0; x < W; x += 2) {
           const idx = (y * W + x) * 4;
-          const a = imageData[idx + 3];
-          if (a > 128) {
-            const r = imageData[idx] / 255;
-            const g = imageData[idx + 1] / 255;
-            const b = imageData[idx + 2] / 255;
-            // v6.1: LUMINOSITY FILTER - Only sample bright, vivid pixels
-            const brightness = (r + g + b) / 3;
-            if (brightness < 0.15) continue; // Skip dark edges/clouds
-
+          if (imageData[idx + 3] > 128) {
             points.push([x, y]);
-            colors.push([r, g, b]);
+            colors.push([imageData[idx] / 255, imageData[idx + 1] / 255, imageData[idx + 2] / 255]);
           }
         }
       }
@@ -746,7 +737,7 @@
           const mIdx = pIdx * 5;
           window.particleMetadata[mIdx] = 1;
           window.particleMetadata[mIdx + 1] = cIdx; // Burst index
-          
+
           window.particleMetadata[mIdx + 2] = speed * vSinAlpha * Math.cos(vPhi); // vx
           window.particleMetadata[mIdx + 3] = speed * vSinAlpha * Math.sin(vPhi) + 1.2; // vy (biased up)
           window.particleMetadata[mIdx + 4] = speed * vCosAlpha; // vz
@@ -1087,7 +1078,7 @@
         if (isWelcome && window.particleMetadata && window.particleMetadata.length > i * 5) {
           const mIdx = i * 5;
           const type = window.particleMetadata[mIdx];
-          
+
           if (type === 0) {
             // v5.7: VIVID COLOR SHIFT for text
             const hueShift = Math.sin(t * 1.5 + ty * 0.5) * 0.35;
@@ -1102,9 +1093,9 @@
             const vz = window.particleMetadata[mIdx + 4];
 
             // Life cycle: 3.5 second loop per burst center
-            const life = (t + burstIdx * 0.6) % 3.5; 
+            const life = (t + burstIdx * 0.6) % 3.5;
             const age = life;
-            
+
             if (age < 3.0) {
               // Kinematics: pos = p0 + v*t - 0.5*g*t^2
               const gravity = 2.2;
