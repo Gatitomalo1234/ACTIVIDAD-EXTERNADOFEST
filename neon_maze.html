@@ -188,10 +188,10 @@
         <div id="instructions">MAZE ENGINE v8.0 | EXTERNADO FEST</div>
     </div>
 
-    <!-- MediaPipe Scripts via CDN -->
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision/vision_bundle.js" crossorigin="anonymous"></script>
+    <!-- MediaPipe Scripts via CDN (Module-based for reliability) -->
+    <script type="module">
+        import { HandLandmarker, FilesetResolver } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.0";
 
-    <script>
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
         const video = document.getElementById('camera-preview');
@@ -200,6 +200,7 @@
         let isCameraActive = false;
         let isTracking = false;
         let gameActive = false;
+        let modelsLoaded = false;
 
         // Maze Geometry
         const WIDTH = 1024;
@@ -211,7 +212,6 @@
         let startPos = { x: 100, y: 100 };
         let goal = { x: 850, y: 650, w: 100, h: 100 };
         
-        // Define Obstacles (Neon Walls)
         const walls = [
             { x: 300, y: 0, w: 30, h: 500 },
             { x: 500, y: 268, w: 30, h: 500 },
@@ -221,40 +221,67 @@
         ];
 
         let particles = [];
-        let score = 0;
 
-        async function initMediaPipe() {
-            const vision = await FilesetResolver.forVisionTasks(
-                "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision/wasm"
-            );
-            handLandmarker = await HandLandmarker.createFromOptions(vision, {
-                baseOptions: {
-                    modelAssetPath: "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task",
-                    delegate: "GPU"
-                },
-                runningMode: "VIDEO",
-                numHands: 2
-            });
-            console.log("MediaPipe Ready");
-        }
+        async function init() {
+            const trackText = document.getElementById('track-text');
+            const trackDot = document.getElementById('track-dot');
+            
+            // Iniciar el bucle de renderizado inmediatamente para que la UI responda
+            animate();
 
-        async function initCamera() {
             try {
-                const stream = await navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480 } });
-                video.srcObject = stream;
-                isCameraActive = true;
+                trackText.innerText = "Cargando IA...";
+                const vision = await FilesetResolver.forVisionTasks(
+                    "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.0/wasm"
+                );
+                handLandmarker = await HandLandmarker.createFromOptions(vision, {
+                    baseOptions: {
+                        modelAssetPath: "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task",
+                        delegate: "GPU"
+                    },
+                    runningMode: "VIDEO",
+                    numHands: 1
+                });
+                modelsLoaded = true;
+                trackText.innerText = "IA Lista";
+                console.log("MediaPipe Ready");
             } catch (err) {
-                console.error("Camera error:", err);
+                trackText.innerText = "Error IA";
+                trackDot.classList.remove('status-active');
+                trackDot.classList.add('status-inactive');
+                trackDot.style.background = "#ff007f";
+                console.error("MediaPipe Error:", err);
+            }
+
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { width: 640, height: 480 } 
+                });
+                video.srcObject = stream;
+                video.onloadedmetadata = () => {
+                    video.play();
+                    isCameraActive = true;
+                };
+            } catch (err) {
+                trackText.innerText = "Sin Cámara";
+                trackDot.classList.add('status-inactive');
+                trackDot.style.background = "#ff007f";
+                console.error("Camera Error:", err);
             }
         }
 
-        function startGame() {
+        window.startGame = function() {
+            // Permitimos iniciar incluso si falla el tracking para que el usuario vea el laberinto
             document.getElementById('welcome-overlay').classList.add('hidden');
             gameActive = true;
-            animate();
+            
+            // Re-intentar cámara si no inició
+            if (!isCameraActive) {
+                console.warn("Intentando re-activar cámara...");
+            }
         }
 
-        function resetGame() {
+        window.resetGame = function() {
             document.getElementById('victory-overlay').classList.add('hidden');
             player.x = startPos.x;
             player.y = startPos.y;
@@ -265,13 +292,11 @@
         function winGame() {
             gameActive = false;
             document.getElementById('victory-overlay').classList.remove('hidden');
-            // Fireworks
-            for(let i=0; i<50; i++) {
+            for(let i=0; i<60; i++) {
                 particles.push(new Particle(player.x, player.y));
             }
         }
 
-        // --- Physics Helpers ---
         function checkCollision(cx, cy, r, rx, ry, rw, rh) {
             const closestX = Math.max(rx, Math.min(cx, rx + rw));
             const closestY = Math.max(ry, Math.min(cy, ry + rh));
@@ -283,8 +308,8 @@
         class Particle {
             constructor(x, y) {
                 this.x = x; this.y = y;
-                this.vx = (Math.random() - 0.5) * 20;
-                this.vy = (Math.random() - 0.5) * 20;
+                this.vx = (Math.random() - 0.5) * 15;
+                this.vy = (Math.random() - 0.5) * 15;
                 this.life = 1.0;
                 this.color = `hsl(${Math.random() * 360}, 100%, 70%)`;
             }
@@ -302,79 +327,70 @@
             }
         }
 
-        // --- Rendering ---
         function drawMaze() {
-            // Draw Walls
-            ctx.shadowBlur = 15;
+            ctx.shadowBlur = 20;
             walls.forEach(w => {
                 ctx.shadowColor = '#ff007f';
-                ctx.fillStyle = 'rgba(255, 0, 127, 0.8)';
+                ctx.fillStyle = 'rgba(255, 0, 127, 0.7)';
                 ctx.fillRect(w.x, w.y, w.w, w.h);
-                // Inner glow
                 ctx.fillStyle = '#fff';
-                ctx.globalAlpha = 0.3;
+                ctx.globalAlpha = 0.2;
                 ctx.fillRect(w.x + w.w/2 - 2, w.y, 4, w.h);
                 ctx.globalAlpha = 1;
             });
 
-            // Draw Goal
-            const pulse = 10 + Math.sin(Date.now() / 200) * 5;
+            const pulse = 15 + Math.sin(Date.now() / 200) * 8;
             ctx.shadowColor = '#39ff14';
             ctx.shadowBlur = pulse;
-            ctx.fillStyle = 'rgba(57, 255, 20, 0.2)';
+            ctx.fillStyle = 'rgba(57, 255, 20, 0.15)';
             ctx.fillRect(goal.x, goal.y, goal.w, goal.h);
             ctx.strokeStyle = '#39ff14';
             ctx.lineWidth = 4;
             ctx.strokeRect(goal.x, goal.y, goal.w, goal.h);
             
             ctx.fillStyle = '#39ff14';
-            ctx.font = 'bold 16px Inter';
+            ctx.font = 'bold 18px Inter';
             ctx.textAlign = 'center';
-            ctx.fillText('META', goal.x + goal.w/2, goal.y + goal.h/2 + 5);
+            ctx.fillText('META', goal.x + goal.w/2, goal.y + goal.h/2 + 7);
         }
 
         function drawPlayer() {
             if (!gameActive) return;
-            const glow = player.isDragging ? 30 : 15;
+            const glow = player.isDragging ? 40 : 20;
             ctx.shadowColor = '#00d2ff';
             ctx.shadowBlur = glow;
             ctx.fillStyle = player.isDragging ? '#00d2ff' : '#0095b6';
             ctx.beginPath();
             ctx.arc(player.x, player.y, player.r, 0, Math.PI * 2);
             ctx.fill();
-            // Core
             ctx.fillStyle = '#fff';
             ctx.beginPath();
             ctx.arc(player.x, player.y, player.r * 0.4, 0, Math.PI * 2);
             ctx.fill();
         }
 
-        async function animate() {
+        function animate() {
             ctx.clearRect(0, 0, WIDTH, HEIGHT);
 
-            if (handLandmarker && video.readyState >= 2) {
+            const trackDot = document.getElementById('track-dot');
+            const trackText = document.getElementById('track-text');
+
+            if (modelsLoaded && handLandmarker && isCameraActive && video.readyState >= 2) {
                 const results = handLandmarker.detectForVideo(video, Date.now());
+
                 if (results.landmarks && results.landmarks.length > 0) {
                     isTracking = true;
-                    document.getElementById('track-dot').className = 'status-dot status-active';
-                    document.getElementById('track-text').innerText = 'Detección Activa';
+                    trackDot.className = 'status-dot status-active';
+                    trackText.innerText = 'Detección Activa';
                     
-                    // Mirroring and Scaling (landmark x is 0-1)
-                    // We look for the main hand (index 0 usually, but we filter for physical right)
-                    // MediaPipe flips handedness in mirrored video: Physical Right = "Left" category
-                    let handIdx = results.handedness.findIndex(h => h[0].categoryName === 'Left');
-                    if(handIdx === -1) handIdx = 0; // Fallback
-
-                    const landmarks = results.landmarks[handIdx];
-                    const indexTip = landmarks[8]; // Index finger tip
+                    const landmarks = results.landmarks[0];
+                    const indexTip = landmarks[8];
                     
-                    // Convert to screen space (mirroring x)
                     const targetX = (1 - indexTip.x) * WIDTH;
                     const targetY = indexTip.y * HEIGHT;
 
-                    // Interaction Logic
                     const dist = Math.sqrt((targetX - player.x)**2 + (targetY - player.y)**2);
-                    if (dist < player.r + 50) {
+                    if (dist < player.r + 60) {
                         player.isDragging = true;
                         player.x = targetX;
                         player.y = targetY;
@@ -382,7 +398,6 @@
                         player.isDragging = false;
                     }
 
-                    // Collision checking
                     if (player.isDragging) {
                         for (let w of walls) {
                             if (checkCollision(player.x, player.y, player.r, w.x, w.y, w.w, w.h)) {
@@ -397,36 +412,38 @@
                         }
                     }
 
-                    // Draw cursor at finger tip
-                    ctx.shadowBlur = 10;
+                    ctx.shadowBlur = 15;
                     ctx.shadowColor = '#fff';
                     ctx.fillStyle = 'white';
                     ctx.beginPath();
-                    ctx.arc(targetX, targetY, 8, 0, Math.PI * 2);
+                    ctx.arc(targetX, targetY, 10, 0, Math.PI * 2);
                     ctx.fill();
                 } else {
                     isTracking = false;
                     player.isDragging = false;
-                    document.getElementById('track-dot').className = 'status-dot status-inactive';
-                    document.getElementById('track-text').innerText = 'Buscando mano...';
+                    trackDot.className = 'status-dot status-inactive';
+                    trackText.innerText = 'Buscando mano...';
                 }
+            } else if (!isCameraActive && modelsLoaded) {
+                trackText.innerText = 'Aguardando Cámara...';
             }
 
             drawMaze();
             drawPlayer();
 
-            // Particles
-            particles.forEach((p, index) => {
-                p.update();
-                p.draw();
-                if (p.life <= 0) particles.splice(index, 1);
-            });
+            for (let i = particles.length - 1; i >= 0; i--) {
+                particles[i].update();
+                particles[i].draw();
+                if (particles[i].life <= 0) particles.splice(i, 1);
+            }
 
             requestAnimationFrame(animate);
         }
 
-        // Start everything
-        initMediaPipe().then(initCamera);
+        init();
+    </script>
+</body>
+</html>
 
     </script>
 </body>
