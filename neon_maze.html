@@ -158,6 +158,52 @@
             white-space: nowrap;
         }
 
+        /* Registration & Stats Styling */
+        #player-name-input {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            padding: 12px 20px;
+            color: white;
+            font-size: 18px;
+            text-align: center;
+            margin-bottom: 20px;
+            width: 280px;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+        #player-name-input:focus { border-color: var(--neon-blue); }
+
+        .stats-dash {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin: 25px 0;
+            width: 100%;
+            max-width: 400px;
+        }
+        .stat-item {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--glass-border);
+            padding: 15px;
+            border-radius: 12px;
+        }
+        .stat-label { font-size: 10px; text-transform: uppercase; color: rgba(255,255,255,0.4); margin-bottom: 5px; }
+        .stat-value { font-size: 20px; font-weight: 700; color: var(--neon-blue); }
+
+        #level-title {
+            position: absolute;
+            top: 25px; left: 50%;
+            transform: translateX(-50%);
+            font-size: 24px; font-weight: 800;
+            color: var(--neon-blue);
+            text-transform: uppercase;
+            letter-spacing: 4px;
+            text-shadow: 0 0 10px rgba(0, 210, 255, 0.5);
+            z-index: 5;
+            pointer-events: none;
+        }
+
         /* Status indicators */
         .status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 5px; }
         .status-active { background: var(--neon-green); box-shadow: 0 0 10px var(--neon-green); }
@@ -169,16 +215,18 @@
     <div id="game-container">
         <!-- The Game Logic -->
         <canvas id="gameCanvas"></canvas>
+        <div id="level-title">Cargando...</div>
         
         <!-- UI Layer -->
         <div id="ui-layer">
             <div class="glass-panel">
-                <span class="label">Puntos</span>
-                <span id="score-val" class="value">000</span>
+                <span class="label">Nivel</span>
+                <span id="level-val" class="value">1</span>
             </div>
             <div class="glass-panel" style="align-items: flex-end;">
                 <span class="label">Estado de Seguimiento</span>
-                <div style="display: flex; align-items: center;">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <span id="track-btn-retry" style="display:none; font-size: 10px; color: var(--neon-blue); cursor: pointer; text-decoration: underline; letter-spacing: 1px;" onclick="retryCamera()">REINTENTAR</span>
                     <span id="track-dot" class="status-dot status-inactive"></span>
                     <span id="track-text" class="value" style="font-size: 14px; text-transform: uppercase;">Aguardando...</span>
                 </div>
@@ -194,22 +242,74 @@
         <div id="welcome-overlay" class="overlay">
             <h1>NEON MAZE</h1>
             <p>Usa la punta de tu dedo índice derecho para arrastrar la esfera azul hasta la meta. No toques las líneas de energía rosadas.</p>
+            <input type="text" id="player-name-input" placeholder="Tu Nombre o Alias" maxlength="15">
             <button class="btn" onclick="startGame()">INICIAR DESAFÍO</button>
         </div>
 
         <!-- Victory Overlay -->
         <div id="victory-overlay" class="overlay hidden">
-            <h1>¡VICTORIA!</h1>
-            <p id="victory-msg">Has completado el laberinto con precisión quirúrgica.</p>
+            <h1 id="victory-title">¡VICTORIA!</h1>
+            <div class="stats-dash">
+                <div class="stat-item">
+                    <div class="stat-label">Jugador</div>
+                    <div id="stat-name" class="stat-value">-</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">Tiempo Total</div>
+                    <div id="stat-time" class="stat-value">00:00</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">Niveles</div>
+                    <div id="stat-levels" class="stat-value">5 / 5</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">Rango</div>
+                    <div id="stat-rank" class="stat-value" style="color: var(--neon-pink);">MAESTRO</div>
+                </div>
+            </div>
             <button class="btn" onclick="resetGame()">VOLVER A JUGAR</button>
         </div>
 
         <div id="instructions">MAZE ENGINE v8.3 | EXTERNADO FEST</div>
     </div>
 
-    <!-- MediaPipe Scripts via CDN (Module-based for reliability) -->
-    <script type="module">
-        import { HandLandmarker, FilesetResolver } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.0";
+    <!-- MediaPipe Legacy Engine (Resilience v10.0) -->
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+
+    <script>
+        // Global UI Status Logic
+        let trackText, trackDot, trackBtnRetry;
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            trackText = document.getElementById('track-text');
+            trackDot = document.getElementById('track-dot');
+            trackBtnRetry = document.getElementById('track-btn-retry');
+            if (trackText) trackText.innerText = "Cargando Motor Clásico...";
+        });
+
+        function updateTrackingStatus(state, msg) {
+            if (!trackText) return;
+            if (msg) trackText.innerText = msg;
+            
+            if (state === 'active') {
+                trackDot.className = 'status-dot status-active';
+                trackDot.style.background = 'var(--neon-green)';
+                trackBtnRetry.style.display = 'none';
+            } else if (state === 'error' || state === 'timeout') {
+                trackDot.className = 'status-dot status-inactive';
+                trackDot.style.background = '#ff007f';
+                trackBtnRetry.style.display = 'inline';
+            } else if (state === 'searching') {
+                trackDot.className = 'status-dot status-active';
+                trackDot.style.background = 'var(--neon-gold)';
+                trackBtnRetry.style.display = 'none';
+            } else {
+                trackDot.className = 'status-dot status-inactive';
+                trackDot.style.background = '#555';
+                trackBtnRetry.style.display = 'none';
+            }
+        }
 
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
@@ -217,11 +317,12 @@
         const previewCanvas = document.getElementById('preview-canvas');
         const pctx = previewCanvas.getContext('2d');
         
-        let handLandmarker;
+        let hands;
         let isCameraActive = false;
         let isTracking = false;
         let gameActive = false;
         let modelsLoaded = false;
+        let particles = []; // Fix: Declare particles array
 
         // Maze Geometry
         const WIDTH = 1024;
@@ -229,100 +330,233 @@
         canvas.width = WIDTH;
         canvas.height = HEIGHT;
 
+        let currentLevelIdx = 0;
         let player = { x: 100, y: 100, r: 25, isDragging: false };
         let smoothX = 100, smoothY = 100;
-        const lerpFactor = 0.25; // Suavizado EMA
-        
-        let startPos = { x: 100, y: 100 };
-        let goal = { x: 850, y: 650, w: 100, h: 100 };
-        
-        const walls = [
-            { x: 300, y: 0, w: 30, h: 500 },
-            { x: 500, y: 268, w: 30, h: 500 },
-            { x: 700, y: 0, w: 30, h: 500 },
-            { x: 100, y: 300, w: 200, h: 30 },
-            { x: 600, y: 550, w: 250, h: 30 }
+        const lerpFactor = 0.35; // Increased for snapier response
+
+        let playerName = "Invitado";
+        let startTime = 0;
+        let finalDuration = 0;
+
+        const levels = [
+            { // Nivel 1: Intro Neon
+                name: "Intro Neon",
+                start: { x: 100, y: 100 },
+                goal: { x: 880, y: 650, w: 100, h: 100 },
+                walls: [
+                    { x: 400, y: 0, w: 40, h: 400 },
+                    { x: 600, y: 368, w: 40, h: 400 }
+                ]
+            },
+            { // Nivel 2: Zig-Zag
+                name: "Zig-Zag",
+                start: { x: 100, y: 100 },
+                goal: { x: 880, y: 650, w: 100, h: 100 },
+                walls: [
+                    { x: 0, y: 250, w: 800, h: 30 },
+                    { x: 200, y: 500, w: 824, h: 30 }
+                ]
+            },
+            { // Nivel 3: La Brecha
+                name: "La Brecha",
+                start: { x: 512, y: 50 },
+                goal: { x: 462, y: 650, w: 100, h: 100 },
+                walls: [
+                    { x: 0, y: 150, w: 450, h: 30 },
+                    { x: 574, y: 150, w: 450, h: 30 },
+                    { x: 200, y: 350, w: 624, h: 30 },
+                    { x: 0, y: 550, w: 450, h: 30 },
+                    { x: 574, y: 550, w: 450, h: 30 }
+                ]
+            },
+            { // Nivel 4: Circuitos
+                name: "Circuitos",
+                start: { x: 100, y: 100 },
+                goal: { x: 880, y: 650, w: 100, h: 100 },
+                walls: [
+                    { x: 250, y: 0, w: 30, h: 250 },
+                    { x: 250, y: 250, w: 500, h: 30 },
+                    { x: 750, y: 250, w: 30, h: 250 },
+                    { x: 0, y: 500, w: 500, h: 30 },
+                    { x: 500, y: 500, w: 30, h: 268 }
+                ]
+            },
+            { // Nivel 5: Maestro de Datos
+                name: "Maestro de Datos",
+                start: { x: 100, y: 650 },
+                goal: { x: 880, y: 100, w: 100, h: 100 },
+                walls: [
+                    { x: 300, y: 168, w: 30, h: 600 },    // Hueco arriba
+                    { x: 550, y: 0, w: 30, h: 600 },      // Hueco abajo
+                    { x: 800, y: 168, w: 30, h: 600 }     // Hueco arriba
+                ]
+            }
         ];
 
-        let particles = [];
+        let currentWalls = levels[0].walls;
+        let currentGoal = levels[0].goal;
+        let startPos = levels[0].start;
 
-        async function init() {
-            const trackText = document.getElementById('track-text');
-            const trackDot = document.getElementById('track-dot');
+        // status logic moved to global scope
+
+        function onResults(results) {
+            pctx.clearRect(0, 0, 160, 120);
             
-            // Setup preview canvas
-            previewCanvas.width = 160;
-            previewCanvas.height = 120;
-            
-            // Iniciar el bucle de renderizado inmediatamente para que la UI responda
-            animate();
+            if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
+                isTracking = true;
+                const landmarks = results.multiHandLandmarks[0];
+                const indexTip = landmarks[8];
+                
+                const targetX = (1 - indexTip.x) * WIDTH;
+                const targetY = indexTip.y * HEIGHT;
 
-            try {
-                trackText.innerText = "Cargando IA...";
-                const vision = await FilesetResolver.forVisionTasks(
-                    "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.0/wasm"
-                );
-                handLandmarker = await HandLandmarker.createFromOptions(vision, {
-                    baseOptions: {
-                        modelAssetPath: "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task",
-                        delegate: "GPU"
-                    },
-                    runningMode: "VIDEO",
-                    numHands: 1
-                });
-                modelsLoaded = true;
-                trackText.innerText = "IA Lista";
-                console.log("MediaPipe Ready");
-            } catch (err) {
-                trackText.innerText = "Error IA";
-                trackDot.classList.remove('status-active');
-                trackDot.classList.add('status-inactive');
-                trackDot.style.background = "#ff007f";
-                console.error("MediaPipe Error:", err);
-            }
+                // Adaptive Smoothing: Very smooth for small jitters, responsive for movement
+                const distToTarget = Math.sqrt((targetX - smoothX)**2 + (targetY - smoothY)**2);
+                const adaptiveLerp = distToTarget < 5 ? 0.08 : 0.4;
+                
+                smoothX += (targetX - smoothX) * adaptiveLerp;
+                smoothY += (targetY - smoothY) * adaptiveLerp;
 
-            try {
-                const stream = await navigator.mediaDevices.getUserMedia({ 
-                    video: { width: 640, height: 480 } 
-                });
-                video.srcObject = stream;
-                video.onloadedmetadata = () => {
-                    video.play();
-                    isCameraActive = true;
-                };
-            } catch (err) {
-                trackText.innerText = "Sin Cámara";
-                trackDot.classList.add('status-inactive');
-                trackDot.style.background = "#ff007f";
-                console.error("Camera Error:", err);
+                // Actualizar drag del jugador
+                const dist = Math.sqrt((smoothX - player.x)**2 + (smoothY - player.y)**2);
+                if (dist < player.r + 60) {
+                    player.isDragging = true;
+                    player.x = smoothX;
+                    player.y = smoothY;
+                } else {
+                    player.isDragging = false;
+                }
+
+                // Dibujar en preview
+                const px = (1 - indexTip.x) * 160;
+                const py = indexTip.y * 120;
+                pctx.fillStyle = '#00d2ff';
+                pctx.beginPath();
+                pctx.arc(px, py, 4, 0, Math.PI * 2);
+                pctx.fill();
+            } else {
+                isTracking = false;
+                player.isDragging = false;
             }
         }
 
-        window.startGame = function() {
-            // Permitimos iniciar incluso si falla el tracking para que el usuario vea el laberinto
-            document.getElementById('welcome-overlay').classList.add('hidden');
-            gameActive = true;
-            
-            // Re-intentar cámara si no inició
-            if (!isCameraActive) {
-                console.warn("Intentando re-activar cámara...");
+        window.retryCamera = function() {
+            updateTrackingStatus('loading', 'Reintentando...');
+            initCamera();
+        }
+
+        async function init() {
+            try {
+                // Ensure UI references are set
+                trackText = document.getElementById('track-text');
+                trackDot = document.getElementById('track-dot');
+                trackBtnRetry = document.getElementById('track-btn-retry');
+
+                previewCanvas.width = 160;
+                previewCanvas.height = 120;
+                
+                updateTrackingStatus('loading', 'Iniciando IA...');
+                
+                hands = new Hands({locateFile: (file) => {
+                    return `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`;
+                }});
+
+                hands.setOptions({
+                    maxNumHands: 1,
+                    modelComplexity: 0, // 0 for max speed/less lag
+                    minDetectionConfidence: 0.5,
+                    minTrackingConfidence: 0.5
+                });
+
+                hands.onResults(onResults);
+
+                // Use the MediaPipe Camera Utils Helper
+                const camera = new Camera(video, {
+                    onFrame: async () => {
+                        if (hands) await hands.send({image: video});
+                    },
+                    width: 640,
+                    height: 480
+                });
+
+                modelsLoaded = true;
+                isCameraActive = true;
+                updateTrackingStatus('active', 'Motor Listo');
+                
+                // Start tracking
+                camera.start();
+                
+                // Start game loop
+                animate();
+
+            } catch (e) {
+                updateTrackingStatus('error', 'Error de Motor');
+                console.error("Critical Failure:", e);
             }
+        }
+
+        function loadLevel(idx) {
+            if (idx >= levels.length) {
+                gameActive = false;
+                document.getElementById('victory-overlay').classList.remove('hidden');
+                document.getElementById('level-val').innerText = "DONE";
+                document.getElementById('level-title').innerText = "MAESTRO DE DATOS COMPLETO";
+                return;
+            }
+            const level = levels[idx];
+            currentWalls = level.walls;
+            currentGoal = level.goal;
+            startPos = level.start;
+            player.x = startPos.x;
+            player.y = startPos.y;
+            smoothX = startPos.x;
+            smoothY = startPos.y;
+            document.getElementById('level-val').innerText = idx + 1;
+            document.getElementById('level-title').innerText = level.name;
+        }
+
+        window.startGame = function() {
+            const nameInput = document.getElementById('player-name-input');
+            playerName = nameInput.value.trim() || "Invitado";
+            document.getElementById('welcome-overlay').classList.add('hidden');
+            currentLevelIdx = 0;
+            loadLevel(currentLevelIdx);
+            gameActive = true;
+            startTime = Date.now();
         }
 
         window.resetGame = function() {
             document.getElementById('victory-overlay').classList.add('hidden');
-            player.x = startPos.x;
-            player.y = startPos.y;
-            gameActive = true;
+            document.getElementById('welcome-overlay').classList.remove('hidden');
+            currentLevelIdx = 0;
+            loadLevel(currentLevelIdx);
+            gameActive = false;
             particles = [];
         }
 
-        function winGame() {
-            gameActive = false;
-            document.getElementById('victory-overlay').classList.remove('hidden');
-            for(let i=0; i<60; i++) {
+        function winLevel() {
+            for(let i=0; i<40; i++) {
                 particles.push(new Particle(player.x, player.y));
             }
+            currentLevelIdx++;
+            if (currentLevelIdx < levels.length) {
+                loadLevel(currentLevelIdx);
+            } else {
+                gameActive = false;
+                finalDuration = (Date.now() - startTime) / 1000;
+                showVictory();
+            }
+        }
+
+        function showVictory() {
+            document.getElementById('stat-name').innerText = playerName;
+            const mins = Math.floor(finalDuration / 60);
+            const secs = Math.floor(finalDuration % 60);
+            document.getElementById('stat-time').innerText = `${mins}:${secs.toString().padStart(2, '0')}s`;
+            
+            document.getElementById('victory-title').innerText = `¡GRANDE, ${playerName.toUpperCase()}!`;
+            document.getElementById('victory-overlay').classList.remove('hidden');
         }
 
         function checkCollision(cx, cy, r, rx, ry, rw, rh) {
@@ -357,7 +591,7 @@
 
         function drawMaze() {
             ctx.shadowBlur = 20;
-            walls.forEach(w => {
+            currentWalls.forEach(w => {
                 ctx.shadowColor = '#ff007f';
                 ctx.fillStyle = 'rgba(255, 0, 127, 0.7)';
                 ctx.fillRect(w.x, w.y, w.w, w.h);
@@ -371,15 +605,15 @@
             ctx.shadowColor = '#39ff14';
             ctx.shadowBlur = pulse;
             ctx.fillStyle = 'rgba(57, 255, 20, 0.15)';
-            ctx.fillRect(goal.x, goal.y, goal.w, goal.h);
+            ctx.fillRect(currentGoal.x, currentGoal.y, currentGoal.w, currentGoal.h);
             ctx.strokeStyle = '#39ff14';
             ctx.lineWidth = 4;
-            ctx.strokeRect(goal.x, goal.y, goal.w, goal.h);
+            ctx.strokeRect(currentGoal.x, currentGoal.y, currentGoal.w, currentGoal.h);
             
             ctx.fillStyle = '#39ff14';
             ctx.font = 'bold 18px Inter';
             ctx.textAlign = 'center';
-            ctx.fillText('META', goal.x + goal.w/2, goal.y + goal.h/2 + 7);
+            ctx.fillText('META', currentGoal.x + currentGoal.w/2, currentGoal.y + currentGoal.h/2 + 7);
         }
 
         function drawPlayer() {
@@ -398,80 +632,36 @@
         }
 
         function animate() {
-            pctx.clearRect(0, 0, 160, 120);
+            ctx.clearRect(0, 0, WIDTH, HEIGHT);
 
-            if (modelsLoaded && handLandmarker && isCameraActive && video.readyState >= 2) {
-                const results = handLandmarker.detectForVideo(video, Date.now());
-
-                if (results.landmarks && results.landmarks.length > 0) {
-                    isTracking = true;
-                    trackDot.className = 'status-dot status-active';
-                    trackText.innerText = 'Detección Activa';
-                    
-                    const landmarks = results.landmarks[0];
-                    const indexTip = landmarks[8];
-                    
-                    const targetX = (1 - indexTip.x) * WIDTH;
-                    const targetY = indexTip.y * HEIGHT;
-
-                    // EMA Smoothing
-                    smoothX += (targetX - smoothX) * lerpFactor;
-                    smoothY += (targetY - smoothY) * lerpFactor;
-
-                    const dist = Math.sqrt((smoothX - player.x)**2 + (smoothY - player.y)**2);
-                    if (dist < player.r + 60) {
-                        player.isDragging = true;
-                        player.x = smoothX;
-                        player.y = smoothY;
-                    } else {
-                        player.isDragging = false;
-                    }
-
-                    if (player.isDragging) {
-                        for (let w of walls) {
-                            if (checkCollision(player.x, player.y, player.r, w.x, w.y, w.w, w.h)) {
-                                player.x = startPos.x;
-                                player.y = startPos.y;
-                                smoothX = startPos.x;
-                                smoothY = startPos.y;
-                                player.isDragging = false;
-                                break;
-                            }
-                        }
-                        if (checkCollision(player.x, player.y, player.r, goal.x, goal.y, goal.w, goal.h)) {
-                            winGame();
+            if (isTracking && modelsLoaded) {
+                updateTrackingStatus('active', 'Detección Activa');
+                
+                if (player.isDragging) {
+                    for (let w of currentWalls) {
+                        if (checkCollision(player.x, player.y, player.r, w.x, w.y, w.w, w.h)) {
+                            player.x = startPos.x;
+                            player.y = startPos.y;
+                            smoothX = startPos.x;
+                            smoothY = startPos.y;
+                            player.isDragging = false;
+                            break;
                         }
                     }
-
-                    // Main cursor
-                    ctx.shadowBlur = 15;
-                    ctx.shadowColor = '#fff';
-                    ctx.fillStyle = 'white';
-                    ctx.beginPath();
-                    ctx.arc(smoothX, smoothY, 10, 0, Math.PI * 2);
-                    ctx.fill();
-
-                    // Camera preview dot
-                    const previewX = (1 - indexTip.x) * 160;
-                    const previewY = indexTip.y * 120;
-                    pctx.shadowBlur = 10;
-                    pctx.shadowColor = '#00d2ff';
-                    pctx.fillStyle = '#00d2ff';
-                    pctx.beginPath();
-                    pctx.arc(previewX, previewY, 4, 0, Math.PI * 2);
-                    pctx.fill();
-                    pctx.fillStyle = '#fff';
-                    pctx.beginPath();
-                    pctx.arc(previewX, previewY, 1.5, 0, Math.PI * 2);
-                    pctx.fill();
-                } else {
-                    isTracking = false;
-                    player.isDragging = false;
-                    trackDot.className = 'status-dot status-inactive';
-                    trackText.innerText = 'Buscando mano...';
+                    if (checkCollision(player.x, player.y, player.r, currentGoal.x, currentGoal.y, currentGoal.w, currentGoal.h)) {
+                        winLevel();
+                    }
                 }
-            } else if (!isCameraActive && modelsLoaded) {
-                trackText.innerText = 'Aguardando Cámara...';
+
+                // Main cursor
+                ctx.shadowBlur = 15;
+                ctx.shadowColor = '#fff';
+                ctx.fillStyle = 'white';
+                ctx.beginPath();
+                ctx.arc(smoothX, smoothY, 10, 0, Math.PI * 2);
+                ctx.fill();
+            } else if (modelsLoaded && isCameraActive) {
+                updateTrackingStatus('searching', 'Buscando mano...');
             }
 
             drawMaze();
