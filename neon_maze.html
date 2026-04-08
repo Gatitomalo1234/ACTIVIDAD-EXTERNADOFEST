@@ -10,16 +10,19 @@
             --neon-pink: #ff007f;
             --neon-green: #39ff14;
             --neon-gold: #ffcc00;
-            --bg-color: #050505;
-            --glass-bg: rgba(255, 255, 255, 0.03);
-            --glass-border: rgba(255, 255, 255, 0.1);
+            --bg-color: #0a0a0c;
+            --glass-bg: rgba(255, 255, 255, 0.05);
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --apple-glass: rgba(18, 18, 23, 0.7);
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
-            background-color: var(--bg-color);
+            background: linear-gradient(-45deg, #050505, #1a0b2e, #050505, #0b1a2e);
+            background-size: 400% 400%;
+            animation: meshGradient 15s ease infinite;
             color: white;
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
             overflow: hidden;
             display: flex;
             flex-direction: column;
@@ -28,35 +31,47 @@
             height: 100vh;
         }
 
+        @keyframes meshGradient {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
         /* Ambient Glow */
         body::before {
             content: '';
             position: absolute;
-            width: 300px;
-            height: 300px;
-            background: radial-gradient(circle, rgba(0, 210, 255, 0.15) 0%, transparent 70%);
-            top: 10%; left: 10%;
+            width: 40vw;
+            height: 40vw;
+            background: radial-gradient(circle, rgba(0, 210, 255, 0.1) 0%, transparent 75%);
+            top: -10%; left: -10%;
             pointer-events: none;
+            filter: blur(50px);
         }
         body::after {
             content: '';
             position: absolute;
-            width: 400px;
-            height: 400px;
-            background: radial-gradient(circle, rgba(255, 0, 127, 0.1) 0%, transparent 70%);
-            bottom: 5%; right: 5%;
+            width: 50vw;
+            height: 50vw;
+            background: radial-gradient(circle, rgba(255, 0, 127, 0.05) 0%, transparent 70%);
+            bottom: -15%; right: -15%;
             pointer-events: none;
+            filter: blur(80px);
         }
 
         #game-container {
             position: relative;
             width: 1024px;
             height: 768px;
-            border-radius: 20px;
+            border-radius: 32px;
             overflow: hidden;
-            box-shadow: 0 0 50px rgba(0,0,0,0.5), 0 0 20px rgba(255,255,255,0.05);
-            background: #000;
-            border: 1px solid var(--glass-border);
+            box-shadow: 0 50px 100px -20px rgba(0,0,0,0.7), 
+                        0 30px 60px -30px rgba(0,0,0,0.8),
+                        inset 0 0 0 1px rgba(255,255,255,0.05);
+            background: var(--apple-glass);
+            backdrop-filter: blur(40px) saturate(180%);
+            -webkit-backdrop-filter: blur(40px) saturate(180%);
+            border: 1px solid rgba(255, 255, 255, 0.1);
         }
 
         canvas {
@@ -76,15 +91,16 @@
         }
 
         .glass-panel {
-            background: var(--glass-bg);
-            backdrop-filter: blur(15px);
-            -webkit-backdrop-filter: blur(15px);
-            border: 1px solid var(--glass-border);
-            padding: 15px 25px;
-            border-radius: 15px;
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(25px) saturate(150%);
+            -webkit-backdrop-filter: blur(25px) saturate(150%);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            padding: 18px 28px;
+            border-radius: 20px;
             display: flex;
             flex-direction: column;
-            gap: 5px;
+            gap: 4px;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
         }
 
         .label { font-size: 10px; text-transform: uppercase; letter-spacing: 2px; color: rgba(255,255,255,0.5); }
@@ -135,7 +151,7 @@
         }
         .hidden { opacity: 0; pointer-events: none; }
 
-        h1 { font-size: 48px; margin-bottom: 10px; background: linear-gradient(45deg, var(--neon-blue), var(--neon-pink)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        h1 { font-size: 48px; margin-bottom: 10px; background: linear-gradient(45deg, var(--neon-blue), var(--neon-pink)); background-clip: text; -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
         p { font-size: 18px; color: rgba(255,255,255,0.7); max-width: 500px; margin-bottom: 30px; line-height: 1.6; }
 
         .btn {
@@ -384,7 +400,7 @@
             },
             { // Nivel 5: Maestro de Datos
                 name: "Maestro de Datos",
-                start: { x: 100, y: 650 },
+                start: { x: 250, y: 650 }, // Moved from 100 to avoid camera overlay
                 goal: { x: 880, y: 100, w: 100, h: 100 },
                 walls: [
                     { x: 300, y: 168, w: 30, h: 600 },    // Hueco arriba
@@ -406,14 +422,23 @@
             if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
                 isTracking = true;
                 const landmarks = results.multiHandLandmarks[0];
-                const indexTip = landmarks[8];
+                const indexTip = landmarks[8]; // Correctly define indexTip
                 
-                const targetX = (1 - indexTip.x) * WIDTH;
-                const targetY = indexTip.y * HEIGHT;
+                // 1. Edge Clamping & Safety Margin (5%)
+                const margin = 0.05;
+                const clampedX = Math.max(margin, Math.min(1 - margin, indexTip.x));
+                const clampedY = Math.max(margin, Math.min(1 - margin, indexTip.y));
+                
+                const targetX = (1 - clampedX) * WIDTH;
+                const targetY = clampedY * HEIGHT;
 
-                // Adaptive Smoothing: Very smooth for small jitters, responsive for movement
+                // 2. Adaptive Smoothing: Dynamic Lerp based on distance
                 const distToTarget = Math.sqrt((targetX - smoothX)**2 + (targetY - smoothY)**2);
-                const adaptiveLerp = distToTarget < 5 ? 0.08 : 0.4;
+                
+                // Extra smoothing when near edges (edge jitter reduction)
+                const isNearEdge = clampedX < 0.1 || clampedX > 0.9 || clampedY < 0.1 || clampedY > 0.9;
+                const baseLerp = distToTarget < 5 ? 0.08 : 0.4;
+                const adaptiveLerp = isNearEdge ? baseLerp * 0.5 : baseLerp;
                 
                 smoothX += (targetX - smoothX) * adaptiveLerp;
                 smoothY += (targetY - smoothY) * adaptiveLerp;
@@ -429,8 +454,8 @@
                 }
 
                 // Dibujar en preview
-                const px = (1 - indexTip.x) * 160;
-                const py = indexTip.y * 120;
+                const px = (1 - clampedX) * 160;
+                const py = clampedY * 120;
                 pctx.fillStyle = '#00d2ff';
                 pctx.beginPath();
                 pctx.arc(px, py, 4, 0, Math.PI * 2);
