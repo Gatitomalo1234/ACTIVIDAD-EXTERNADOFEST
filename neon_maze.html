@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Neon Hand-Maze | Externado Fest v8.0</title>
+    <title>Data Mastery Externado | v12.2</title>
     <style>
         :root {
             --neon-blue: #00d2ff;
@@ -224,6 +224,7 @@
         .status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 5px; }
         .status-active { background: var(--neon-green); box-shadow: 0 0 10px var(--neon-green); }
         .status-inactive { background: #555; }
+
     </style>
 </head>
 <body>
@@ -256,10 +257,10 @@
 
         <!-- Initial Overlay -->
         <div id="welcome-overlay" class="overlay">
-            <h1>NEON MAZE</h1>
-            <p>Usa la punta de tu dedo índice derecho para arrastrar la esfera azul hasta la meta. No toques las líneas de energía rosadas.</p>
+            <h1>DATA MASTERY</h1>
+            <p>Demuestra tu pulso y precisión. Recorre el camino de un científico de datos del Externado evitando las interferencias en la red.</p>
             <input type="text" id="player-name-input" placeholder="Tu Nombre o Alias" maxlength="15">
-            <button class="btn" onclick="startGame()">INICIAR DESAFÍO</button>
+            <button class="btn" onclick="startGame()">INICIAR EL DESAFÍO</button>
         </div>
 
         <!-- Victory Overlay -->
@@ -286,8 +287,13 @@
             <button class="btn" onclick="resetGame()">VOLVER A JUGAR</button>
         </div>
 
-        <div id="instructions">MAZE ENGINE v8.3 | EXTERNADO FEST</div>
+        <div id="instructions">
+            DATA MASTERY | CIENCIA DE DATOS | EXTERNADO FEST v15.0
+        </div>
     </div>
+
+    <!-- Supabase Cloud Engine (v15.0) -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 
     <!-- MediaPipe Legacy Engine (Resilience v10.0) -->
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
@@ -338,7 +344,10 @@
         let isTracking = false;
         let gameActive = false;
         let modelsLoaded = false;
-        let particles = []; // Fix: Declare particles array
+        let particles = [];
+        let glitchEffect = 0; // 0 to 1 for RGB Shift
+        let lastX = 100, lastY = 100;
+        let velX = 0, velY = 0;
 
         // Maze Geometry
         const WIDTH = 1024;
@@ -356,8 +365,8 @@
         let finalDuration = 0;
 
         const levels = [
-            { // Nivel 1: Intro Neon
-                name: "Intro Neon",
+            { // Nivel 1: Detective de Patrones
+                name: "Detective de Patrones",
                 start: { x: 100, y: 100 },
                 goal: { x: 880, y: 650, w: 100, h: 100 },
                 walls: [
@@ -365,8 +374,8 @@
                     { x: 600, y: 368, w: 40, h: 400 }
                 ]
             },
-            { // Nivel 2: Zig-Zag
-                name: "Zig-Zag",
+            { // Nivel 2: Limpiador de Rutas
+                name: "Limpiador de Rutas",
                 start: { x: 100, y: 100 },
                 goal: { x: 880, y: 650, w: 100, h: 100 },
                 walls: [
@@ -374,8 +383,8 @@
                     { x: 200, y: 500, w: 824, h: 30 }
                 ]
             },
-            { // Nivel 3: La Brecha
-                name: "La Brecha",
+            { // Nivel 3: Arquitecto Digital
+                name: "Arquitecto Digital",
                 start: { x: 512, y: 50 },
                 goal: { x: 462, y: 650, w: 100, h: 100 },
                 walls: [
@@ -386,8 +395,8 @@
                     { x: 574, y: 550, w: 450, h: 30 }
                 ]
             },
-            { // Nivel 4: Circuitos
-                name: "Circuitos",
+            { // Nivel 4: Maestro de Algoritmos
+                name: "Maestro de Algoritmos",
                 start: { x: 100, y: 100 },
                 goal: { x: 880, y: 650, w: 100, h: 100 },
                 walls: [
@@ -398,14 +407,14 @@
                     { x: 500, y: 500, w: 30, h: 268 }
                 ]
             },
-            { // Nivel 5: Maestro de Datos
-                name: "Maestro de Datos",
-                start: { x: 250, y: 650 }, // Moved from 100 to avoid camera overlay
+            { // Nivel 5: Impacto Global
+                name: "Impacto Global",
+                start: { x: 250, y: 650 }, 
                 goal: { x: 880, y: 100, w: 100, h: 100 },
                 walls: [
-                    { x: 300, y: 168, w: 30, h: 600 },    // Hueco arriba
-                    { x: 550, y: 0, w: 30, h: 600 },      // Hueco abajo
-                    { x: 800, y: 168, w: 30, h: 600 }     // Hueco arriba
+                    { x: 300, y: 168, w: 30, h: 600 },    
+                    { x: 550, y: 0, w: 30, h: 600 },      
+                    { x: 800, y: 168, w: 30, h: 600 }     
                 ]
             }
         ];
@@ -432,23 +441,33 @@
                 const targetX = (1 - clampedX) * WIDTH;
                 const targetY = clampedY * HEIGHT;
 
-                // 2. Adaptive Smoothing: Dynamic Lerp based on distance
-                const distToTarget = Math.sqrt((targetX - smoothX)**2 + (targetY - smoothY)**2);
-                
-                // Extra smoothing when near edges (edge jitter reduction)
-                const isNearEdge = clampedX < 0.1 || clampedX > 0.9 || clampedY < 0.1 || clampedY > 0.9;
-                const baseLerp = distToTarget < 5 ? 0.08 : 0.4;
-                const adaptiveLerp = isNearEdge ? baseLerp * 0.5 : baseLerp;
-                
-                smoothX += (targetX - smoothX) * adaptiveLerp;
-                smoothY += (targetY - smoothY) * adaptiveLerp;
+                // 2. v13.0 Precision Engine: 1 Euro Filter (Ultra Smooth)
+                const now = performance.now();
+                smoothX = filterX.filter(targetX, now);
+                smoothY = filterY.filter(targetY, now);
+
+                // v14.0 Velocity calculation
+                velX = smoothX - lastX;
+                velY = smoothY - lastY;
+                lastX = smoothX;
+                lastY = smoothY;
 
                 // Actualizar drag del jugador
                 const dist = Math.sqrt((smoothX - player.x)**2 + (smoothY - player.y)**2);
+                
+                // Visual Hand-Lock effect
+                player.nearCursor = dist < player.r + 100;
+                
                 if (dist < player.r + 60) {
+                    if (!player.isDragging) audio.playTrigger('grab');
                     player.isDragging = true;
                     player.x = smoothX;
                     player.y = smoothY;
+
+                    // Emit Trail Bits (0s and 1s)
+                    if (Math.random() > 0.7) {
+                        particles.push(new Particle(player.x, player.y, true));
+                    }
                 } else {
                     player.isDragging = false;
                 }
@@ -489,9 +508,9 @@
 
                 hands.setOptions({
                     maxNumHands: 1,
-                    modelComplexity: 0, // 0 for max speed/less lag
-                    minDetectionConfidence: 0.5,
-                    minTrackingConfidence: 0.5
+                    modelComplexity: 1, // Upgrade to Full for better reliability
+                    minDetectionConfidence: 0.7,
+                    minTrackingConfidence: 0.7
                 });
 
                 hands.onResults(onResults);
@@ -549,6 +568,7 @@
             loadLevel(currentLevelIdx);
             gameActive = true;
             startTime = Date.now();
+            audio.init();
         }
 
         window.resetGame = function() {
@@ -558,9 +578,14 @@
             loadLevel(currentLevelIdx);
             gameActive = false;
             particles = [];
+            isSavingScore = false; // Reset for next play
         }
 
         function winLevel() {
+            if (!gameActive) return; // Master-Lock: Prevents duplicate calls
+            
+            audio.playTrigger('win');
+            glitchEffect = 1.0;
             for(let i=0; i<40; i++) {
                 particles.push(new Particle(player.x, player.y));
             }
@@ -570,6 +595,7 @@
             } else {
                 gameActive = false;
                 finalDuration = (Date.now() - startTime) / 1000;
+                saveScoreToCloud(playerName, finalDuration.toFixed(2)); // v15.0 Sync
                 showVictory();
             }
         }
@@ -581,6 +607,7 @@
             document.getElementById('stat-time').innerText = `${mins}:${secs.toString().padStart(2, '0')}s`;
             
             document.getElementById('victory-title').innerText = `¡GRANDE, ${playerName.toUpperCase()}!`;
+            document.getElementById('victory-overlay').querySelector('h1').innerText = "¡FUTURO DATA SCIENTIST EXTERNADISTA!";
             document.getElementById('victory-overlay').classList.remove('hidden');
         }
 
@@ -593,25 +620,166 @@
         }
 
         class Particle {
-            constructor(x, y) {
+            constructor(x, y, isBit = false) {
                 this.x = x; this.y = y;
-                this.vx = (Math.random() - 0.5) * 15;
-                this.vy = (Math.random() - 0.5) * 15;
+                this.isBit = isBit;
+                this.vx = (Math.random() - 0.5) * (isBit ? 5 : 15);
+                this.vy = (Math.random() - 0.5) * (isBit ? 5 : 15);
                 this.life = 1.0;
-                this.color = `hsl(${Math.random() * 360}, 100%, 70%)`;
+                this.char = Math.random() > 0.5 ? '0' : '1';
+                this.color = isBit ? 'var(--neon-blue)' : `hsl(${Math.random() * 360}, 100%, 70%)`;
+                this.size = isBit ? 14 : 4;
             }
             update() {
                 this.x += this.vx; this.y += this.vy;
-                this.life -= 0.02;
+                this.life -= this.isBit ? 0.03 : 0.02;
             }
             draw() {
-                ctx.fillStyle = this.color;
+                ctx.save();
                 ctx.globalAlpha = this.life;
-                ctx.beginPath();
-                ctx.arc(this.x, this.y, 4, 0, Math.PI * 2);
-                ctx.fill();
-                ctx.globalAlpha = 1;
+                if (this.isBit) {
+                    ctx.fillStyle = this.color;
+                    ctx.font = `bold ${this.size}px monospace`;
+                    ctx.fillText(this.char, this.x, this.y);
+                } else {
+                    ctx.fillStyle = this.color;
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+                ctx.restore();
             }
+        }
+
+        // v15.0: Supabase Cloud Synchronization
+        const supabaseUrl = 'https://ddoiufkgisillaovdmty.supabase.co';
+        const supabaseKey = 'sb_publishable_jQ2b3eR3nxzijAb5D9Sqbw_npwcqW-p';
+        const _supabase = supabase.createClient(supabaseUrl, supabaseKey);
+        let isSavingScore = false; // v15.1 Guard
+
+        async function saveScoreToCloud(name, timeSec) {
+            if (isSavingScore) return; // Prevent duplicates
+            isSavingScore = true;
+            
+            console.log("Sincronizando con la nube...", name, timeSec);
+            const { data, error } = await _supabase
+                .from('leaderboard')
+                .insert([{ name: name, time_seconds: parseFloat(timeSec) }]);
+            
+            if (error) {
+                console.error("Error de sincronización:", error);
+                isSavingScore = false; // Allow retry on error
+            } else {
+                console.log("¡Datos sincronizados exitosamente!");
+            }
+        }
+
+        // v14.0: AudioEngine - Native Synthesis (No external assets)
+        class AudioEngine {
+            constructor() {
+                this.ctx = null;
+                this.masterGain = null;
+                this.pulseOsc = null;
+            }
+            init() {
+                if (this.ctx) return;
+                this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+                this.masterGain = this.ctx.createGain();
+                this.masterGain.gain.value = 0.2;
+                this.masterGain.connect(this.ctx.destination);
+            }
+            playTrigger(type) {
+                if (!this.ctx) return;
+                const osc = this.ctx.createOscillator();
+                const g = this.ctx.createGain();
+                osc.connect(g);
+                g.connect(this.masterGain);
+
+                if (type === 'grab') {
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(400, this.ctx.currentTime);
+                    osc.frequency.exponentialRampToValueAtTime(800, this.ctx.currentTime + 0.1);
+                    g.gain.setValueAtTime(0.3, this.ctx.currentTime);
+                    g.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.1);
+                } else if (type === 'wall') {
+                    osc.type = 'square';
+                    osc.frequency.setValueAtTime(80, this.ctx.currentTime);
+                    g.gain.setValueAtTime(0.2, this.ctx.currentTime);
+                    g.gain.linearRampToValueAtTime(0, this.ctx.currentTime + 0.2);
+                } else if (type === 'win') {
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(440, this.ctx.currentTime);
+                    osc.frequency.exponentialRampToValueAtTime(880, this.ctx.currentTime + 0.3);
+                    g.gain.setValueAtTime(0.3, this.ctx.currentTime);
+                    g.gain.linearRampToValueAtTime(0, this.ctx.currentTime + 0.4);
+                }
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.5);
+            }
+        }
+        const audio = new AudioEngine();
+
+        // 1 Euro Filter Implementation for 'Ultra Suave' Tracking
+        class OneEuroFilter {
+            constructor(freq, mincutoff = 1.0, beta = 0.0, dcutoff = 1.0) {
+                this.freq = freq;
+                this.mincutoff = mincutoff;
+                this.beta = beta;
+                this.dcutoff = dcutoff;
+                this.x = new LowPassFilter(this.alpha(mincutoff));
+                this.dx = new LowPassFilter(this.alpha(dcutoff));
+                this.lastTime = null;
+            }
+            alpha(cutoff) {
+                const te = 1.0 / this.freq;
+                const tau = 1.0 / (2 * Math.PI * cutoff);
+                return 1.0 / (1.0 + tau / te);
+            }
+            filter(value, timestamp = null) {
+                if (this.lastTime !== null && timestamp !== null) {
+                    this.freq = 1.0 / ((timestamp - this.lastTime) / 1000);
+                }
+                this.lastTime = timestamp;
+                const dvalue = this.x.lastValue === null ? 0 : (value - this.x.lastValue) * this.freq;
+                const edvalue = this.dx.filter(dvalue, this.alpha(this.dcutoff));
+                const cutoff = this.mincutoff + this.beta * Math.abs(edvalue);
+                return this.x.filter(value, this.alpha(cutoff));
+            }
+        }
+        class LowPassFilter {
+            constructor(alpha) {
+                this.alphaValue = alpha;
+                this.lastValue = null;
+            }
+            filter(value, alpha = null) {
+                if (alpha !== null) this.alphaValue = alpha;
+                let s;
+                if (this.lastValue === null) s = value;
+                else s = this.alphaValue * value + (1.0 - this.alphaValue) * this.lastValue;
+                this.lastValue = s;
+                return s;
+            }
+        }
+
+        // Initialize v13.0 Filters (Ultra Suave Settings)
+        const filterX = new OneEuroFilter(30, 0.5, 0.005);
+        const filterY = new OneEuroFilter(30, 0.5, 0.005);
+
+        let matrixDrops = [];
+        const columns = Math.floor(WIDTH / 20);
+        for(let i=0; i<columns; i++) matrixDrops[i] = Math.random() * -100;
+
+        function drawDataRain() {
+            ctx.save();
+            ctx.fillStyle = 'rgba(0, 210, 255, 0.04)';
+            ctx.font = '10px monospace';
+            for(let i=0; i<matrixDrops.length; i++) {
+                const text = Math.random() > 0.5 ? '0' : '1';
+                ctx.fillText(text, i * 20, matrixDrops[i]);
+                if (matrixDrops[i] > HEIGHT && Math.random() > 0.975) matrixDrops[i] = 0;
+                matrixDrops[i] += 5;
+            }
+            ctx.restore();
         }
 
         function drawMaze() {
@@ -643,28 +811,51 @@
 
         function drawPlayer() {
             if (!gameActive) return;
-            const glow = player.isDragging ? 40 : 20;
+            const glow = player.isDragging ? 40 : (player.nearCursor ? 30 : 20);
             ctx.shadowColor = '#00d2ff';
             ctx.shadowBlur = glow;
+            
+            // Pulse on Near Cursor
+            const rOffset = player.nearCursor && !player.isDragging ? Math.sin(Date.now()/150)*4 : 0;
+            
             ctx.fillStyle = player.isDragging ? '#00d2ff' : '#0095b6';
             ctx.beginPath();
-            ctx.arc(player.x, player.y, player.r, 0, Math.PI * 2);
+            ctx.arc(player.x, player.y, player.r + rOffset, 0, Math.PI * 2);
             ctx.fill();
             ctx.fillStyle = '#fff';
             ctx.beginPath();
-            ctx.arc(player.x, player.y, player.r * 0.4, 0, Math.PI * 2);
+            ctx.arc(player.x, player.y, (player.r + rOffset) * 0.4, 0, Math.PI * 2);
             ctx.fill();
         }
 
         function animate() {
+            if (glitchEffect > 0) {
+                ctx.save();
+                ctx.translate((Math.random()-0.5)*20*glitchEffect, 0);
+                glitchEffect *= 0.9;
+                if (glitchEffect < 0.01) glitchEffect = 0;
+            }
+
             ctx.clearRect(0, 0, WIDTH, HEIGHT);
+            drawDataRain(); // Sutil matrix Effect
 
             if (isTracking && modelsLoaded) {
+                // v14.0 Predictive Path
+                ctx.beginPath();
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+                ctx.setLineDash([5, 5]);
+                ctx.moveTo(smoothX, smoothY);
+                ctx.lineTo(smoothX + velX * 12, smoothY + velY * 12);
+                ctx.stroke();
+                ctx.setLineDash([]);
+
                 updateTrackingStatus('active', 'Detección Activa');
                 
                 if (player.isDragging) {
                     for (let w of currentWalls) {
                         if (checkCollision(player.x, player.y, player.r, w.x, w.y, w.w, w.h)) {
+                            audio.playTrigger('wall');
+                            glitchEffect = 0.5;
                             player.x = startPos.x;
                             player.y = startPos.y;
                             smoothX = startPos.x;
@@ -673,7 +864,8 @@
                             break;
                         }
                     }
-                    if (checkCollision(player.x, player.y, player.r, currentGoal.x, currentGoal.y, currentGoal.w, currentGoal.h)) {
+                    // Meta Check (v15.2.3: Added gameActive lock)
+                    if (gameActive && checkCollision(player.x, player.y, player.r, currentGoal.x, currentGoal.y, currentGoal.w, currentGoal.h)) {
                         winLevel();
                     }
                 }
@@ -698,6 +890,7 @@
                 if (particles[i].life <= 0) particles.splice(i, 1);
             }
 
+            if (glitchEffect > 0) ctx.restore();
             requestAnimationFrame(animate);
         }
 
