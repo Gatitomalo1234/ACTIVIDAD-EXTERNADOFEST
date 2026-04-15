@@ -658,19 +658,49 @@
         let isSavingScore = false; // v15.1 Guard
 
         async function saveScoreToCloud(name, timeSec) {
-            if (isSavingScore) return; // Prevent duplicates
+            if (isSavingScore) return; 
             isSavingScore = true;
+            const newTime = parseFloat(timeSec);
             
             console.log("Sincronizando con la nube...", name, timeSec);
-            const { data, error } = await _supabase
-                .from('leaderboard')
-                .insert([{ name: name, time_seconds: parseFloat(timeSec) }]);
             
-            if (error) {
-                console.error("Error de sincronización:", error);
-                isSavingScore = false; // Allow retry on error
-            } else {
-                console.log("¡Datos sincronizados exitosamente!");
+            try {
+                // 1. Buscar si el usuario ya existe
+                const { data: existing, error: findError } = await _supabase
+                    .from('leaderboard')
+                    .select('id, name, time_seconds')
+                    .eq('name', name)
+                    .maybeSingle();
+
+                if (findError) throw findError;
+
+                if (existing) {
+                    // 2. Si existe, actualizar solo si el nuevo tiempo es mejor
+                    if (newTime < existing.time_seconds) {
+                        console.log("¡Nuevo récord personal! Actualizando registro existente...");
+                        const { error: updateError } = await _supabase
+                            .from('leaderboard')
+                            .update({ time_seconds: newTime })
+                            .eq('id', existing.id);
+                        
+                        if (updateError) throw updateError;
+                        console.log("¡Récord actualizado exitosamente!");
+                    } else {
+                        console.log("Tiempo actual no superó el récord previo. No se requiere actualización.");
+                    }
+                } else {
+                    // 3. Si no existe, insertar nuevo registro
+                    console.log("Primer registro para este jugador. Insertando...");
+                    const { error: insertError } = await _supabase
+                        .from('leaderboard')
+                        .insert([{ name: name, time_seconds: newTime }]);
+                    
+                    if (insertError) throw insertError;
+                    console.log("¡Nuevo jugador registrado exitosamente!");
+                }
+            } catch (err) {
+                console.error("Error en la sincronización:", err);
+                isSavingScore = false; // Permitir reintento en caso de error
             }
         }
 

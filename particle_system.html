@@ -4,19 +4,27 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>3D Particle System — Hand Gesture Control</title>
+  <title>3D Particle System — Ultra Premium | Externado Fest</title>
   <meta name="description"
-    content="Interactive 3D particle system controlled by hand gestures, built with Three.js and MediaPipe.">
+    content="Interactive 3D particle system with bloom, audio reactivity, and hand gesture control.">
 
-  <!-- Three.js -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <!-- Three.js Core (r128) -->
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+
+  <!-- Three.js Post-Processing (Bloom) -->
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/CopyShader.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/LuminosityHighPassShader.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/EffectComposer.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/ShaderPass.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
 
   <!-- MediaPipe Hands -->
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1646424915/hands.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils@0.3.1640029074/camera_utils.min.js"></script>
 
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
 
     * {
       margin: 0;
@@ -45,61 +53,78 @@
       display: block;
     }
 
-    /* ---- UI Panel ---- */
+    /* ---- Ultra-Premium UI Panel ---- */
     #ui-panel {
       position: fixed;
       top: 20px;
       left: 20px;
       z-index: 100;
-      width: 260px;
-      background: rgba(15, 15, 25, 0.65);
-      backdrop-filter: blur(18px) saturate(1.6);
-      -webkit-backdrop-filter: blur(18px) saturate(1.6);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      border-radius: 18px;
-      padding: 22px;
+      width: 270px;
+      background: rgba(8, 8, 18, 0.55);
+      backdrop-filter: blur(30px) saturate(1.8);
+      -webkit-backdrop-filter: blur(30px) saturate(1.8);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 22px;
+      padding: 24px;
       display: flex;
       flex-direction: column;
-      gap: 16px;
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
-      transition: transform 0.3s ease;
+      gap: 18px;
+      box-shadow:
+        0 0 0 0.5px rgba(255, 255, 255, 0.04) inset,
+        0 20px 60px rgba(0, 0, 0, 0.6),
+        0 0 80px rgba(120, 80, 255, 0.03);
+      transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+      max-height: calc(100vh - 40px);
+      overflow-y: auto;
+      scrollbar-width: none;
+    }
+
+    #ui-panel::-webkit-scrollbar {
+      display: none;
     }
 
     #ui-panel h1 {
-      font-size: 15px;
-      font-weight: 700;
-      letter-spacing: -0.3px;
-      background: linear-gradient(135deg, #a78bfa, #6dd5ed);
+      font-size: 16px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      background: linear-gradient(135deg, #c084fc, #38bdf8, #34d399);
+      background-size: 200% 200%;
+      animation: gradientShift 6s ease infinite;
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
     }
 
-    .section-label {
-      font-size: 10px;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 1.2px;
-      color: rgba(255, 255, 255, 0.35);
-      margin-bottom: 4px;
+    @keyframes gradientShift {
+      0%, 100% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
     }
 
-    /* Shape buttons */
+    .section-label {
+      font-size: 9px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: rgba(255, 255, 255, 0.25);
+      margin-bottom: 6px;
+    }
+
+    /* Shape buttons (2x2 grid) */
     .shapes-grid {
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
+      grid-template-columns: repeat(2, 1fr);
       gap: 6px;
     }
 
     .shape-btn {
-      background: rgba(255, 255, 255, 0.06);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      border-radius: 10px;
-      padding: 8px 4px;
-      color: rgba(255, 255, 255, 0.7);
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 12px;
+      padding: 10px 6px;
+      color: rgba(255, 255, 255, 0.55);
       font-size: 11px;
       font-weight: 500;
       cursor: pointer;
-      transition: all 0.2s ease;
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -107,21 +132,32 @@
       font-family: inherit;
     }
 
-    .shape-btn .icon {
-      font-size: 18px;
+    .shape-btn .shape-icon {
+      font-size: 20px;
+      filter: grayscale(0.3);
+      transition: filter 0.3s;
     }
 
     .shape-btn:hover {
-      background: rgba(255, 255, 255, 0.12);
-      border-color: rgba(167, 139, 250, 0.4);
-      transform: translateY(-1px);
+      background: rgba(255, 255, 255, 0.08);
+      border-color: rgba(192, 132, 252, 0.3);
+      transform: translateY(-2px);
+      color: #fff;
+    }
+
+    .shape-btn:hover .shape-icon {
+      filter: grayscale(0);
     }
 
     .shape-btn.active {
-      background: rgba(167, 139, 250, 0.2);
-      border-color: rgba(167, 139, 250, 0.6);
+      background: linear-gradient(135deg, rgba(192, 132, 252, 0.15), rgba(56, 189, 248, 0.1));
+      border-color: rgba(192, 132, 252, 0.5);
       color: #fff;
-      box-shadow: 0 0 12px rgba(167, 139, 250, 0.15);
+      box-shadow: 0 0 20px rgba(192, 132, 252, 0.1), inset 0 0 20px rgba(192, 132, 252, 0.05);
+    }
+
+    .shape-btn.active .shape-icon {
+      filter: grayscale(0);
     }
 
     /* Color picker row */
@@ -133,7 +169,7 @@
 
     .color-row label {
       font-size: 12px;
-      color: rgba(255, 255, 255, 0.6);
+      color: rgba(255, 255, 255, 0.5);
       flex: 1;
     }
 
@@ -153,8 +189,70 @@
     }
 
     input[type="color"]::-webkit-color-swatch {
-      border: 2px solid rgba(255, 255, 255, 0.15);
+      border: 2px solid rgba(255, 255, 255, 0.1);
       border-radius: 50%;
+    }
+
+    /* Audio section */
+    .audio-section {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .audio-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    #audio-toggle-btn {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 8px;
+      padding: 5px 10px;
+      color: rgba(255, 255, 255, 0.5);
+      font-size: 10px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.25s;
+      font-family: inherit;
+    }
+
+    #audio-toggle-btn:hover {
+      background: rgba(192, 132, 252, 0.15);
+      border-color: rgba(192, 132, 252, 0.4);
+      color: #fff;
+    }
+
+    #audio-toggle-btn.active {
+      background: rgba(52, 211, 153, 0.15);
+      border-color: rgba(52, 211, 153, 0.4);
+      color: #34d399;
+    }
+
+    #audio-bars {
+      display: flex;
+      gap: 2px;
+      height: 28px;
+      align-items: flex-end;
+      padding: 4px;
+      background: rgba(0, 0, 0, 0.3);
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.03);
+    }
+
+    .audio-bar {
+      flex: 1;
+      background: linear-gradient(to top, #7c3aed, #c084fc, #38bdf8);
+      border-radius: 2px;
+      min-height: 2px;
+      transition: height 0.08s ease-out;
+      opacity: 0.3;
+    }
+
+    #audio-bars.active .audio-bar {
+      opacity: 1;
     }
 
     /* Gesture status */
@@ -162,27 +260,31 @@
       display: flex;
       align-items: center;
       gap: 8px;
-      font-size: 12px;
-      color: rgba(255, 255, 255, 0.55);
+      font-size: 11px;
+      color: rgba(255, 255, 255, 0.45);
+      padding: 8px 10px;
+      background: rgba(0, 0, 0, 0.2);
+      border-radius: 10px;
+      border: 1px solid rgba(255, 255, 255, 0.03);
     }
 
     #gesture-dot {
-      width: 8px;
-      height: 8px;
+      width: 7px;
+      height: 7px;
       border-radius: 50%;
-      background: #444;
-      transition: background 0.3s;
+      background: #333;
+      transition: all 0.3s;
       flex-shrink: 0;
     }
 
     #gesture-dot.open {
       background: #4ade80;
-      box-shadow: 0 0 6px #4ade80;
+      box-shadow: 0 0 8px #4ade80, 0 0 20px rgba(74, 222, 128, 0.3);
     }
 
     #gesture-dot.closed {
       background: #f97316;
-      box-shadow: 0 0 6px #f97316;
+      box-shadow: 0 0 8px #f97316;
     }
 
     /* Webcam preview */
@@ -190,10 +292,10 @@
       position: relative;
       width: 100%;
       aspect-ratio: 4 / 3;
-      border-radius: 10px;
+      border-radius: 12px;
       overflow: hidden;
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      background: #05050a;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      background: #030308;
     }
 
     #cam-off-message {
@@ -203,10 +305,10 @@
       align-items: center;
       justify-content: center;
       font-size: 11px;
-      color: rgba(255, 255, 255, 0.4);
+      color: rgba(255, 255, 255, 0.3);
       text-align: center;
       padding: 20px;
-      background: rgba(0, 0, 0, 0.8);
+      background: rgba(0, 0, 0, 0.85);
       z-index: 5;
     }
 
@@ -233,14 +335,20 @@
       position: absolute;
       top: 6px;
       left: 6px;
-      font-size: 9px;
-      font-weight: 600;
-      background: rgba(0, 0, 0, 0.5);
+      font-size: 8px;
+      font-weight: 700;
+      background: rgba(239, 68, 68, 0.7);
       padding: 2px 7px;
-      border-radius: 6px;
-      letter-spacing: 0.5px;
-      color: rgba(255, 255, 255, 0.6);
+      border-radius: 4px;
+      letter-spacing: 1px;
+      color: #fff;
       z-index: 10;
+      animation: livePulse 2s ease infinite;
+    }
+
+    @keyframes livePulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
     }
 
     #cam-toggle-btn {
@@ -249,8 +357,8 @@
       right: 6px;
       font-size: 10px;
       font-weight: 600;
-      background: rgba(167, 139, 250, 0.3);
-      border: 1px solid rgba(167, 139, 250, 0.5);
+      background: rgba(192, 132, 252, 0.2);
+      border: 1px solid rgba(192, 132, 252, 0.4);
       padding: 4px 8px;
       border-radius: 6px;
       cursor: pointer;
@@ -258,23 +366,24 @@
       backdrop-filter: blur(4px);
       z-index: 10;
       transition: all 0.2s;
+      font-family: inherit;
     }
 
     #cam-toggle-btn:hover {
-      background: rgba(167, 139, 250, 0.5);
+      background: rgba(192, 132, 252, 0.4);
     }
 
-    /* Fullscreen btn */
+    /* Action buttons */
     .action-btn {
-      background: rgba(255, 255, 255, 0.06);
-      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.06);
       border-radius: 10px;
       padding: 10px;
-      color: rgba(255, 255, 255, 0.7);
-      font-size: 12px;
+      color: rgba(255, 255, 255, 0.55);
+      font-size: 11px;
       font-weight: 500;
       cursor: pointer;
-      transition: all 0.2s ease;
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -284,8 +393,25 @@
     }
 
     .action-btn:hover {
-      background: rgba(255, 255, 255, 0.12);
+      background: rgba(255, 255, 255, 0.08);
       color: #fff;
+      transform: translateY(-1px);
+    }
+
+    .actions-row {
+      display: flex;
+      gap: 6px;
+    }
+
+    .actions-row .action-btn {
+      flex: 1;
+    }
+
+    /* Divider */
+    .divider {
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.06), transparent);
+      margin: 2px 0;
     }
 
     /* Toggle panel btn (mobile) */
@@ -294,9 +420,9 @@
       top: 16px;
       right: 16px;
       z-index: 101;
-      background: rgba(15, 15, 25, 0.6);
-      backdrop-filter: blur(12px);
-      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: rgba(8, 8, 18, 0.6);
+      backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
       border-radius: 12px;
       width: 40px;
       height: 40px;
@@ -314,12 +440,25 @@
       }
 
       #ui-panel {
-        transform: translateX(-300px);
+        transform: translateX(-320px);
       }
 
       #ui-panel.visible {
         transform: translateX(0);
       }
+    }
+
+    /* FPS Badge */
+    #fps-badge {
+      position: fixed;
+      bottom: 16px;
+      right: 16px;
+      font-size: 10px;
+      font-weight: 600;
+      color: rgba(255, 255, 255, 0.2);
+      z-index: 50;
+      font-family: 'Inter', monospace;
+      letter-spacing: 0.5px;
     }
   </style>
 </head>
@@ -330,10 +469,12 @@
     <canvas id="three-canvas"></canvas>
   </div>
 
+  <div id="fps-badge">-- FPS</div>
+
   <button id="toggle-panel" aria-label="Toggle panel">☰</button>
 
   <div id="ui-panel" class="visible">
-    <h1>✦ Particle System</h1>
+    <h1>✦ Particle System Ultra</h1>
 
     <div>
       <div class="section-label">Shape</div>
@@ -343,6 +484,9 @@
         </button>
         <button class="shape-btn active" data-shape="cloud">
           <span class="shape-icon">☁️</span> Cloud
+        </button>
+        <button class="shape-btn" data-shape="galaxy">
+          <span class="shape-icon">🌀</span> Galaxy
         </button>
         <button class="shape-btn" data-shape="welcome">
           <span class="shape-icon">✌️</span> Welcome
@@ -354,9 +498,28 @@
       <div class="section-label">Color</div>
       <div class="color-row">
         <label>Particle Color</label>
-        <input type="color" id="color-picker" value="#a78bfa">
+        <input type="color" id="color-picker" value="#c084fc">
       </div>
     </div>
+
+    <div class="divider"></div>
+
+    <div class="audio-section">
+      <div class="audio-header">
+        <div class="section-label" style="margin-bottom: 0;">Audio Reactive</div>
+        <button id="audio-toggle-btn">🎤 Activar</button>
+      </div>
+      <div id="audio-bars">
+        <div class="audio-bar"></div><div class="audio-bar"></div><div class="audio-bar"></div>
+        <div class="audio-bar"></div><div class="audio-bar"></div><div class="audio-bar"></div>
+        <div class="audio-bar"></div><div class="audio-bar"></div><div class="audio-bar"></div>
+        <div class="audio-bar"></div><div class="audio-bar"></div><div class="audio-bar"></div>
+        <div class="audio-bar"></div><div class="audio-bar"></div><div class="audio-bar"></div>
+        <div class="audio-bar"></div>
+      </div>
+    </div>
+
+    <div class="divider"></div>
 
     <div>
       <div class="section-label">Camera</div>
@@ -364,7 +527,7 @@
         <video id="cam-video" playsinline></video>
         <canvas id="cam-overlay"></canvas>
         <div id="cam-badge">LIVE</div>
-        <div id="cam-off-message">Cámara Desactivada<br><span style="font-size: 9px; opacity: 0.6;">(Tracking
+        <div id="cam-off-message">Cámara Desactivada<br><span style="font-size: 9px; opacity: 0.5;">(Tracking
             pausado)</span></div>
         <button id="cam-toggle-btn">Apagar Cámara</button>
       </div>
@@ -378,39 +541,77 @@
       </div>
     </div>
 
-    <button class="action-btn" id="rotate-toggle-btn">⏸ Pausar Giro</button>
-    <button class="action-btn" id="fullscreen-btn">⛶ Fullscreen</button>
+    <div class="actions-row">
+      <button class="action-btn" id="rotate-toggle-btn">⏸ Pausar</button>
+      <button class="action-btn" id="fullscreen-btn">⛶ Fullscreen</button>
+    </div>
   </div>
 
   <script>
     // ========== CONFIG ==========
-    const PARTICLE_COUNT = 15000;
+    const PARTICLE_COUNT = 18000;
     const LERP_SPEED = 0.04;
-    let autoRotate = true; // Global rotation toggle
+    let autoRotate = true;
 
     // ========== THREE.JS SETUP ==========
     const canvas = document.getElementById('three-canvas');
     const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.2;
 
     const scene = new THREE.Scene();
     const camera3D = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
     camera3D.position.z = 5;
 
-    // v5.7: Ultra-Vivid circular texture for maximum "pop"
+    // ========== POST-PROCESSING (BLOOM) ==========
+    let composer = null;
+    let bloomPass = null;
+
+    function setupBloom() {
+      try {
+        if (typeof THREE.EffectComposer === 'undefined') {
+          console.warn('Bloom not available — using fallback rendering');
+          return;
+        }
+
+        composer = new THREE.EffectComposer(renderer);
+        const renderPass = new THREE.RenderPass(scene, camera3D);
+        composer.addPass(renderPass);
+
+        bloomPass = new THREE.UnrealBloomPass(
+          new THREE.Vector2(window.innerWidth, window.innerHeight),
+          1.6,  // strength
+          0.7,  // radius
+          0.05  // threshold (low = everything glows)
+        );
+        composer.addPass(bloomPass);
+
+        console.log('✨ UnrealBloomPass initialized');
+      } catch (e) {
+        console.warn('Bloom setup failed, using fallback:', e);
+        composer = null;
+      }
+    }
+    setupBloom();
+
+    // ========== PARTICLE TEXTURE (Enhanced Glow) ==========
     function createCircleTexture() {
-      const size = 64;
+      const size = 128;
       const tCanvas = document.createElement('canvas');
       tCanvas.width = size; tCanvas.height = size;
       const tCtx = tCanvas.getContext('2d');
       const center = size / 2;
       const radius = size / 2 - 2;
 
+      // Layered glow: hot core → soft halo
       const grad = tCtx.createRadialGradient(center, center, 0, center, center, radius);
       grad.addColorStop(0, 'rgba(255,255,255,1)');
-      grad.addColorStop(0.3, 'rgba(255,255,255,0.9)');
-      grad.addColorStop(0.6, 'rgba(255,255,255,0.25)'); // Larger core
+      grad.addColorStop(0.12, 'rgba(255,255,255,0.95)');
+      grad.addColorStop(0.3, 'rgba(255,255,255,0.5)');
+      grad.addColorStop(0.55, 'rgba(255,255,255,0.12)');
+      grad.addColorStop(0.8, 'rgba(255,255,255,0.02)');
       grad.addColorStop(1, 'rgba(255,255,255,0)');
 
       tCtx.fillStyle = grad;
@@ -420,29 +621,28 @@
       return new THREE.CanvasTexture(tCanvas);
     }
 
-    // Particle material
+    // ========== PARTICLE MATERIAL & GEOMETRY ==========
     const material = new THREE.PointsMaterial({
-      size: 0.075, // Increased for maximum additive bloom
+      size: 0.065,
       map: createCircleTexture(),
       vertexColors: true,
       transparent: true,
-      opacity: 1.0, // Full opacity for vividness
+      opacity: 1.0,
       blending: THREE.AdditiveBlending,
       depthWrite: false,
       sizeAttenuation: true,
       alphaTest: 0.001
     });
 
-    // Create geometry
     const geometry = new THREE.BufferGeometry();
     const positions = new Float32Array(PARTICLE_COUNT * 3);
-    const colors = new Float32Array(PARTICLE_COUNT * 3); // Per-particle RGB
-    const velocities = new Float32Array(PARTICLE_COUNT * 3);
+    const colors = new Float32Array(PARTICLE_COUNT * 3);
+    const velocities = new Float32Array(PARTICLE_COUNT * 3); // Physics velocities
     const targets = new Float32Array(PARTICLE_COUNT * 3);
-    const targetColors = new Float32Array(PARTICLE_COUNT * 3); // target RGB
+    const targetColors = new Float32Array(PARTICLE_COUNT * 3);
 
-    // Initialize with random cloud and default color
-    const defaultColor = new THREE.Color('#a78bfa');
+    // Initialize
+    const defaultColor = new THREE.Color('#c084fc');
     for (let i = 0; i < PARTICLE_COUNT; i++) {
       const i3 = i * 3;
       positions[i3] = (Math.random() - 0.5) * 5;
@@ -451,6 +651,9 @@
       targets[i3] = positions[i3];
       targets[i3 + 1] = positions[i3 + 1];
       targets[i3 + 2] = positions[i3 + 2];
+      velocities[i3] = 0;
+      velocities[i3 + 1] = 0;
+      velocities[i3 + 2] = 0;
 
       colors[i3] = defaultColor.r;
       colors[i3 + 1] = defaultColor.g;
@@ -464,12 +667,96 @@
     const points = new THREE.Points(geometry, material);
     scene.add(points);
 
+    // ========== AUDIO REACTOR ==========
+    class AudioReactor {
+      constructor() {
+        this.audioCtx = null;
+        this.analyser = null;
+        this.dataArray = null;
+        this.isActive = false;
+        this.bass = 0;
+        this.mid = 0;
+        this.treble = 0;
+        this.energy = 0;
+        this.smoothBass = 0;
+        this.smoothEnergy = 0;
+        this.frequencyBins = new Float32Array(16);
+      }
+
+      async init() {
+        try {
+          this.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+          const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+          const source = this.audioCtx.createMediaStreamSource(stream);
+          this.analyser = this.audioCtx.createAnalyser();
+          this.analyser.fftSize = 256;
+          this.analyser.smoothingTimeConstant = 0.8;
+          source.connect(this.analyser);
+          this.dataArray = new Uint8Array(this.analyser.frequencyBinCount);
+          this.isActive = true;
+          console.log('🎤 Audio reactor activated');
+          return true;
+        } catch (e) {
+          console.error('Audio init failed:', e);
+          return false;
+        }
+      }
+
+      update() {
+        if (!this.isActive || !this.analyser) return;
+        this.analyser.getByteFrequencyData(this.dataArray);
+        const len = this.dataArray.length;
+
+        let bass = 0, mid = 0, treble = 0;
+        const bassEnd = Math.floor(len * 0.12);
+        const midEnd = Math.floor(len * 0.45);
+
+        for (let i = 0; i < len; i++) {
+          if (i < bassEnd) bass += this.dataArray[i];
+          else if (i < midEnd) mid += this.dataArray[i];
+          else treble += this.dataArray[i];
+        }
+
+        this.bass = bass / (bassEnd * 255);
+        this.mid = mid / ((midEnd - bassEnd) * 255);
+        this.treble = treble / ((len - midEnd) * 255);
+        this.energy = this.bass * 0.5 + this.mid * 0.3 + this.treble * 0.2;
+
+        // Smooth values for visual use
+        this.smoothBass += (this.bass - this.smoothBass) * 0.15;
+        this.smoothEnergy += (this.energy - this.smoothEnergy) * 0.12;
+
+        // 16 frequency bins for visualizer bars
+        const binSize = Math.floor(len / 16);
+        for (let b = 0; b < 16; b++) {
+          let sum = 0;
+          for (let j = 0; j < binSize; j++) {
+            sum += this.dataArray[b * binSize + j];
+          }
+          this.frequencyBins[b] = sum / (binSize * 255);
+        }
+      }
+
+      stop() {
+        if (this.audioCtx) {
+          this.audioCtx.close();
+          this.audioCtx = null;
+        }
+        this.isActive = false;
+        this.bass = this.mid = this.treble = this.energy = 0;
+        this.smoothBass = this.smoothEnergy = 0;
+        this.frequencyBins.fill(0);
+      }
+    }
+
+    const audioReactor = new AudioReactor();
+
     // ========== SHAPE GENERATORS ==========
     function generateLogoPositions(count) {
       const W = 1024, H = 1024;
-      const canvas = document.createElement('canvas');
-      canvas.width = W; canvas.height = H;
-      const ctx = canvas.getContext('2d');
+      const cvs = document.createElement('canvas');
+      cvs.width = W; cvs.height = H;
+      const ctx = cvs.getContext('2d');
 
       // Draw Circular Background (subtle)
       ctx.fillStyle = 'rgba(255,255,255,0.05)';
@@ -479,46 +766,38 @@
       const cx = W / 2;
       const cy = H / 2 - 80;
       const blueColor = '#00B0FF';
-      const redColor = '#E91E63'; // Slightly more vibrant pink/red
+      const redColor = '#E91E63';
       const darkBorder = '#111';
 
       // 1. DRAW BRAIN (LEFT SIDE - RED)
       ctx.fillStyle = redColor;
       ctx.strokeStyle = darkBorder;
-      ctx.lineWidth = 18; // Bold vector outline
+      ctx.lineWidth = 18;
       ctx.lineJoin = 'round';
 
       ctx.beginPath();
-      // Starting from top center
       ctx.moveTo(cx - 20, cy - 260);
-
-      // 9 Puffy Lobes (Puffiness Factor)
-      // Top lobes
-      ctx.bezierCurveTo(cx - 50, cy - 280, cx - 80, cy - 290, cx - 110, cy - 270); // L1
-      ctx.bezierCurveTo(cx - 150, cy - 310, cx - 210, cy - 300, cx - 240, cy - 240); // L2
-      ctx.bezierCurveTo(cx - 290, cy - 220, cx - 310, cy - 160, cx - 280, cy - 110); // L3
-      // Outer side
-      ctx.bezierCurveTo(cx - 330, cy - 80, cx - 340, cy + 10, cx - 290, cy + 60);    // L4
-      ctx.bezierCurveTo(cx - 320, cy + 120, cx - 290, cy + 200, cx - 210, cy + 220); // L5
-      ctx.bezierCurveTo(cx - 180, cy + 260, cx - 110, cy + 270, cx - 70, cy + 230);  // L6
-      ctx.bezierCurveTo(cx - 40, cy + 250, cx - 30, cy + 220, cx - 20, cy + 190);   // L7
-
+      ctx.bezierCurveTo(cx - 50, cy - 280, cx - 80, cy - 290, cx - 110, cy - 270);
+      ctx.bezierCurveTo(cx - 150, cy - 310, cx - 210, cy - 300, cx - 240, cy - 240);
+      ctx.bezierCurveTo(cx - 290, cy - 220, cx - 310, cy - 160, cx - 280, cy - 110);
+      ctx.bezierCurveTo(cx - 330, cy - 80, cx - 340, cy + 10, cx - 290, cy + 60);
+      ctx.bezierCurveTo(cx - 320, cy + 120, cx - 290, cy + 200, cx - 210, cy + 220);
+      ctx.bezierCurveTo(cx - 180, cy + 260, cx - 110, cy + 270, cx - 70, cy + 230);
+      ctx.bezierCurveTo(cx - 40, cy + 250, cx - 30, cy + 220, cx - 20, cy + 190);
       ctx.lineTo(cx - 20, cy - 260);
       ctx.fill();
       ctx.stroke();
 
-      // Brain Creases (High-Density v5.8)
+      // Brain Creases
       ctx.strokeStyle = darkBorder;
       ctx.lineWidth = 14;
       const drawCrease = (mx, my, tx, ty, cpx, cpy) => {
         ctx.beginPath(); ctx.moveTo(mx, my); ctx.quadraticCurveTo(cpx, cpy, tx, ty); ctx.stroke();
       };
-      // Main folds
       drawCrease(cx - 110, cy - 200, cx - 210, cy - 150, cx - 180, cy - 210);
       drawCrease(cx - 80, cy - 50, cx - 240, cy + 10, cx - 180, cy - 20);
       drawCrease(cx - 110, cy + 140, cx - 220, cy + 90, cx - 180, cy + 160);
       drawCrease(cx - 20, cy, cx - 100, cy + 40, cx - 60, cy + 10);
-      // v5.8: Secondary folds for density
       drawCrease(cx - 150, cy - 240, cx - 230, cy - 210, cx - 200, cy - 250);
       drawCrease(cx - 250, cy - 100, cx - 200, cy - 30, cx - 260, cy - 60);
       drawCrease(cx - 240, cy + 140, cx - 180, cy + 190, cx - 220, cy + 180);
@@ -538,18 +817,16 @@
       ctx.fill();
       ctx.stroke();
 
-      // Stepped Circuit Lines (Horizontal with Elbows)
+      // Stepped Circuit Lines
       const drawStepLine = (y1, x_step, y2, x_final, nodeCol) => {
         ctx.strokeStyle = darkBorder;
         ctx.lineWidth = 16;
         ctx.beginPath();
         ctx.moveTo(cx + 20, y1);
         ctx.lineTo(cx + 20 + x_step, y1);
-        ctx.lineTo(cx + 20 + x_step + 40, y2); // The diagonal step
+        ctx.lineTo(cx + 20 + x_step + 40, y2);
         ctx.lineTo(cx + 20 + x_final, y2);
         ctx.stroke();
-
-        // Node
         ctx.fillStyle = nodeCol;
         ctx.beginPath();
         ctx.arc(cx + 20 + x_final, y2, 28, 0, Math.PI * 2);
@@ -558,18 +835,16 @@
         ctx.stroke();
       };
 
-      // Y-coordinates and colors matching logo
-      drawStepLine(cy - 220, 40, cy - 220, 150, '#FFD54F'); // Top Yellow
-      drawStepLine(cy - 120, 60, cy - 120, 220, '#F06292'); // Pink Node (data)
-      drawStepLine(cy - 30, 40, cy - 30, 190, '#FF8A65');  // Orange Node
-      drawStepLine(cy + 60, 50, cy + 60, 230, '#81C784');  // Green Node
-      drawStepLine(cy + 160, 30, cy + 160, 170, '#FFD54F'); // Bottom Yellow
+      drawStepLine(cy - 220, 40, cy - 220, 150, '#FFD54F');
+      drawStepLine(cy - 120, 60, cy - 120, 220, '#F06292');
+      drawStepLine(cy - 30, 40, cy - 30, 190, '#FF8A65');
+      drawStepLine(cy + 60, 50, cy + 60, 230, '#81C784');
+      drawStepLine(cy + 160, 30, cy + 160, 170, '#FFD54F');
 
-      // v5.8: Circuit Interconnects (Vertical/Diagonal pipes)
+      // Circuit Interconnects
       ctx.strokeStyle = darkBorder; ctx.lineWidth = 12;
       const drawInter = (x1, y1, x2, y2) => {
         ctx.beginPath(); ctx.moveTo(cx + 20 + x1, cy + y1); ctx.lineTo(cx + 20 + x2, cy + y2); ctx.stroke();
-        // Micro-node
         ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.arc(cx + 20 + x2, cy + y2, 10, 0, Math.PI * 2); ctx.fill();
       };
       drawInter(80, -220, 100, -120);
@@ -585,26 +860,26 @@
       ctx.font = 'bold 90px Inter, Montserrat, sans-serif';
       ctx.fillText('DE DATOS', cx, cy + 580);
 
-      // Muestreo
+      // Sample
       const imageData = ctx.getImageData(0, 0, W, H).data;
-      const points = [];
-      const colors = [];
+      const pts = [];
+      const cols = [];
       for (let y = 0; y < H; y += 2) {
         for (let x = 0; x < W; x += 2) {
           const idx = (y * W + x) * 4;
           if (imageData[idx + 3] > 128) {
-            points.push([x, y]);
-            colors.push([imageData[idx] / 255, imageData[idx + 1] / 255, imageData[idx + 2] / 255]);
+            pts.push([x, y]);
+            cols.push([imageData[idx] / 255, imageData[idx + 1] / 255, imageData[idx + 2] / 255]);
           }
         }
       }
 
       const result = [];
       for (let i = 0; i < count; i++) {
-        const idx = Math.floor(Math.random() * points.length);
-        const p = points[idx];
-        const c = colors[idx];
-        const scale = 6.8 / W; // Made smaller (Logo further away)
+        const idx = Math.floor(Math.random() * pts.length);
+        const p = pts[idx];
+        const c = cols[idx];
+        const scale = 6.8 / W;
         result.push({
           pos: [(p[0] - W / 2) * scale, -(p[1] - H / 2) * scale - 0.2, (Math.random() - 0.5) * 0.05],
           col: c
@@ -614,7 +889,7 @@
     }
 
     // ========== TEXT-TO-PARTICLES ENGINE ==========
-    let welcomePositions = null; // cached positions for the welcome text
+    let welcomePositions = null;
 
     function generateTextPositions(text, count) {
       const offCanvas = document.createElement('canvas');
@@ -629,7 +904,6 @@
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
 
-      // Split into lines
       const lines = text.split('\n');
       const fontSize = Math.min(48, W / (Math.max(...lines.map(l => l.length)) * 0.65));
       ctx.font = `bold ${fontSize}px Inter, Arial, sans-serif`;
@@ -642,12 +916,11 @@
         ctx.fillText(lines[li], W / 2, startY + li * lineHeight);
       }
 
-      // Sample pixels where text was drawn
       const imageData = ctx.getImageData(0, 0, W, H).data;
       const filledPixels = [];
       let minX = W, maxX = 0, minY = H, maxY = 0;
 
-      for (let py = 0; py < H; py += 1) { // Finer sampling for 15k
+      for (let py = 0; py < H; py += 1) {
         for (let px = 0; px < W; px += 1) {
           const idx = (py * W + px) * 4;
           if (imageData[idx] > 128) {
@@ -660,19 +933,17 @@
         }
       }
 
-      // Calculate centroid of the text block for perfect centering
       const centerX = (minX + maxX) / 2;
       const centerY = (minY + maxY) / 2;
       const scale = 8.8 / W;
 
       const result = [];
-      const textParticleCount = Math.floor(count * 0.75); // 75% for text
-      const fireworkParticleCount = count - textParticleCount; // 25% for fireworks
+      const textParticleCount = Math.floor(count * 0.75);
+      const fireworkParticleCount = count - textParticleCount;
 
-      // Global metadata for animation loop: [type, burstIdx, vx, vy, vz]
       window.particleMetadata = new Float32Array(count * 5);
 
-      // 1. GENERATE TEXT PARTICLES WITH GRADIENT & SPARKLES
+      // TEXT PARTICLES WITH GRADIENT & SPARKLES
       for (let i = 0; i < textParticleCount; i++) {
         if (filledPixels.length > 0) {
           const idx = Math.floor(Math.random() * filledPixels.length);
@@ -682,36 +953,31 @@
           const y = -(py - centerY) * scale * 1.5;
           const z = (Math.random() - 0.5) * 0.05;
 
-          // Metadata [i*5]: 0=Text, 1=BurstIdx (NA), 2,3,4=NA
           window.particleMetadata[i * 5] = 0;
 
-          // Color Gradient: Top Pink (#E91E63) to Bottom Blue (#00B0FF)
           const normY = (py - minY) / (maxY - minY);
           let col = [
-            (1 - normY) * 0.91 + normY * 0.0,  // R
-            (1 - normY) * 0.12 + normY * 0.69, // G
-            (1 - normY) * 0.39 + normY * 1.0   // B
+            (1 - normY) * 0.91 + normY * 0.0,
+            (1 - normY) * 0.12 + normY * 0.69,
+            (1 - normY) * 0.39 + normY * 1.0
           ];
 
-          // 12% Gold Sparkles
-          if (Math.random() < 0.12) col = [1.0, 0.84, 0.31]; // Gold #FFD54F
+          if (Math.random() < 0.12) col = [1.0, 0.84, 0.31]; // Gold sparkles
 
           result.push({ pos: [x, y, z], col: col });
         }
       }
 
-      // 2. GENERATE FIREWORKS EXPLOSIONS (Radial Clusters)
+      // FIREWORKS EXPLOSIONS
       const fireworkColors = [
-        [0.29, 0.87, 0.50], // Green #4ade80
-        [1.0, 0.84, 0.31],  // Gold #FFD54F
-        [0.91, 0.12, 0.39], // Red #E91E63
-        [0.0, 0.69, 1.0]    // Cyan #00B0FF
+        [0.29, 0.87, 0.50], [1.0, 0.84, 0.31],
+        [0.91, 0.12, 0.39], [0.0, 0.69, 1.0]
       ];
 
       const centers = [
-        [-3.8, 1.8], [3.8, 1.8],   // Top corners
-        [-4.5, 0.0], [4.5, 0.0],   // Middle sides
-        [-3.6, -1.5], [3.6, -1.5]  // Bottom corners
+        [-3.8, 1.8], [3.8, 1.8],
+        [-4.5, 0.0], [4.5, 0.0],
+        [-3.6, -1.5], [3.6, -1.5]
       ];
 
       const particlesPerBurst = Math.floor(fireworkParticleCount / centers.length);
@@ -728,24 +994,22 @@
           const ry = r * Math.sin(phi) * Math.sin(theta);
           const rz = r * Math.cos(phi);
 
-          // v5.6: Spherical velocity distribution for a perfectly round explosion
           const vPhi = Math.random() * Math.PI * 2;
           const vCosAlpha = Math.random() * 2 - 1;
           const vSinAlpha = Math.sqrt(1 - vCosAlpha * vCosAlpha);
-          const speed = 3.5 + Math.random() * 3.0; // Explosion force
+          const speed = 3.5 + Math.random() * 3.0;
 
           const mIdx = pIdx * 5;
           window.particleMetadata[mIdx] = 1;
-          window.particleMetadata[mIdx + 1] = cIdx; // Burst index
-
-          window.particleMetadata[mIdx + 2] = speed * vSinAlpha * Math.cos(vPhi); // vx
-          window.particleMetadata[mIdx + 3] = speed * vSinAlpha * Math.sin(vPhi) + 1.2; // vy (biased up)
-          window.particleMetadata[mIdx + 4] = speed * vCosAlpha; // vz
+          window.particleMetadata[mIdx + 1] = cIdx;
+          window.particleMetadata[mIdx + 2] = speed * vSinAlpha * Math.cos(vPhi);
+          window.particleMetadata[mIdx + 3] = speed * vSinAlpha * Math.sin(vPhi) + 1.2;
+          window.particleMetadata[mIdx + 4] = speed * vCosAlpha;
 
           pIdx++;
 
           result.push({
-            pos: [center[0], center[1], 0], // Start at center
+            pos: [center[0], center[1], 0],
             col: burstCol,
             fireworkCenter: center
           });
@@ -755,18 +1019,110 @@
       return result;
     }
 
+    // ========== GALAXY SHAPE (NEW) ==========
+    function generateGalaxyPositions(count) {
+      const result = [];
+      const arms = 5;
+      const armSpread = 0.45;
+      const coreDensity = 0.35; // fraction of particles in core
+
+      const coreCount = Math.floor(count * coreDensity);
+      const armCount = count - coreCount;
+
+      // Galaxy Core: dense sphere with warm colors
+      for (let i = 0; i < coreCount; i++) {
+        const r = Math.pow(Math.random(), 2) * 0.8; // power distribution → dense center
+        const theta = Math.random() * Math.PI * 2;
+        const phi = Math.acos(2 * Math.random() - 1);
+
+        const x = r * Math.sin(phi) * Math.cos(theta);
+        const y = r * Math.sin(phi) * Math.sin(theta) * 0.3; // flatten
+        const z = r * Math.cos(phi);
+
+        // Core: white/gold → orange gradient
+        const t = r / 0.8;
+        const col = [
+          1.0 - t * 0.15,
+          0.9 - t * 0.3,
+          0.7 - t * 0.5
+        ];
+
+        result.push({ pos: [x, y, z], col });
+      }
+
+      // Spiral Arms
+      for (let i = 0; i < armCount; i++) {
+        const armIdx = i % arms;
+        const armAngle = armIdx * (Math.PI * 2 / arms);
+
+        const r = 0.5 + Math.pow(Math.random(), 0.6) * 3.2;
+        const spinAngle = r * 1.8; // spiral tightness
+        const angle = armAngle + spinAngle;
+
+        // Spread increases with distance
+        const spread = armSpread * (0.5 + r * 0.2);
+        const randomX = (Math.random() - 0.5) * spread;
+        const randomY = (Math.random() - 0.5) * spread * 0.15;
+        const randomZ = (Math.random() - 0.5) * spread;
+
+        const x = Math.cos(angle) * r + randomX;
+        const y = randomY;
+        const z = Math.sin(angle) * r + randomZ;
+
+        // Color: inner warm → outer cool (purple/blue)
+        const t = Math.min(1, r / 3.5);
+        let col;
+        if (t < 0.3) {
+          // Inner: gold → pink
+          const s = t / 0.3;
+          col = [1.0 - s * 0.1, 0.75 - s * 0.3, 0.3 + s * 0.4];
+        } else if (t < 0.7) {
+          // Mid: pink → purple
+          const s = (t - 0.3) / 0.4;
+          col = [0.9 - s * 0.15, 0.45 - s * 0.15, 0.7 + s * 0.15];
+        } else {
+          // Outer: purple → cyan
+          const s = (t - 0.7) / 0.3;
+          col = [0.75 - s * 0.5, 0.3 + s * 0.35, 0.85 + s * 0.15];
+        }
+
+        // Random bright stars
+        if (Math.random() < 0.03) col = [1, 1, 1];
+
+        result.push({ pos: [x, y, z], col });
+      }
+
+      return result;
+    }
+
     // ========== SHAPE STATE ==========
     let currentShape = 'cloud';
-    let gestureShape = null;      // shape triggered by gesture (overrides buttons)
-    let lastGestureShape = 'cloud';  // to avoid re-setting targets every frame
+    let gestureShape = null;
+    let lastGestureShape = 'cloud';
 
     const shapeGenerators = {
       cloud: (count) => {
         const res = [];
-        for (let i = 0; i < count; i++) res.push({ pos: [(Math.random() - 0.5) * 7, (Math.random() - 0.5) * 7, (Math.random() - 0.5) * 7], col: [0.65, 0.54, 0.98] });
+        for (let i = 0; i < count; i++) {
+          // Layered density cloud: denser at center
+          const r = Math.pow(Math.random(), 0.7) * 4;
+          const theta = Math.random() * Math.PI * 2;
+          const phi = Math.acos(2 * Math.random() - 1);
+          const x = r * Math.sin(phi) * Math.cos(theta);
+          const y = r * Math.sin(phi) * Math.sin(theta);
+          const z = r * Math.cos(phi);
+
+          // Gradient: center purple → edge blue
+          const t = r / 4;
+          res.push({
+            pos: [x, y, z],
+            col: [0.75 - t * 0.3, 0.55 - t * 0.2, 0.98]
+          });
+        }
         return res;
       },
       logo: generateLogoPositions,
+      galaxy: generateGalaxyPositions,
       welcome: (count) => {
         return generateTextPositions(
           'BIENVENIDOS A LA DEMOSTRACION\nY PRESENTACION DE\nCIENCIA DE DATOS',
@@ -777,7 +1133,7 @@
 
     function setTargets(shapeName) {
       if (shapeName === 'welcome') {
-        welcomePositions = null; // regenerate for fresh randomization
+        welcomePositions = null;
       }
       const gen = shapeGenerators[shapeName];
       if (!gen) return;
@@ -794,23 +1150,21 @@
       }
     }
 
-    // Init positions randomly (cloud)
-    // This part is now handled by the initial setup of positions and colors arrays
-    setTargets('cloud'); // Set initial targets to cloud
+    setTargets('cloud');
 
     // ========== GESTURE STATE ==========
-    let gestureFactor = 0;       // 0 = closed/no hand, 1 = fully open
-    let smoothGesture = 0;       // smoothed value
+    let gestureFactor = 0;
+    let smoothGesture = 0;
     const GESTURE_SMOOTH = 0.08;
 
     // ========== HAND TRACKING STATE ==========
-    let handX = 0.5, handY = 0.5;           // raw hand position (0-1, from camera)
-    let handRotZ = 0;                        // raw hand rotation angle (radians)
-    let smoothHandX = 0, smoothHandY = 0;    // smoothed position (mapped to 3D coords)
-    let smoothHandRotZ = 0;                  // smoothed rotation
+    let handX = 0.5, handY = 0.5;
+    let handRotZ = 0;
+    let smoothHandX = 0, smoothHandY = 0;
+    let smoothHandRotZ = 0;
     let handDetected = false;
-    const HAND_TRACK_SMOOTH = 0.07;          // smoothing factor for hand tracking
-    const HAND_MOVE_RANGE = 3.5;             // max displacement in 3D units
+    const HAND_TRACK_SMOOTH = 0.07;
+    const HAND_MOVE_RANGE = 3.5;
 
     // ========== MEDIAPIPE HANDS ==========
     const videoEl = document.getElementById('cam-video');
@@ -837,7 +1191,6 @@
 
     // ========== GESTURE DETECTION ==========
     function isFingerExtended(landmarks, tipIdx, pipIdx, mcpIdx) {
-      // A finger is extended if the tip is farther from wrist than the PIP joint
       const wrist = landmarks[0];
       const tipDist = Math.hypot(
         landmarks[tipIdx].x - wrist.x,
@@ -851,18 +1204,17 @@
     }
 
     function detectGesture(landmarks) {
-      // Check each finger: [tip, pip, mcp]
       const index = isFingerExtended(landmarks, 8, 6, 5);
       const middle = isFingerExtended(landmarks, 12, 10, 9);
       const ring = isFingerExtended(landmarks, 16, 14, 13);
       const pinky = isFingerExtended(landmarks, 20, 18, 17);
 
-      // ✌️ Peace: only index + middle extended
+      // 🌀 3 dedos (index + middle + ring) → Galaxy
+      if (index && middle && ring && !pinky) return 'three_up';
+      // ✌️ 2 dedos (index + middle) → Welcome
       if (index && middle && !ring && !pinky) return 'peace';
-
-      // ☝️ Index Up: only index extended
+      // ☝️ 1 dedo (index) → Logo
       if (index && !middle && !ring && !pinky) return 'point';
-
       return null;
     }
 
@@ -892,7 +1244,6 @@
         results.multiHandLandmarks.forEach((lm, index) => {
           const label = results.multiHandedness[index].label;
 
-          // ROLE: NAVIGATION & ZOOM (Typically Left Hand)
           if (label === 'Left' || results.multiHandLandmarks.length === 1) {
             navHandFound = true;
             const open = calcOpenness(lm);
@@ -906,55 +1257,63 @@
             handRotZ = Math.atan2(midBase.x - wrist.x, wrist.y - midBase.y);
           }
 
-          // ROLE: GESTURES (Typically Right Hand)
           if (label === 'Right' || results.multiHandLandmarks.length === 1) {
             cmdHandFound = true;
             const g = detectGesture(lm);
             if (g) bestGesture = g;
           }
 
-          // Draw landmarks
-          overlayCtx.fillStyle = label === 'Left' ? 'rgba(74,222,128,0.7)' : 'rgba(255,48,107,0.7)';
+          // Draw landmarks with glow
+          const markerColor = label === 'Left' ? 'rgba(74,222,128,0.8)' : 'rgba(192,132,252,0.8)';
+          overlayCtx.fillStyle = markerColor;
+          overlayCtx.shadowColor = markerColor;
+          overlayCtx.shadowBlur = 4;
           for (const p of lm) {
             overlayCtx.beginPath();
             overlayCtx.arc(p.x * overlayCanvas.width, p.y * overlayCanvas.height, 2, 0, Math.PI * 2);
             overlayCtx.fill();
           }
+          overlayCtx.shadowBlur = 0;
         });
 
         gestureFactor = currentOpenness;
 
-        // --- Apply Special Gesture Shape ---
-        if (bestGesture === 'peace') {
-          gestureShape = 'welcome';
-          // Force scale ONLY if we don't have a dedicated navigation hand for zoom
+        if (bestGesture === 'three_up') {
+          gestureShape = 'galaxy';
           if (!navHandFound && gestureFactor < 0.8) gestureFactor = 1.6;
           gestureDot.className = 'open';
-          gestureText.textContent = '✌️ Right Hand [Peace] — Welcome';
-          gestureText.style.background = 'rgba(255, 48, 107, 0.4)';
+          gestureText.textContent = '🌀 3 Dedos → Galaxy';
+          gestureText.style.color = '#f59e0b';
+        } else if (bestGesture === 'peace') {
+          gestureShape = 'welcome';
+          if (!navHandFound && gestureFactor < 0.8) gestureFactor = 1.6;
+          gestureDot.className = 'open';
+          gestureText.textContent = '✌️ Peace → Welcome';
+          gestureText.style.color = '#c084fc';
         } else if (bestGesture === 'point') {
           gestureShape = 'logo';
           if (!navHandFound && gestureFactor < 0.8) gestureFactor = 1.6;
           gestureDot.className = 'open';
-          gestureText.style.background = 'rgba(0, 154, 205, 0.4)';
-          gestureText.textContent = '☝️ Right Hand [Index] — Identity';
+          gestureText.textContent = '☝️ Index → Logo';
+          gestureText.style.color = '#38bdf8';
         } else if (currentOpenness > 0.5) {
-          gestureShape = null;
+          gestureShape = 'cloud';
           gestureDot.className = 'open';
-          gestureText.style.background = 'rgba(74, 222, 128, 0.2)';
-          gestureText.textContent = 'Left Hand [Open] — Zoom Libre';
+          gestureText.textContent = '🖐 Open → Vortex Active';
+          gestureText.style.color = '#4ade80';
         } else {
-          gestureShape = null;
+          gestureShape = 'cloud';
           gestureDot.className = 'closed';
-          gestureText.style.background = 'rgba(74, 222, 128, 0.2)';
-          gestureText.textContent = 'Left Hand [Closed] — Fixed Position';
+          gestureText.textContent = '✊ Cloud';
+          gestureText.style.color = 'rgba(255,255,255,0.45)';
         }
       } else {
         gestureFactor = 0;
         handDetected = false;
-        gestureShape = null;
+        gestureShape = 'cloud';
         gestureDot.className = '';
-        gestureText.textContent = 'Waiting for hand…';
+        gestureText.textContent = 'Sin mano → Cloud';
+        gestureText.style.color = 'rgba(255,255,255,0.45)';
       }
     });
 
@@ -984,7 +1343,6 @@
         btn.textContent = 'Encender Cámara';
         wrapper.classList.add('off');
         camUtil.stop();
-        // Reset hand state
         handDetected = false;
         gestureShape = null;
         gestureDot.className = '';
@@ -1006,24 +1364,47 @@
       mouseY = Math.max(-1.2, Math.min(1.2, mouseY));
     });
 
+    // ========== FPS COUNTER ==========
+    let fpsFrames = 0;
+    let fpsTime = performance.now();
+    const fpsBadge = document.getElementById('fps-badge');
+
+    // ========== AUDIO BARS UI ==========
+    const audioBars = document.querySelectorAll('.audio-bar');
+    const audioBarsContainer = document.getElementById('audio-bars');
+
     // ========== ANIMATION LOOP ==========
     const clock = new THREE.Clock();
 
     function animate() {
       requestAnimationFrame(animate);
       const dt = Math.min(clock.getDelta(), 0.05);
+      const t = clock.elapsedTime;
+
+      // FPS counter
+      fpsFrames++;
+      if (performance.now() - fpsTime > 1000) {
+        fpsBadge.textContent = fpsFrames + ' FPS';
+        fpsFrames = 0;
+        fpsTime = performance.now();
+      }
+
+      // Audio update
+      audioReactor.update();
+
+      // Update audio bars UI
+      if (audioReactor.isActive) {
+        for (let b = 0; b < audioBars.length; b++) {
+          const h = Math.max(2, audioReactor.frequencyBins[b] * 24);
+          audioBars[b].style.height = h + 'px';
+        }
+      }
 
       // --- Gesture-driven shape switching ---
-      let activeShape = currentShape;
-      if (gestureShape) {
-        activeShape = gestureShape;
-      } else if (!handDetected) {
-        activeShape = 'cloud';
-      }
+      let activeShape = gestureShape || 'cloud';
       if (activeShape !== lastGestureShape) {
         setTargets(activeShape);
         lastGestureShape = activeShape;
-        // Update button highlight
         document.querySelectorAll('.shape-btn').forEach(b => {
           b.classList.toggle('active', b.dataset.shape === activeShape);
         });
@@ -1037,32 +1418,45 @@
       const moveInertia = isLogo ? 0.04 : HAND_TRACK_SMOOTH;
 
       if (handDetected) {
-        // Map camera coords to 3D space (mirror X so moving hand right moves figure right)
         const targetX = -(handX - 0.5) * HAND_MOVE_RANGE * 2;
         const targetY = -(handY - 0.5) * HAND_MOVE_RANGE * 2;
         smoothHandX += (targetX - smoothHandX) * moveInertia;
         smoothHandY += (targetY - smoothHandY) * moveInertia;
         smoothHandRotZ += (handRotZ - smoothHandRotZ) * moveInertia;
       } else {
-        // Smoothly return to center when no hand detected
         smoothHandX += (0 - smoothHandX) * moveInertia * 0.5;
         smoothHandY += (0 - smoothHandY) * moveInertia * 0.5;
         smoothHandRotZ += (0 - smoothHandRotZ) * moveInertia * 0.5;
       }
 
-      // Expansion factor: when hand is open particles expand outward
-      const expansionScale = 1.0 + smoothGesture * 2.5;
+      // Expansion factor
+      const audioExpand = audioReactor.isActive ? audioReactor.smoothBass * 0.6 : 0;
+      const expansionScale = 1.0 + smoothGesture * 2.5 + audioExpand;
 
-      // Add auto-rotation (with toggle)
+      // Auto-rotation (with audio speed modulation)
+      const audioRotBoost = audioReactor.isActive ? audioReactor.smoothEnergy * 0.02 : 0;
       if (autoRotate) {
-        if (isLogo) rotX += 0.012;
-        else rotX += 0.005;
+        if (isLogo) rotX += 0.012 + audioRotBoost;
+        else if (lastGestureShape === 'galaxy') rotX += 0.003 + audioRotBoost;
+        else rotX += 0.005 + audioRotBoost;
       }
 
-      // Lerp particles toward targets (with expansion)
+      // Vortex parameters
+      const vortexActive = handDetected && smoothGesture > 0.3;
+      const vortexStrength = smoothGesture * 8.0;
+      const vortexRadius = 2.5;
+      const friction = 0.92;
+
+      // Audio-driven bloom modulation
+      if (bloomPass) {
+        const baseBloom = 1.6;
+        const audioBloom = audioReactor.isActive ? audioReactor.smoothBass * 1.5 : 0;
+        bloomPass.strength = baseBloom + audioBloom;
+      }
+
+      // --- PARTICLE UPDATE LOOP ---
       const pos = geometry.attributes.position.array;
       const col = geometry.attributes.color.array;
-      const t = clock.elapsedTime;
 
       for (let i = 0; i < PARTICLE_COUNT; i++) {
         const i3 = i * 3;
@@ -1073,52 +1467,106 @@
         let tg = targetColors[i3 + 1];
         let tb = targetColors[i3 + 2];
 
-        // v5.3 DYNAMIC EFFECTS: Color Wave & Kinematic Fireworks
+        // Welcome mode effects (preserved from original)
         const isWelcome = (lastGestureShape === 'welcome');
         if (isWelcome && window.particleMetadata && window.particleMetadata.length > i * 5) {
           const mIdx = i * 5;
           const type = window.particleMetadata[mIdx];
 
           if (type === 0) {
-            // v5.7: VIVID COLOR SHIFT for text
             const hueShift = Math.sin(t * 1.5 + ty * 0.5) * 0.35;
             tr = Math.max(0.1, Math.min(1, tr + hueShift + 0.1));
             tb = Math.max(0.1, Math.min(1, tb - hueShift + 0.1));
-            tg = Math.max(0.1, Math.min(1, tg + 0.1)); // Add base brightness
+            tg = Math.max(0.1, Math.min(1, tg + 0.1));
           } else if (type === 1) {
-            // v5.3: KINEMATIC FIREWORKS (Explode -> Gravity -> Fade)
             const burstIdx = window.particleMetadata[mIdx + 1];
             const vx = window.particleMetadata[mIdx + 2];
             const vy = window.particleMetadata[mIdx + 3];
             const vz = window.particleMetadata[mIdx + 4];
 
-            // Life cycle: 3.5 second loop per burst center
             const life = (t + burstIdx * 0.6) % 3.5;
             const age = life;
 
             if (age < 3.0) {
-              // Kinematics: pos = p0 + v*t - 0.5*g*t^2
               const gravity = 2.2;
-              const drag = Math.pow(0.5, age); // air friction
+              const drag = Math.pow(0.5, age);
               tx = tx + vx * age * drag;
               ty = ty + vy * age * drag - 0.5 * gravity * age * age;
               tz = tz + vz * age * drag;
 
-              // v5.7: Slower fade for more vivid firework trails
               if (age > 1.4) {
                 const fade = 1.0 - Math.min(1, (age - 1.4) / 1.4);
                 tr *= fade; tg *= fade; tb *= fade;
               }
             } else {
-              // Particle is "invisible" (black) while resetting
               tr = tg = tb = 0;
             }
           }
         }
 
-        pos[i3] += (tx - pos[i3]) * LERP_SPEED;
-        pos[i3 + 1] += (ty - pos[i3 + 1]) * LERP_SPEED;
-        pos[i3 + 2] += (tz - pos[i3 + 2]) * LERP_SPEED;
+        // Galaxy rotation animation
+        if (lastGestureShape === 'galaxy') {
+          const dist = Math.sqrt(tx * tx + tz * tz);
+          if (dist > 0.3) {
+            const angle = Math.atan2(tz, tx);
+            const rotSpeed = 0.15 / (0.5 + dist * 0.3); // Inner rotates faster
+            const newAngle = angle + rotSpeed * t;
+            tx = Math.cos(newAngle) * dist;
+            tz = Math.sin(newAngle) * dist;
+          }
+        }
+
+        // Audio color modulation (subtle hue shift)
+        if (audioReactor.isActive && !isWelcome) {
+          const audioHue = audioReactor.smoothBass * 0.3;
+          const trebleSparkle = audioReactor.treble * 0.4;
+          tr = Math.min(1, tr + audioHue * 0.5);
+          tg = Math.min(1, tg + trebleSparkle * 0.3);
+          tb = Math.min(1, tb + audioReactor.smoothEnergy * 0.2);
+        }
+
+        // --- VORTEX PHYSICS ---
+        if (vortexActive) {
+          const dx = pos[i3];
+          const dy = pos[i3 + 1];
+          const dz = pos[i3 + 2];
+          const dist = Math.sqrt(dx * dx + dy * dy + dz * dz) + 0.01;
+
+          if (dist < vortexRadius) {
+            const normalizedDist = dist / vortexRadius;
+            const force = vortexStrength * (1 - normalizedDist * normalizedDist);
+
+            // Tangential force (swirl around Y axis)
+            const angle = Math.atan2(dz, dx);
+            velocities[i3] += (-Math.sin(angle) * force) * dt;
+            velocities[i3 + 2] += (Math.cos(angle) * force) * dt;
+
+            // Slight upward pull
+            velocities[i3 + 1] += force * 0.3 * dt;
+
+            // Radial scatter
+            velocities[i3] += dx / dist * force * 0.15 * dt;
+            velocities[i3 + 2] += dz / dist * force * 0.15 * dt;
+          }
+        }
+
+        // Apply velocity friction
+        velocities[i3] *= friction;
+        velocities[i3 + 1] *= friction;
+        velocities[i3 + 2] *= friction;
+
+        // Audio-driven micro-vibration
+        if (audioReactor.isActive) {
+          const vibAmt = audioReactor.smoothBass * 0.03;
+          velocities[i3] += (Math.random() - 0.5) * vibAmt;
+          velocities[i3 + 1] += (Math.random() - 0.5) * vibAmt;
+          velocities[i3 + 2] += (Math.random() - 0.5) * vibAmt;
+        }
+
+        // Position update: lerp to target + velocity
+        pos[i3] += (tx - pos[i3]) * LERP_SPEED + velocities[i3] * dt;
+        pos[i3 + 1] += (ty - pos[i3 + 1]) * LERP_SPEED + velocities[i3 + 1] * dt;
+        pos[i3 + 2] += (tz - pos[i3 + 2]) * LERP_SPEED + velocities[i3 + 2] * dt;
 
         // Color lerp
         col[i3] += (tr - col[i3]) * LERP_SPEED;
@@ -1128,29 +1576,40 @@
       geometry.attributes.position.needsUpdate = true;
       geometry.attributes.color.needsUpdate = true;
 
-      // Slow auto-rotate + mouse orbit (disabled for text shapes)
+      // --- Camera/Rotation ---
       const isTextShape = (lastGestureShape === 'welcome');
       rotX += (mouseX - rotX) * 0.05;
       rotY += (mouseY - rotY) * 0.05;
 
       if (isTextShape) {
-        // Keep text face-on: no auto-rotation, gentle hand influence only
         points.rotation.y = rotX * 0.2;
         points.rotation.x = rotY * 0.2;
         points.rotation.z = 0;
+      } else if (lastGestureShape === 'galaxy') {
+        // Galaxy: gentle tilt, main rotation handled per-particle
+        points.rotation.y = (autoRotate ? t * 0.05 : 0) + rotX;
+        points.rotation.x = -0.5 + rotY; // Tilted view
+        points.rotation.z = smoothHandRotZ * 0.3;
       } else {
         points.rotation.y = (autoRotate ? t * 0.12 : 0) + rotX;
         points.rotation.x = rotY;
         points.rotation.z = smoothHandRotZ;
       }
 
-      // Hand position controls figure translation
+      // Hand position → figure translation
       points.position.x = smoothHandX;
       points.position.y = smoothHandY;
 
-      // v5.7: Larger particles for maximum additive bloom
-      material.size = 0.045 + smoothGesture * 0.045;
-      renderer.render(scene, camera3D);
+      // Particle size: base + gesture + audio
+      const audioSize = audioReactor.isActive ? audioReactor.smoothBass * 0.04 : 0;
+      material.size = 0.05 + smoothGesture * 0.04 + audioSize;
+
+      // Render
+      if (composer) {
+        composer.render();
+      } else {
+        renderer.render(scene, camera3D);
+      }
     }
     animate();
 
@@ -1163,6 +1622,7 @@
         btn.classList.add('active');
         currentShape = btn.dataset.shape;
         setTargets(currentShape);
+        lastGestureShape = currentShape;
       });
     });
 
@@ -1171,8 +1631,7 @@
       const hex = e.target.value;
       const c = new THREE.Color(hex);
       defaultColor.set(hex);
-      // For shapes that don't have their own color scheme, update target colors
-      if (currentShape !== 'logo' && currentShape !== 'welcome') {
+      if (currentShape !== 'logo' && currentShape !== 'welcome' && currentShape !== 'galaxy') {
         for (let i = 0; i < PARTICLE_COUNT; i++) {
           const i3 = i * 3;
           targetColors[i3] = c.r;
@@ -1182,10 +1641,29 @@
       }
     });
 
+    // Audio toggle
+    document.getElementById('audio-toggle-btn').addEventListener('click', async (e) => {
+      const btn = e.target;
+      if (!audioReactor.isActive) {
+        const success = await audioReactor.init();
+        if (success) {
+          btn.textContent = '🎤 Activo';
+          btn.classList.add('active');
+          audioBarsContainer.classList.add('active');
+        }
+      } else {
+        audioReactor.stop();
+        btn.textContent = '🎤 Activar';
+        btn.classList.remove('active');
+        audioBarsContainer.classList.remove('active');
+        audioBars.forEach(bar => bar.style.height = '2px');
+      }
+    });
+
     // Rotation Toggle
     document.getElementById('rotate-toggle-btn').addEventListener('click', (e) => {
       autoRotate = !autoRotate;
-      e.target.textContent = autoRotate ? '⏸ Pausar Giro' : '▶️ Reanudar Giro';
+      e.target.textContent = autoRotate ? '⏸ Pausar' : '▶️ Reanudar';
     });
 
     // Fullscreen
@@ -1197,11 +1675,19 @@
       }
     });
 
+    // Toggle panel (mobile)
+    document.getElementById('toggle-panel').addEventListener('click', () => {
+      document.getElementById('ui-panel').classList.toggle('visible');
+    });
+
     // Handle resize
     window.addEventListener('resize', () => {
       camera3D.aspect = window.innerWidth / window.innerHeight;
       camera3D.updateProjectionMatrix();
       renderer.setSize(window.innerWidth, window.innerHeight);
+      if (composer) {
+        composer.setSize(window.innerWidth, window.innerHeight);
+      }
     });
   </script>
 </body>
