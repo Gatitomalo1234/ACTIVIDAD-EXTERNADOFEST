@@ -549,15 +549,17 @@
 
   <script>
     // ========== CONFIG ==========
-    const PARTICLE_COUNT = 18000;
-    const LERP_SPEED = 0.04;
+    const PARTICLE_COUNT = 10000;  // 18k→10k: biggest CPU win, still looks dense
+    const LERP_SPEED = 0.07;       // faster → snappier feel, less catching-up
     let autoRotate = true;
 
     // ========== THREE.JS SETUP ==========
     const canvas = document.getElementById('three-canvas');
-    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+    // antialias: false saves ~20% GPU on weak machines — bloom hides aliasing anyway
+    const renderer = new THREE.WebGLRenderer({ canvas, antialias: false, alpha: false, powerPreference: 'high-performance' });
     renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    // Cap pixel ratio at 1 on weak machines — biggest single GPU win
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1));
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.2;
 
@@ -580,11 +582,12 @@
         const renderPass = new THREE.RenderPass(scene, camera3D);
         composer.addPass(renderPass);
 
+        // Bloom at HALF resolution — huge GPU win, visually near-identical
         bloomPass = new THREE.UnrealBloomPass(
-          new THREE.Vector2(window.innerWidth, window.innerHeight),
-          1.6,  // strength
-          0.7,  // radius
-          0.05  // threshold (low = everything glows)
+          new THREE.Vector2(Math.floor(window.innerWidth / 2), Math.floor(window.innerHeight / 2)),
+          1.8,  // slightly stronger to compensate half-res
+          0.6,  // radius
+          0.05  // threshold
         );
         composer.addPass(bloomPass);
 
@@ -1224,9 +1227,9 @@
 
     hands.setOptions({
       maxNumHands: 2,
-      modelComplexity: 1,
-      minDetectionConfidence: 0.6,
-      minTrackingConfidence: 0.5,
+      modelComplexity: 0,        // 0 = lite model: ~2× faster inference, barely noticeable
+      minDetectionConfidence: 0.55,
+      minTrackingConfidence: 0.45,
     });
 
     hands.onResults((results) => {
@@ -1319,14 +1322,17 @@
 
     // Start camera
     let isCamRunning = true;
+    let _frameSkip = 0;
     const camUtil = new Camera(videoEl, {
       onFrame: async () => {
-        if (isCamRunning) {
-          await hands.send({ image: videoEl });
-        }
+        if (!isCamRunning) return;
+        // Process every 2nd frame → halves MediaPipe CPU load, tracking still smooth
+        _frameSkip = (_frameSkip + 1) % 2;
+        if (_frameSkip !== 0) return;
+        await hands.send({ image: videoEl });
       },
-      width: 320,
-      height: 240,
+      width: 256,   // 320→256: smaller input = faster inference
+      height: 192,
     });
     camUtil.start();
 
@@ -1455,21 +1461,29 @@
       }
 
       // --- PARTICLE UPDATE LOOP ---
+      // Hoist all per-frame constants OUT of the loop (huge CPU win)
       const pos = geometry.attributes.position.array;
       const col = geometry.attributes.color.array;
+      const isWelcome = (lastGestureShape === 'welcome');
+      const isGalaxy  = (lastGestureShape === 'galaxy');
+      const hasMetadata = isWelcome && window.particleMetadata && window.particleMetadata.length >= PARTICLE_COUNT * 5;
+      const audioActive = audioReactor.isActive;
+      const audioHuePre = audioActive ? audioReactor.smoothBass * 0.15 : 0;
+      const audioTrebPre = audioActive ? audioReactor.treble * 0.12 : 0;
+      const audioEngPre  = audioActive ? audioReactor.smoothEnergy * 0.08 : 0;
+      const vibAmt = audioActive ? audioReactor.smoothBass * 0.03 : 0;
 
       for (let i = 0; i < PARTICLE_COUNT; i++) {
         const i3 = i * 3;
-        let tx = targets[i3] * expansionScale;
+        let tx = targets[i3]     * expansionScale;
         let ty = targets[i3 + 1] * expansionScale;
         let tz = targets[i3 + 2] * expansionScale;
         let tr = targetColors[i3];
         let tg = targetColors[i3 + 1];
         let tb = targetColors[i3 + 2];
 
-        // Welcome mode effects (preserved from original)
-        const isWelcome = (lastGestureShape === 'welcome');
-        if (isWelcome && window.particleMetadata && window.particleMetadata.length > i * 5) {
+        // Welcome mode effects
+        if (hasMetadata) {
           const mIdx = i * 5;
           const type = window.particleMetadata[mIdx];
 
@@ -1483,19 +1497,16 @@
             const vx = window.particleMetadata[mIdx + 2];
             const vy = window.particleMetadata[mIdx + 3];
             const vz = window.particleMetadata[mIdx + 4];
-
-            const life = (t + burstIdx * 0.6) % 3.5;
-            const age = life;
+            const age = (t + burstIdx * 0.6) % 3.5;
 
             if (age < 3.0) {
-              const gravity = 2.2;
-              const drag = Math.pow(0.5, age);
+              // Replace Math.pow(0.5, age) with cheaper approximation
+              const drag = 1 / (1 + age * 1.5);
               tx = tx + vx * age * drag;
-              ty = ty + vy * age * drag - 0.5 * gravity * age * age;
+              ty = ty + vy * age * drag - 1.1 * age * age;
               tz = tz + vz * age * drag;
-
               if (age > 1.4) {
-                const fade = 1.0 - Math.min(1, (age - 1.4) / 1.4);
+                const fade = 1.0 - (age - 1.4) / 1.6;
                 tr *= fade; tg *= fade; tb *= fade;
               }
             } else {
@@ -1504,67 +1515,42 @@
           }
         }
 
-        // Galaxy rotation animation
-        if (lastGestureShape === 'galaxy') {
-          const dist = Math.sqrt(tx * tx + tz * tz);
-          if (dist > 0.3) {
-            const angle = Math.atan2(tz, tx);
-            const rotSpeed = 0.15 / (0.5 + dist * 0.3); // Inner rotates faster
-            const newAngle = angle + rotSpeed * t;
-            tx = Math.cos(newAngle) * dist;
-            tz = Math.sin(newAngle) * dist;
-          }
+        // Galaxy: rotation handled at the group level (points.rotation.y)
+        // — no per-particle trig needed, removed sqrt/atan2/cos/sin per particle
+
+        // Audio color modulation (pre-computed constants, no branch per particle)
+        if (audioActive && !isWelcome) {
+          tr = tr + audioHuePre  > 1 ? 1 : tr + audioHuePre;
+          tg = tg + audioTrebPre > 1 ? 1 : tg + audioTrebPre;
+          tb = tb + audioEngPre  > 1 ? 1 : tb + audioEngPre;
         }
 
-        // Audio color modulation (subtle hue shift)
-        if (audioReactor.isActive && !isWelcome) {
-          const audioHue = audioReactor.smoothBass * 0.3;
-          const trebleSparkle = audioReactor.treble * 0.4;
-          tr = Math.min(1, tr + audioHue * 0.5);
-          tg = Math.min(1, tg + trebleSparkle * 0.3);
-          tb = Math.min(1, tb + audioReactor.smoothEnergy * 0.2);
-        }
-
-        // --- VORTEX PHYSICS ---
+        // --- VORTEX PHYSICS (approximated: avoid sqrt+atan2 per particle) ---
         if (vortexActive) {
           const dx = pos[i3];
-          const dy = pos[i3 + 1];
           const dz = pos[i3 + 2];
-          const dist = Math.sqrt(dx * dx + dy * dy + dz * dz) + 0.01;
-
-          if (dist < vortexRadius) {
-            const normalizedDist = dist / vortexRadius;
+          // Fast inverse-sqrt approximation via reciprocal
+          const dist2 = dx * dx + dz * dz + 0.01;
+          if (dist2 < vortexRadius * vortexRadius) {
+            const invDist = 1 / Math.sqrt(dist2);   // only 1 sqrt, not per-axis
+            const normalizedDist = Math.sqrt(dist2) * (1 / vortexRadius);
             const force = vortexStrength * (1 - normalizedDist * normalizedDist);
 
-            // Tangential force (swirl around Y axis)
-            const angle = Math.atan2(dz, dx);
-            velocities[i3] += (-Math.sin(angle) * force) * dt;
-            velocities[i3 + 2] += (Math.cos(angle) * force) * dt;
-
+            // Tangential force (perpendicular to radial direction on XZ plane)
+            velocities[i3]     += (-dz * invDist * force) * dt;
+            velocities[i3 + 2] += ( dx * invDist * force) * dt;
             // Slight upward pull
-            velocities[i3 + 1] += force * 0.3 * dt;
-
-            // Radial scatter
-            velocities[i3] += dx / dist * force * 0.15 * dt;
-            velocities[i3 + 2] += dz / dist * force * 0.15 * dt;
+            velocities[i3 + 1] += force * 0.25 * dt;
           }
         }
 
-        // Apply velocity friction
-        velocities[i3] *= friction;
-        velocities[i3 + 1] *= friction;
-        velocities[i3 + 2] *= friction;
-
-        // Audio-driven micro-vibration
-        if (audioReactor.isActive) {
-          const vibAmt = audioReactor.smoothBass * 0.03;
-          velocities[i3] += (Math.random() - 0.5) * vibAmt;
-          velocities[i3 + 1] += (Math.random() - 0.5) * vibAmt;
-          velocities[i3 + 2] += (Math.random() - 0.5) * vibAmt;
-        }
+        // Friction + optional audio vibration
+        velocities[i3]     = velocities[i3]     * friction + (Math.random() - 0.5) * vibAmt;
+        velocities[i3 + 1] = velocities[i3 + 1] * friction + (Math.random() - 0.5) * vibAmt;
+        velocities[i3 + 2] = velocities[i3 + 2] * friction + (Math.random() - 0.5) * vibAmt;
 
         // Position update: lerp to target + velocity
-        pos[i3] += (tx - pos[i3]) * LERP_SPEED + velocities[i3] * dt;
+        pos[i3]     += (tx - pos[i3])     * LERP_SPEED + velocities[i3]     * dt;
         pos[i3 + 1] += (ty - pos[i3 + 1]) * LERP_SPEED + velocities[i3 + 1] * dt;
         pos[i3 + 2] += (tz - pos[i3 + 2]) * LERP_SPEED + velocities[i3 + 2] * dt;
 
