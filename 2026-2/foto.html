@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CHASQUIDO ✦ Tu foto</title>
+  <meta name="description" content="Descarga tu foto en partículas — Ciencia de Datos, Externado Fest.">
+  <link rel="icon"
+    href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%AB%B0%3C/text%3E%3C/svg%3E">
+
+  <!--
+    Página de descarga de CHASQUIDO.
+    Se abre desde el QR con ?i=<id-de-la-foto> y arma la URL pública.
+
+    POR QUÉ EXISTE ESTE ARCHIVO APARTE: Supabase Storage sirve todo HTML como
+    text/plain (protección suya contra hosting de páginas), así que la landing
+    no puede vivir en el bucket. Hay que desplegarla en un hosting estático
+    (Netlify, Vercel, GitHub Pages) y poner esa URL en SHARE_LANDING dentro de
+    photo_particles.html. Si no se despliega, el QR apunta directo a la imagen
+    y la experiencia sigue funcionando.
+  -->
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Unbounded:wght@900&display=swap');
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: #07070d;
+      color: #fff;
+      min-height: 100vh;
+      padding: 28px 16px 48px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background-image: radial-gradient(ellipse at 50% 0%, rgba(120, 80, 255, 0.18), transparent 60%);
+    }
+
+    h1 {
+      font-family: 'Unbounded', sans-serif;
+      font-size: clamp(24px, 7vw, 34px);
+      font-weight: 900;
+      letter-spacing: 2px;
+      background: linear-gradient(135deg, #fdf0b0, #f6d36c, #cf9b22);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      text-align: center;
+    }
+
+    .sub {
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 2.5px;
+      text-transform: uppercase;
+      color: rgba(255, 255, 255, 0.4);
+      text-align: center;
+      margin-bottom: 6px;
+    }
+
+    #shot {
+      width: 100%;
+      max-width: 680px;
+      border-radius: 14px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: #000;
+      display: block;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+    }
+
+    #dl {
+      display: block;
+      width: 100%;
+      max-width: 680px;
+      text-align: center;
+      padding: 17px;
+      border: none;
+      border-radius: 40px;
+      text-decoration: none;
+      color: #fff;
+      font-family: inherit;
+      font-size: 15px;
+      font-weight: 800;
+      letter-spacing: 1px;
+      cursor: pointer;
+      background: linear-gradient(135deg, #c084fc, #38bdf8);
+      box-shadow: 0 0 30px rgba(192, 132, 252, 0.3);
+    }
+
+    #dl:disabled { opacity: 0.6; }
+
+    .tip {
+      font-size: 12.5px;
+      color: rgba(255, 255, 255, 0.42);
+      text-align: center;
+      max-width: 440px;
+      line-height: 1.65;
+    }
+
+    .err {
+      color: #f97316;
+      text-align: center;
+      line-height: 1.7;
+      padding: 40px 10px;
+    }
+  </style>
+</head>
+
+<body>
+  <h1>CHASQUIDO ✦</h1>
+  <div class="sub">Ciencia de Datos · Externado Fest</div>
+
+  <img id="shot" alt="Tu foto en partículas" hidden>
+  <button id="dl" hidden>⬇ Descargar mi foto</button>
+  <p class="tip" id="tip" hidden>
+    ¿iPhone? Si el botón no guarda, mantén presionada la foto y elige
+    «Guardar en Fotos».
+  </p>
+  <p class="err" id="err" hidden>
+    No encontramos la foto.<br>Vuelve a escanear el código del stand.
+  </p>
+
+  <script>
+    // Mismo proyecto y bucket que photo_particles.html
+    const SUPABASE_URL = 'https://aohpheppigbqmbfpzpbg.supabase.co';
+    const BUCKET = 'chasquido';
+
+    const id = new URLSearchParams(location.search).get('i');
+    const shot = document.getElementById('shot');
+    const dl = document.getElementById('dl');
+    const tip = document.getElementById('tip');
+
+    // El id viene de crypto.randomUUID(): solo hex y guiones. Validarlo evita
+    // que alguien arme una URL apuntando a otro sitio desde el parámetro
+    if (!id || !/^[a-zA-Z0-9-]{8,64}$/.test(id)) {
+      document.getElementById('err').hidden = false;
+    } else {
+      const imgUrl = `${SUPABASE_URL}/storage/v1/object/public/${BUCKET}/${id}.jpg`;
+      shot.src = imgUrl;
+      shot.hidden = false;
+      dl.hidden = false;
+      tip.hidden = false;
+
+      shot.addEventListener('error', () => {
+        shot.hidden = true;
+        dl.hidden = true;
+        tip.hidden = true;
+        document.getElementById('err').hidden = false;
+      });
+
+      // Descarga real: el atributo download no funciona entre dominios, así
+      // que se baja el archivo como blob (el bucket permite CORS) y se
+      // entrega desde el mismo origen
+      dl.addEventListener('click', async () => {
+        dl.disabled = true;
+        dl.textContent = '⏳ Descargando…';
+        try {
+          const res = await fetch(imgUrl);
+          if (!res.ok) throw new Error(res.status);
+          const url = URL.createObjectURL(await res.blob());
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = 'chasquido.jpg';
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          setTimeout(() => URL.revokeObjectURL(url), 10000);
+          dl.textContent = '✓ Listo';
+        } catch (e) {
+          // Último recurso: abrir la imagen para guardarla a mano
+          window.open(imgUrl, '_blank');
+          dl.textContent = '⬇ Descargar mi foto';
+        } finally {
+          setTimeout(() => { dl.disabled = false; }, 1200);
+        }
+      });
+    }
+  </script>
+</body>
+
+</html>

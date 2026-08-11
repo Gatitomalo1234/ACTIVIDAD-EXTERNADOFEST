@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -16,7 +17,12 @@
             --apple-glass: rgba(18, 18, 23, 0.7);
         }
 
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
         body {
             background: linear-gradient(-45deg, #050505, #1a0b2e, #050505, #0b1a2e);
             background-size: 400% 400%;
@@ -32,9 +38,17 @@
         }
 
         @keyframes meshGradient {
-            0% { background-position: 0% 50%; }
-            50% { background-position: 100% 50%; }
-            100% { background-position: 0% 50%; }
+            0% {
+                background-position: 0% 50%;
+            }
+
+            50% {
+                background-position: 100% 50%;
+            }
+
+            100% {
+                background-position: 0% 50%;
+            }
         }
 
         /* Ambient Glow */
@@ -44,17 +58,20 @@
             width: 40vw;
             height: 40vw;
             background: radial-gradient(circle, rgba(0, 210, 255, 0.1) 0%, transparent 75%);
-            top: -10%; left: -10%;
+            top: -10%;
+            left: -10%;
             pointer-events: none;
             filter: blur(50px);
         }
+
         body::after {
             content: '';
             position: absolute;
             width: 50vw;
             height: 50vw;
             background: radial-gradient(circle, rgba(255, 0, 127, 0.05) 0%, transparent 70%);
-            bottom: -15%; right: -15%;
+            bottom: -15%;
+            right: -15%;
             pointer-events: none;
             filter: blur(80px);
         }
@@ -65,9 +82,9 @@
             height: 768px;
             border-radius: 32px;
             overflow: hidden;
-            box-shadow: 0 50px 100px -20px rgba(0,0,0,0.7), 
-                        0 30px 60px -30px rgba(0,0,0,0.8),
-                        inset 0 0 0 1px rgba(255,255,255,0.05);
+            box-shadow: 0 50px 100px -20px rgba(0, 0, 0, 0.7),
+                0 30px 60px -30px rgba(0, 0, 0, 0.8),
+                inset 0 0 0 1px rgba(255, 255, 255, 0.05);
             background: var(--apple-glass);
             backdrop-filter: blur(40px) saturate(180%);
             -webkit-backdrop-filter: blur(40px) saturate(180%);
@@ -76,14 +93,18 @@
 
         canvas {
             position: absolute;
-            top: 0; left: 0;
-            width: 100%; height: 100%;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
             display: block;
         }
 
         #ui-layer {
             position: absolute;
-            top: 20px; left: 20px; right: 20px;
+            top: 20px;
+            left: 20px;
+            right: 20px;
             display: flex;
             justify-content: space-between;
             pointer-events: none;
@@ -103,18 +124,31 @@
             box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
         }
 
-        .label { font-size: 10px; text-transform: uppercase; letter-spacing: 2px; color: rgba(255,255,255,0.5); }
-        .value { font-size: 24px; font-weight: 800; font-variant-numeric: tabular-nums; }
+        .label {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .value {
+            font-size: 24px;
+            font-weight: 800;
+            font-variant-numeric: tabular-nums;
+        }
 
         #camera-container {
             position: absolute;
-            bottom: 20px; left: 20px;
-            width: 160px; height: 120px;
+            bottom: 20px;
+            left: 20px;
+            width: 160px;
+            height: 120px;
             z-index: 10;
         }
 
         #camera-preview {
-            width: 100%; height: 100%;
+            width: 100%;
+            height: 100%;
             border-radius: 12px;
             border: 1px solid var(--glass-border);
             background: #000;
@@ -126,13 +160,17 @@
 
         #preview-canvas {
             position: absolute;
-            top: 0; left: 0;
-            width: 100%; height: 100%;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
             pointer-events: none;
             z-index: 11;
         }
 
-        #camera-container:hover #camera-preview { opacity: 1; }
+        #camera-container:hover #camera-preview {
+            opacity: 1;
+        }
 
         /* Welcome/Victory Overlays */
         .overlay {
@@ -142,34 +180,60 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            background: rgba(0,0,0,0.85);
+            background: rgba(0, 0, 0, 0.85);
             backdrop-filter: blur(10px);
             z-index: 100;
             transition: opacity 0.5s;
             text-align: center;
             padding: 40px;
         }
-        .hidden { opacity: 0; pointer-events: none; }
 
-        h1 { font-size: 48px; margin-bottom: 10px; background: linear-gradient(45deg, var(--neon-blue), var(--neon-pink)); background-clip: text; -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-        p { font-size: 18px; color: rgba(255,255,255,0.7); max-width: 500px; margin-bottom: 30px; line-height: 1.6; }
+        .hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        h1 {
+            font-size: 48px;
+            margin-bottom: 10px;
+            background: linear-gradient(45deg, var(--neon-blue), var(--neon-pink));
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        p {
+            font-size: 18px;
+            color: rgba(255, 255, 255, 0.7);
+            max-width: 500px;
+            margin-bottom: 30px;
+            line-height: 1.6;
+        }
 
         .btn {
-            background: white; color: black; border: none;
-            padding: 15px 40px; border-radius: 30px;
-            font-size: 16px; font-weight: 700; cursor: pointer;
+            background: white;
+            color: black;
+            border: none;
+            padding: 15px 40px;
+            border-radius: 30px;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
             transition: transform 0.2s, box-shadow 0.2s;
         }
+
         .btn:hover {
             transform: scale(1.05);
-            box-shadow: 0 0 20px rgba(255,255,255,0.4);
+            box-shadow: 0 0 20px rgba(255, 255, 255, 0.4);
         }
 
         #instructions {
             position: absolute;
-            bottom: 20px; left: 50%;
+            bottom: 20px;
+            left: 50%;
             transform: translateX(-50%);
-            font-size: 11px; color: rgba(255,255,255,0.3);
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.3);
             letter-spacing: 2px;
             white-space: nowrap;
         }
@@ -188,7 +252,10 @@
             outline: none;
             transition: border-color 0.3s;
         }
-        #player-name-input:focus { border-color: var(--neon-blue); }
+
+        #player-name-input:focus {
+            border-color: var(--neon-blue);
+        }
 
         .stats-dash {
             display: grid;
@@ -198,20 +265,34 @@
             width: 100%;
             max-width: 400px;
         }
+
         .stat-item {
             background: rgba(255, 255, 255, 0.03);
             border: 1px solid var(--glass-border);
             padding: 15px;
             border-radius: 12px;
         }
-        .stat-label { font-size: 10px; text-transform: uppercase; color: rgba(255,255,255,0.4); margin-bottom: 5px; }
-        .stat-value { font-size: 20px; font-weight: 700; color: var(--neon-blue); }
+
+        .stat-label {
+            font-size: 10px;
+            text-transform: uppercase;
+            color: rgba(255, 255, 255, 0.4);
+            margin-bottom: 5px;
+        }
+
+        .stat-value {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--neon-blue);
+        }
 
         #level-title {
             position: absolute;
-            top: 25px; left: 50%;
+            top: 25px;
+            left: 50%;
             transform: translateX(-50%);
-            font-size: 24px; font-weight: 800;
+            font-size: 24px;
+            font-weight: 800;
             color: var(--neon-blue);
             text-transform: uppercase;
             letter-spacing: 4px;
@@ -221,19 +302,32 @@
         }
 
         /* Status indicators */
-        .status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 5px; }
-        .status-active { background: var(--neon-green); box-shadow: 0 0 10px var(--neon-green); }
-        .status-inactive { background: #555; }
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 5px;
+        }
 
+        .status-active {
+            background: var(--neon-green);
+            box-shadow: 0 0 10px var(--neon-green);
+        }
+
+        .status-inactive {
+            background: #555;
+        }
     </style>
 </head>
+
 <body>
 
     <div id="game-container">
         <!-- The Game Logic -->
         <canvas id="gameCanvas"></canvas>
         <div id="level-title">Cargando...</div>
-        
+
         <!-- UI Layer -->
         <div id="ui-layer">
             <div class="glass-panel">
@@ -243,9 +337,12 @@
             <div class="glass-panel" style="align-items: flex-end;">
                 <span class="label">Estado de Seguimiento</span>
                 <div style="display: flex; align-items: center; gap: 10px;">
-                    <span id="track-btn-retry" style="display:none; font-size: 10px; color: var(--neon-blue); cursor: pointer; text-decoration: underline; letter-spacing: 1px;" onclick="retryCamera()">REINTENTAR</span>
+                    <span id="track-btn-retry"
+                        style="display:none; font-size: 10px; color: var(--neon-blue); cursor: pointer; text-decoration: underline; letter-spacing: 1px;"
+                        onclick="retryCamera()">REINTENTAR</span>
                     <span id="track-dot" class="status-dot status-inactive"></span>
-                    <span id="track-text" class="value" style="font-size: 14px; text-transform: uppercase;">Aguardando...</span>
+                    <span id="track-text" class="value"
+                        style="font-size: 14px; text-transform: uppercase;">Aguardando...</span>
                 </div>
             </div>
         </div>
@@ -258,7 +355,8 @@
         <!-- Initial Overlay -->
         <div id="welcome-overlay" class="overlay">
             <h1>DATA MASTERY</h1>
-            <p>Demuestra tu pulso y precisión. Recorre el camino de un científico de datos del Externado evitando las interferencias en la red.</p>
+            <p>Demuestra tu pulso y precisión. Recorre el camino de un científico de datos del Externado evitando las
+                interferencias en la red.</p>
             <input type="text" id="player-name-input" placeholder="Tu Nombre o Alias" maxlength="15">
             <button class="btn" onclick="startGame()">INICIAR EL DESAFÍO</button>
         </div>
@@ -302,7 +400,7 @@
     <script>
         // Global UI Status Logic
         let trackText, trackDot, trackBtnRetry;
-        
+
         document.addEventListener('DOMContentLoaded', () => {
             trackText = document.getElementById('track-text');
             trackDot = document.getElementById('track-dot');
@@ -313,7 +411,7 @@
         function updateTrackingStatus(state, msg) {
             if (!trackText) return;
             if (msg) trackText.innerText = msg;
-            
+
             if (state === 'active') {
                 trackDot.className = 'status-dot status-active';
                 trackDot.style.background = 'var(--neon-green)';
@@ -338,7 +436,7 @@
         const video = document.getElementById('camera-preview');
         const previewCanvas = document.getElementById('preview-canvas');
         const pctx = previewCanvas.getContext('2d');
-        
+
         let hands;
         let isCameraActive = false;
         let isTracking = false;
@@ -409,12 +507,12 @@
             },
             { // Nivel 5: Impacto Global
                 name: "Impacto Global",
-                start: { x: 250, y: 650 }, 
+                start: { x: 250, y: 650 },
                 goal: { x: 880, y: 100, w: 100, h: 100 },
                 walls: [
-                    { x: 300, y: 168, w: 30, h: 600 },    
-                    { x: 550, y: 0, w: 30, h: 600 },      
-                    { x: 800, y: 168, w: 30, h: 600 }     
+                    { x: 300, y: 168, w: 30, h: 600 },
+                    { x: 550, y: 0, w: 30, h: 600 },
+                    { x: 800, y: 168, w: 30, h: 600 }
                 ]
             }
         ];
@@ -427,17 +525,17 @@
 
         function onResults(results) {
             pctx.clearRect(0, 0, 160, 120);
-            
+
             if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
                 isTracking = true;
                 const landmarks = results.multiHandLandmarks[0];
                 const indexTip = landmarks[8]; // Correctly define indexTip
-                
+
                 // 1. Edge Clamping & Safety Margin (5%)
                 const margin = 0.05;
                 const clampedX = Math.max(margin, Math.min(1 - margin, indexTip.x));
                 const clampedY = Math.max(margin, Math.min(1 - margin, indexTip.y));
-                
+
                 const targetX = (1 - clampedX) * WIDTH;
                 const targetY = clampedY * HEIGHT;
 
@@ -453,11 +551,11 @@
                 lastY = smoothY;
 
                 // Actualizar drag del jugador
-                const dist = Math.sqrt((smoothX - player.x)**2 + (smoothY - player.y)**2);
-                
+                const dist = Math.sqrt((smoothX - player.x) ** 2 + (smoothY - player.y) ** 2);
+
                 // Visual Hand-Lock effect
                 player.nearCursor = dist < player.r + 100;
-                
+
                 if (dist < player.r + 60) {
                     if (!player.isDragging) audio.playTrigger('grab');
                     player.isDragging = true;
@@ -485,7 +583,7 @@
             }
         }
 
-        window.retryCamera = function() {
+        window.retryCamera = function () {
             updateTrackingStatus('loading', 'Reintentando...');
             initCamera();
         }
@@ -499,12 +597,14 @@
 
                 previewCanvas.width = 160;
                 previewCanvas.height = 120;
-                
+
                 updateTrackingStatus('loading', 'Iniciando IA...');
-                
-                hands = new Hands({locateFile: (file) => {
-                    return `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`;
-                }});
+
+                hands = new Hands({
+                    locateFile: (file) => {
+                        return `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`;
+                    }
+                });
 
                 hands.setOptions({
                     maxNumHands: 1,
@@ -518,7 +618,7 @@
                 // Use the MediaPipe Camera Utils Helper
                 const camera = new Camera(video, {
                     onFrame: async () => {
-                        if (hands) await hands.send({image: video});
+                        if (hands) await hands.send({ image: video });
                     },
                     width: 640,
                     height: 480
@@ -527,10 +627,10 @@
                 modelsLoaded = true;
                 isCameraActive = true;
                 updateTrackingStatus('active', 'Motor Listo');
-                
+
                 // Start tracking
                 camera.start();
-                
+
                 // Start game loop
                 animate();
 
@@ -560,7 +660,7 @@
             document.getElementById('level-title').innerText = level.name;
         }
 
-        window.startGame = function() {
+        window.startGame = function () {
             const nameInput = document.getElementById('player-name-input');
             playerName = nameInput.value.trim() || "Invitado";
             document.getElementById('welcome-overlay').classList.add('hidden');
@@ -571,7 +671,7 @@
             audio.init();
         }
 
-        window.resetGame = function() {
+        window.resetGame = function () {
             document.getElementById('victory-overlay').classList.add('hidden');
             document.getElementById('welcome-overlay').classList.remove('hidden');
             currentLevelIdx = 0;
@@ -583,10 +683,10 @@
 
         function winLevel() {
             if (!gameActive) return; // Master-Lock: Prevents duplicate calls
-            
+
             audio.playTrigger('win');
             glitchEffect = 1.0;
-            for(let i=0; i<40; i++) {
+            for (let i = 0; i < 40; i++) {
                 particles.push(new Particle(player.x, player.y));
             }
             currentLevelIdx++;
@@ -605,7 +705,7 @@
             const mins = Math.floor(finalDuration / 60);
             const secs = Math.floor(finalDuration % 60);
             document.getElementById('stat-time').innerText = `${mins}:${secs.toString().padStart(2, '0')}s`;
-            
+
             document.getElementById('victory-title').innerText = `¡GRANDE, ${playerName.toUpperCase()}!`;
             document.getElementById('victory-overlay').querySelector('h1').innerText = "¡FUTURO DATA SCIENTIST EXTERNADISTA!";
             document.getElementById('victory-overlay').classList.remove('hidden');
@@ -652,18 +752,18 @@
         }
 
         // v15.0: Supabase Cloud Synchronization
-        const supabaseUrl = 'https://ddoiufkgisillaovdmty.supabase.co';
-        const supabaseKey = 'sb_publishable_jQ2b3eR3nxzijAb5D9Sqbw_npwcqW-p';
+        const supabaseUrl = 'https://aohpheppigbqmbfpzpbg.supabase.co';
+        const supabaseKey = 'sb_publishable_mZe2TAN7wosH-omgbI7MMA_NmLEe_BS';
         const _supabase = supabase.createClient(supabaseUrl, supabaseKey);
         let isSavingScore = false; // v15.1 Guard
 
         async function saveScoreToCloud(name, timeSec) {
-            if (isSavingScore) return; 
+            if (isSavingScore) return;
             isSavingScore = true;
             const newTime = parseFloat(timeSec);
-            
+
             console.log("Sincronizando con la nube...", name, timeSec);
-            
+
             try {
                 // 1. Buscar si el usuario ya existe
                 const { data: existing, error: findError } = await _supabase
@@ -682,7 +782,7 @@
                             .from('leaderboard')
                             .update({ time_seconds: newTime })
                             .eq('id', existing.id);
-                        
+
                         if (updateError) throw updateError;
                         console.log("¡Récord actualizado exitosamente!");
                     } else {
@@ -694,7 +794,7 @@
                     const { error: insertError } = await _supabase
                         .from('leaderboard')
                         .insert([{ name: name, time_seconds: newTime }]);
-                    
+
                     if (insertError) throw insertError;
                     console.log("¡Nuevo jugador registrado exitosamente!");
                 }
@@ -797,13 +897,13 @@
 
         let matrixDrops = [];
         const columns = Math.floor(WIDTH / 20);
-        for(let i=0; i<columns; i++) matrixDrops[i] = Math.random() * -100;
+        for (let i = 0; i < columns; i++) matrixDrops[i] = Math.random() * -100;
 
         function drawDataRain() {
             ctx.save();
             ctx.fillStyle = 'rgba(0, 210, 255, 0.04)';
             ctx.font = '10px monospace';
-            for(let i=0; i<matrixDrops.length; i++) {
+            for (let i = 0; i < matrixDrops.length; i++) {
                 const text = Math.random() > 0.5 ? '0' : '1';
                 ctx.fillText(text, i * 20, matrixDrops[i]);
                 if (matrixDrops[i] > HEIGHT && Math.random() > 0.975) matrixDrops[i] = 0;
@@ -820,7 +920,7 @@
                 ctx.fillRect(w.x, w.y, w.w, w.h);
                 ctx.fillStyle = '#fff';
                 ctx.globalAlpha = 0.2;
-                ctx.fillRect(w.x + w.w/2 - 2, w.y, 4, w.h);
+                ctx.fillRect(w.x + w.w / 2 - 2, w.y, 4, w.h);
                 ctx.globalAlpha = 1;
             });
 
@@ -832,11 +932,11 @@
             ctx.strokeStyle = '#39ff14';
             ctx.lineWidth = 4;
             ctx.strokeRect(currentGoal.x, currentGoal.y, currentGoal.w, currentGoal.h);
-            
+
             ctx.fillStyle = '#39ff14';
             ctx.font = 'bold 18px Inter';
             ctx.textAlign = 'center';
-            ctx.fillText('META', currentGoal.x + currentGoal.w/2, currentGoal.y + currentGoal.h/2 + 7);
+            ctx.fillText('META', currentGoal.x + currentGoal.w / 2, currentGoal.y + currentGoal.h / 2 + 7);
         }
 
         function drawPlayer() {
@@ -844,10 +944,10 @@
             const glow = player.isDragging ? 40 : (player.nearCursor ? 30 : 20);
             ctx.shadowColor = '#00d2ff';
             ctx.shadowBlur = glow;
-            
+
             // Pulse on Near Cursor
-            const rOffset = player.nearCursor && !player.isDragging ? Math.sin(Date.now()/150)*4 : 0;
-            
+            const rOffset = player.nearCursor && !player.isDragging ? Math.sin(Date.now() / 150) * 4 : 0;
+
             ctx.fillStyle = player.isDragging ? '#00d2ff' : '#0095b6';
             ctx.beginPath();
             ctx.arc(player.x, player.y, player.r + rOffset, 0, Math.PI * 2);
@@ -861,7 +961,7 @@
         function animate() {
             if (glitchEffect > 0) {
                 ctx.save();
-                ctx.translate((Math.random()-0.5)*20*glitchEffect, 0);
+                ctx.translate((Math.random() - 0.5) * 20 * glitchEffect, 0);
                 glitchEffect *= 0.9;
                 if (glitchEffect < 0.01) glitchEffect = 0;
             }
@@ -880,7 +980,7 @@
                 ctx.setLineDash([]);
 
                 updateTrackingStatus('active', 'Detección Activa');
-                
+
                 if (player.isDragging) {
                     for (let w of currentWalls) {
                         if (checkCollision(player.x, player.y, player.r, w.x, w.y, w.w, w.h)) {
@@ -927,4 +1027,5 @@
         init();
     </script>
 </body>
+
 </html>

@@ -1,10 +1,12 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>HALL OF FAME | Data Mastery Externado</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap"
+        rel="stylesheet">
     <style>
         :root {
             --neon-blue: #38bdf8;
@@ -19,7 +21,11 @@
             --glass-border: rgba(255, 255, 255, 0.06);
         }
 
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
         body {
             font-family: 'Inter', sans-serif;
@@ -35,7 +41,11 @@
         /* Ambient background */
         body::before {
             content: '';
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
             background:
                 radial-gradient(ellipse 80% 50% at 15% 20%, rgba(56, 189, 248, 0.08) 0%, transparent 60%),
                 radial-gradient(ellipse 60% 40% at 85% 75%, rgba(244, 114, 182, 0.06) 0%, transparent 50%),
@@ -47,12 +57,24 @@
         }
 
         @keyframes ambientPulse {
-            0% { opacity: 0.8; transform: scale(1); }
-            100% { opacity: 1; transform: scale(1.05); }
+            0% {
+                opacity: 0.8;
+                transform: scale(1);
+            }
+
+            100% {
+                opacity: 1;
+                transform: scale(1.05);
+            }
         }
 
         #data-canvas {
-            position: fixed; top: 0; left: 0; pointer-events: none; z-index: 0; opacity: 0.08;
+            position: fixed;
+            top: 0;
+            left: 0;
+            pointer-events: none;
+            z-index: 0;
+            opacity: 0.08;
         }
 
         /* ---- HEADER ---- */
@@ -69,7 +91,7 @@
             font-weight: 900;
             letter-spacing: -3px;
             text-transform: uppercase;
-            background: linear-gradient(135deg, #fff 0%, rgba(255,255,255,0.7) 50%, #fff 100%);
+            background: linear-gradient(135deg, #fff 0%, rgba(255, 255, 255, 0.7) 50%, #fff 100%);
             background-size: 200% 200%;
             animation: shimmer 4s ease infinite;
             -webkit-background-clip: text;
@@ -80,8 +102,15 @@
         }
 
         @keyframes shimmer {
-            0%, 100% { background-position: 0% 50%; }
-            50% { background-position: 100% 50%; }
+
+            0%,
+            100% {
+                background-position: 0% 50%;
+            }
+
+            50% {
+                background-position: 100% 50%;
+            }
         }
 
         .page-header .subtitle {
@@ -119,7 +148,7 @@
         }
 
         .stat-chip:hover {
-            border-color: rgba(255,255,255,0.12);
+            border-color: rgba(255, 255, 255, 0.12);
             transform: translateY(-2px);
         }
 
@@ -137,7 +166,7 @@
             font-weight: 600;
             text-transform: uppercase;
             letter-spacing: 1.2px;
-            color: rgba(255,255,255,0.3);
+            color: rgba(255, 255, 255, 0.3);
         }
 
         .stat-chip .stat-value {
@@ -198,8 +227,14 @@
             padding-bottom: 30px;
             animation-delay: 0.3s;
         }
-        .podium-1::before { background: linear-gradient(180deg, rgba(251, 191, 36, 0.08), transparent); }
-        .podium-1:hover { box-shadow: 0 20px 60px rgba(251, 191, 36, 0.15); }
+
+        .podium-1::before {
+            background: linear-gradient(180deg, rgba(251, 191, 36, 0.08), transparent);
+        }
+
+        .podium-1:hover {
+            box-shadow: 0 20px 60px rgba(251, 191, 36, 0.15);
+        }
 
         /* 2nd Place */
         .podium-2 {
@@ -208,7 +243,10 @@
             border-color: rgba(148, 163, 184, 0.2);
             animation-delay: 0.5s;
         }
-        .podium-2::before { background: linear-gradient(180deg, rgba(148, 163, 184, 0.06), transparent); }
+
+        .podium-2::before {
+            background: linear-gradient(180deg, rgba(148, 163, 184, 0.06), transparent);
+        }
 
         /* 3rd Place */
         .podium-3 {
@@ -217,16 +255,26 @@
             border-color: rgba(217, 119, 6, 0.2);
             animation-delay: 0.7s;
         }
-        .podium-3::before { background: linear-gradient(180deg, rgba(217, 119, 6, 0.06), transparent); }
+
+        .podium-3::before {
+            background: linear-gradient(180deg, rgba(217, 119, 6, 0.06), transparent);
+        }
 
         @keyframes podiumRise {
-            from { opacity: 0; transform: translateY(40px) scale(0.9); }
-            to { opacity: 1; transform: translateY(0) scale(1); }
+            from {
+                opacity: 0;
+                transform: translateY(40px) scale(0.9);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
         }
 
         .podium-medal {
             font-size: 36px;
-            filter: drop-shadow(0 0 8px rgba(255,255,255,0.2));
+            filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.2));
         }
 
         .podium-name {
@@ -247,9 +295,17 @@
             font-family: 'Inter', monospace;
         }
 
-        .podium-1 .podium-time { color: var(--gold); }
-        .podium-2 .podium-time { color: var(--silver); }
-        .podium-3 .podium-time { color: var(--bronze); }
+        .podium-1 .podium-time {
+            color: var(--gold);
+        }
+
+        .podium-2 .podium-time {
+            color: var(--silver);
+        }
+
+        .podium-3 .podium-time {
+            color: var(--bronze);
+        }
 
         .podium-pos {
             font-size: 10px;
@@ -270,8 +326,8 @@
             border-radius: 28px;
             padding: 0;
             box-shadow:
-                0 0 0 0.5px rgba(255,255,255,0.03) inset,
-                0 30px 80px rgba(0,0,0,0.5);
+                0 0 0 0.5px rgba(255, 255, 255, 0.03) inset,
+                0 30px 80px rgba(0, 0, 0, 0.5);
             position: relative;
             z-index: 10;
             margin-bottom: 100px;
@@ -289,25 +345,25 @@
         .table-title {
             font-size: 14px;
             font-weight: 600;
-            color: rgba(255,255,255,0.5);
+            color: rgba(255, 255, 255, 0.5);
             letter-spacing: 0.5px;
         }
 
         .table-count {
             font-size: 12px;
             font-weight: 500;
-            color: rgba(255,255,255,0.25);
-            background: rgba(255,255,255,0.03);
+            color: rgba(255, 255, 255, 0.25);
+            background: rgba(255, 255, 255, 0.03);
             padding: 4px 12px;
             border-radius: 8px;
-            border: 1px solid rgba(255,255,255,0.04);
+            border: 1px solid rgba(255, 255, 255, 0.04);
         }
 
         .table-scroll {
             max-height: 500px;
             overflow-y: auto;
             scrollbar-width: thin;
-            scrollbar-color: rgba(255,255,255,0.08) transparent;
+            scrollbar-color: rgba(255, 255, 255, 0.08) transparent;
         }
 
         .table-scroll::-webkit-scrollbar {
@@ -319,12 +375,12 @@
         }
 
         .table-scroll::-webkit-scrollbar-thumb {
-            background: rgba(255,255,255,0.08);
+            background: rgba(255, 255, 255, 0.08);
             border-radius: 3px;
         }
 
         .table-scroll::-webkit-scrollbar-thumb:hover {
-            background: rgba(255,255,255,0.15);
+            background: rgba(255, 255, 255, 0.15);
         }
 
         table {
@@ -349,7 +405,7 @@
             text-align: left;
             padding: 16px 24px;
             font-weight: 600;
-            color: rgba(255,255,255,0.3);
+            color: rgba(255, 255, 255, 0.3);
             text-transform: uppercase;
             font-size: 10px;
             letter-spacing: 1.5px;
@@ -362,7 +418,7 @@
         td {
             padding: 16px 24px;
             font-weight: 400;
-            border-bottom: 1px solid rgba(255,255,255,0.02);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.02);
             font-size: 15px;
             transition: all 0.2s;
         }
@@ -372,18 +428,18 @@
         }
 
         tbody tr:hover {
-            background: rgba(255,255,255,0.03);
+            background: rgba(255, 255, 255, 0.03);
         }
 
         .rank-cell {
             font-weight: 800;
-            color: rgba(255,255,255,0.15);
+            color: rgba(255, 255, 255, 0.15);
             width: 70px;
             font-variant-numeric: tabular-nums;
         }
 
         .name-cell {
-            color: rgba(255,255,255,0.8);
+            color: rgba(255, 255, 255, 0.8);
             font-weight: 500;
         }
 
@@ -407,9 +463,20 @@
             font-weight: 800;
         }
 
-        .rank-badge.gold { background: rgba(251, 191, 36, 0.15); color: var(--gold); }
-        .rank-badge.silver { background: rgba(148, 163, 184, 0.12); color: var(--silver); }
-        .rank-badge.bronze { background: rgba(217, 119, 6, 0.12); color: var(--bronze); }
+        .rank-badge.gold {
+            background: rgba(251, 191, 36, 0.15);
+            color: var(--gold);
+        }
+
+        .rank-badge.silver {
+            background: rgba(148, 163, 184, 0.12);
+            color: var(--silver);
+        }
+
+        .rank-badge.bronze {
+            background: rgba(217, 119, 6, 0.12);
+            color: var(--bronze);
+        }
 
         /* Row entry animation */
         tbody tr {
@@ -417,8 +484,15 @@
         }
 
         @keyframes rowSlideIn {
-            from { opacity: 0; transform: translateX(-10px); }
-            to { opacity: 1; transform: translateX(0); }
+            from {
+                opacity: 0;
+                transform: translateX(-10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
         }
 
         .new-entry {
@@ -426,13 +500,18 @@
         }
 
         @keyframes newEntryPulse {
-            0% { background: rgba(56, 189, 248, 0.2); }
-            100% { background: transparent; }
+            0% {
+                background: rgba(56, 189, 248, 0.2);
+            }
+
+            100% {
+                background: transparent;
+            }
         }
 
         #empty-msg {
             padding: 60px 40px;
-            color: rgba(255,255,255,0.15);
+            color: rgba(255, 255, 255, 0.15);
             font-size: 16px;
             text-align: center;
         }
@@ -453,7 +532,7 @@
             justify-content: space-between;
             padding: 16px 24px;
             z-index: 100;
-            background: linear-gradient(to top, rgba(3,3,8,0.9), transparent);
+            background: linear-gradient(to top, rgba(3, 3, 8, 0.9), transparent);
             pointer-events: none;
         }
 
@@ -494,7 +573,7 @@
             font-size: 10px;
             font-weight: 700;
             letter-spacing: 1.5px;
-            color: rgba(255,255,255,0.3);
+            color: rgba(255, 255, 255, 0.3);
             z-index: 50;
         }
 
@@ -508,27 +587,164 @@
         }
 
         @keyframes liveBlink {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.3; }
+            0%, 100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.3;
+            }
+        }
+
+        /* ---- LIVE TICKER ---- */
+        .activity-ticker {
+            position: fixed;
+            top: 25px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 100;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            pointer-events: none;
+        }
+
+        .ticker-toast {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(30px);
+            -webkit-backdrop-filter: blur(30px);
+            border: 1px solid var(--glass-border);
+            padding: 10px 24px;
+            border-radius: 50px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+            animation: tickerSlideIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards,
+                tickerFadeOut 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards 4.5s;
+        }
+
+        @keyframes tickerSlideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-30px) scale(0.9);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        @keyframes tickerFadeOut {
+            from {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+
+            to {
+                opacity: 0;
+                transform: translateY(-20px) scale(0.95);
+            }
+        }
+
+        .ticker-tag {
+            font-size: 10px;
+            font-weight: 800;
+            letter-spacing: 1px;
+            padding: 4px 10px;
+            border-radius: 20px;
+            text-transform: uppercase;
+        }
+
+        .tag-new {
+            background: rgba(34, 211, 238, 0.2);
+            color: var(--neon-cyan);
+        }
+
+        .tag-update {
+            background: rgba(244, 114, 182, 0.2);
+            color: var(--neon-pink);
+        }
+
+        .ticker-msg {
+            font-size: 14px;
+            font-weight: 600;
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        .update-flash {
+            animation: rowFlash 2s ease-out;
+        }
+
+        @keyframes rowFlash {
+            0% {
+                background: rgba(244, 114, 182, 0.2);
+            }
+
+            100% {
+                background: transparent;
+            }
         }
 
         /* ---- RESPONSIVE ---- */
         @media (max-width: 700px) {
-            .podium-section { gap: 8px; }
-            .podium-card { min-width: 100px; padding: 16px 12px; }
-            .podium-name { font-size: 13px; max-width: 90px; }
-            .podium-time { font-size: 18px; }
-            .podium-medal { font-size: 28px; }
-            .stats-bar { gap: 8px; }
-            .stat-chip { padding: 10px 16px; }
-            .stat-chip .stat-value { font-size: 15px; }
-            th, td { padding: 12px 16px; }
-            td { font-size: 13px; }
-            .page-header { padding: 30px 20px 20px; }
+            .podium-section {
+                gap: 8px;
+            }
+
+            .podium-card {
+                min-width: 100px;
+                padding: 16px 12px;
+            }
+
+            .podium-name {
+                font-size: 13px;
+                max-width: 90px;
+            }
+
+            .podium-time {
+                font-size: 18px;
+            }
+
+            .podium-medal {
+                font-size: 28px;
+            }
+
+            .stats-bar {
+                gap: 8px;
+            }
+
+            .stat-chip {
+                padding: 10px 16px;
+            }
+
+            .stat-chip .stat-value {
+                font-size: 15px;
+            }
+
+            th,
+            td {
+                padding: 12px 16px;
+            }
+
+            td {
+                font-size: 13px;
+            }
+
+            .page-header {
+                padding: 30px 20px 20px;
+            }
         }
     </style>
 </head>
+
 <body>
+    <div class="activity-ticker" id="activity-ticker">
+        <!-- Live toasts injected here -->
+    </div>
+
     <canvas id="data-canvas"></canvas>
 
     <div class="live-badge">
@@ -605,11 +821,12 @@
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
     <script>
-        const supabaseUrl = 'https://ddoiufkgisillaovdmty.supabase.co';
-        const supabaseKey = 'sb_publishable_jQ2b3eR3nxzijAb5D9Sqbw_npwcqW-p';
+        const supabaseUrl = 'https://aohpheppigbqmbfpzpbg.supabase.co';
+        const supabaseKey = 'sb_publishable_mZe2TAN7wosH-omgbI7MMA_NmLEe_BS';
         const _supabase = supabase.createClient(supabaseUrl, supabaseKey);
 
         let previousIds = new Set();
+        let lastChangedId = null;
 
         async function fetchLeaderboard() {
             const { data, error } = await _supabase
@@ -621,6 +838,24 @@
             if (data) {
                 renderLeaderboard(data);
             }
+        }
+
+        function showTicker(type, name, time) {
+            const ticker = document.getElementById('activity-ticker');
+            const toast = document.createElement('div');
+            toast.className = 'ticker-toast';
+
+            const tagClass = type === 'INSERT' ? 'tag-new' : 'tag-update';
+            const tagText = type === 'INSERT' ? 'Nuevo' : 'Record';
+            const verb = type === 'INSERT' ? 'entró al Hall of Fame' : 'superó su récord anterior';
+
+            toast.innerHTML = `
+                <span class="ticker-tag ${tagClass}">${tagText}</span>
+                <span class="ticker-msg"><strong>${name.toUpperCase()}</strong> ${verb} con <strong>${formatTime(time)}</strong></span>
+            `;
+
+            ticker.appendChild(toast);
+            setTimeout(() => toast.remove(), 5500);
         }
 
         function formatTime(seconds) {
@@ -688,7 +923,12 @@
             // ---- TABLE (all entries) ----
             body.innerHTML = data.map((row, index) => {
                 const isNew = newIds.has(row.id);
+                const isRecentlyUpdated = (row.id === lastChangedId);
                 const delay = index * 0.03;
+
+                let rowClass = '';
+                if (isNew) rowClass = 'new-entry';
+                else if (isRecentlyUpdated) rowClass = 'update-flash';
 
                 let rankHTML;
                 if (index === 0) rankHTML = `<span class="rank-badge gold">1</span>`;
@@ -697,7 +937,7 @@
                 else rankHTML = `<span style="opacity: 0.25;">${index + 1}</span>`;
 
                 return `
-                    <tr class="${isNew ? 'new-entry' : ''}"
+                    <tr class="${rowClass}"
                         style="animation-delay: ${delay}s"
                         id="row-${row.id}">
                         <td class="rank-cell">${rankHTML}</td>
@@ -770,6 +1010,12 @@
             .channel('public:leaderboard')
             .on('postgres_changes', { event: '*', schema: 'public', table: 'leaderboard' }, payload => {
                 console.log('¡Cambio detectado!', payload);
+
+                if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
+                    lastChangedId = payload.new.id;
+                    showTicker(payload.eventType, payload.new.name, payload.new.time_seconds);
+                }
+
                 fetchLeaderboard();
             })
             .subscribe();
@@ -814,4 +1060,5 @@
         fetchLeaderboard();
     </script>
 </body>
+
 </html>
