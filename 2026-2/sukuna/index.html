@@ -1,0 +1,1202 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sukuna — figuras automáticas (1-2 manos)</title>
+
+  <!--
+    Evolución del núcleo funcional de mano (mismo archivo, se sigue
+    construyendo encima en vez de bifurcar en versiones nuevas — ver
+    PLAN.md). Hay tres figuras, siempre disponibles en paralelo, sin fases
+    ni orden obligatorio — el sistema decide sola cuál mostrar según la
+    pose de las manos (se probó una versión con fases/desbloqueos
+    obligatorios; se sintió demasiado restrictiva en la práctica — una vez
+    cumplida una condición no dejaba volver a las figuras anteriores hasta
+    completar toda la secuencia — así que se simplificó a esto):
+      - 2 manos, NINGUNA o AMBAS en pose "pistola" -> cuadrilátero
+        (pulgar+índice de cada mano, 4 puntos). "Dos pistolas hacia arriba"
+        es una pose válida para esto, tanto como las dos manos abiertas.
+      - 1 mano -> triángulo (muñeca+índice+meñique, 3 puntos).
+      - Exactamente UNA mano en pose pistola (índice extendido, resto de
+        dedos doblados, pulgar separado) -> arco (ver más abajo) — con dos
+        pistolas a la vez es cuadrilátero, no arco (ver arriba).
+    Las figuras se FIJAN en pantalla solas: si una figura se queda quieta
+    (dentro de un radio de tolerancia, no un punto exacto) un rato corto,
+    se deja una copia congelada ahí — la figura viva sigue funcionando
+    después. Máximo 5 copias fijadas a la vez.
+    Control manual: una mano en PUÑO no cuenta para el tracking — da
+    "espacio libre" para reposicionarse sin trackear ni fijar nada.
+    Gesto de borrado: PUÑO cerrado + CODO visible en cuadro, sostenidos un
+    momento corto, borran todas las copias fijadas (inspirado en el video de
+    referencia, adaptado para no chocar con las otras condiciones). Usa
+    MediaPipe Pose Landmarker para el codo (HandLandmarker no ve más allá de
+    la muñeca), corriendo mucho menos seguido que el tracking de manos para
+    no repetir el problema de rendimiento que ya se resolvió. Se probaron
+    dos alternativas antes: un "swipe" de mano (no se sentía claro ni
+    confiable) y codo-solo por proximidad (obligaba a mostrar la palma
+    abierta, lo que disparaba el modo triángulo de fondo mientras se
+    intentaba borrar — molesto y confuso). Combinar con el puño resuelve
+    ambos problemas: el puño ya "pausa" el tracking de manos (sin figura de
+    por medio) y hace el gesto más deliberado.
+    Arco y flecha: una mano en pose "pistola" (índice extendido, resto de
+    dedos doblados) ancla el triángulo; la otra hace un pellizco
+    (pulgar+índice) y se aleja, como tensar la cuerda — al soltar el
+    pellizco con suficiente distancia, se "dispara": el triángulo sale
+    volando y la pantalla entera cambia a un efecto de color. Un chasquido
+    (pulgar+medio, mismo patrón de cierre-apertura rápida) devuelve la
+    pantalla a la normalidad.
+    Sigue siendo Fase 1 en espíritu: sin color de marca, sin decoración —
+    validar primero que cada mecanismo se sienta bien.
+  -->
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; overflow: hidden; background: #000; }
+    body { font-family: ui-monospace, Menlo, Consolas, monospace; color: #ddd; }
+
+    #cam-video {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transform: scaleX(-1); /* espejo: se ve natural, como mirarse */
+      transition: filter 220ms ease-out;
+    }
+    /* Efecto de pantalla completa al "disparar" el arco — primer intento
+       vía filtro CSS puro (sin tocar el pipeline de Three.js), pensado para
+       iterar rápido mirando capturas reales. No es una réplica exacta de la
+       paleta magenta/cian/amarillo del video de referencia (eso pediría un
+       LUT de verdad vía shader) — es una aproximación "térmica" psicodélica
+       con las herramientas más simples posibles primero. */
+    #cam-video.fx-thermal {
+      filter: saturate(4.5) contrast(1.35) hue-rotate(235deg) brightness(1.1);
+    }
+
+    #three-canvas {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+    }
+
+    #status {
+      position: fixed;
+      top: 10px;
+      left: 10px;
+      z-index: 10;
+      font-size: 12px;
+      line-height: 1.7;
+      background: rgba(0, 0, 0, 0.6);
+      border: 1px solid #444;
+      padding: 10px 14px;
+      max-width: 320px;
+    }
+    #status .title { font-weight: bold; color: #fff; margin-bottom: 4px; }
+    .ok { color: #8f8; }
+    .bad { color: #f88; }
+  </style>
+
+  <!-- Import map: sin restricción de versión de Three.js (no dependemos de
+       MindAR aquí) — se usa una reciente normal. -->
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"
+    }
+  }
+  </script>
+</head>
+<body>
+  <video id="cam-video" autoplay muted playsinline></video>
+  <canvas id="three-canvas"></canvas>
+
+  <div id="status">
+    <div class="title">SUKUNA · figuras automáticas</div>
+    <div>Núcleo funcional — sin decoración</div>
+    <div id="hand-status">Manos: <span class="bad">buscando…</span></div>
+    <div id="elbow-status">Codo: <span class="bad">buscando…</span></div>
+    <!-- "0/5" es solo el texto inicial antes de cargar — el JS lo sobreescribe
+         enseguida usando MAX_STAMPED_SHAPES, que es la fuente real del tope.
+         Si ese número cambia, no hace falta tocar esta línea. -->
+    <div id="stamped-status">Fijadas: 0/5</div>
+    <div id="fps">-- FPS</div>
+    <!-- Debug temporal para calibrar el gesto de arco en vivo — quitar
+         cuando los umbrales queden confirmados (mismo patrón que se usó
+         para calibrar STILL_TOLERANCE, REFERENCE_HAND_SPAN, etc). -->
+    <div id="bow-debug" style="opacity:0.65; font-size:10px;"></div>
+  </div>
+
+  <script type="module">
+    import * as THREE from 'three';
+    import { HandLandmarker, PoseLandmarker, FilesetResolver } from 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/vision_bundle.mjs';
+
+    // ========== FILTRO 1 EURO ==========
+    // Portado de 2026-1/neon_maze.html (ya probado en producción ahí para
+    // suavizar tracking de mano) — evita reinventar algo que ya funciona.
+    class LowPassFilter {
+      constructor(alpha) { this.alphaValue = alpha; this.lastValue = null; }
+      filter(value, alpha = null) {
+        if (alpha !== null) this.alphaValue = alpha;
+        const s = this.lastValue === null ? value : this.alphaValue * value + (1 - this.alphaValue) * this.lastValue;
+        this.lastValue = s;
+        return s;
+      }
+    }
+    class OneEuroFilter {
+      constructor(freq, mincutoff = 1.0, beta = 0.0, dcutoff = 1.0) {
+        this.freq = freq;
+        this.mincutoff = mincutoff;
+        this.beta = beta;
+        this.dcutoff = dcutoff;
+        this.x = new LowPassFilter(this.alpha(mincutoff));
+        this.dx = new LowPassFilter(this.alpha(dcutoff));
+        this.lastTime = null;
+      }
+      alpha(cutoff) {
+        const te = 1.0 / this.freq;
+        const tau = 1.0 / (2 * Math.PI * cutoff);
+        return 1.0 / (1.0 + tau / te);
+      }
+      filter(value, timestamp = null) {
+        if (this.lastTime !== null && timestamp !== null) {
+          const dt = (timestamp - this.lastTime) / 1000;
+          if (dt > 0) this.freq = 1.0 / dt;
+        }
+        this.lastTime = timestamp;
+        const dvalue = this.x.lastValue === null ? 0 : (value - this.x.lastValue) * this.freq;
+        const edvalue = this.dx.filter(dvalue, this.alpha(this.dcutoff));
+        const cutoff = this.mincutoff + this.beta * Math.abs(edvalue);
+        return this.x.filter(value, this.alpha(cutoff));
+      }
+    }
+
+    // Mismos parámetros de partida que en la versión de una mano — se afinan
+    // viendo cómo se comporta en vivo.
+    const POS_MINCUTOFF = 0.4, POS_BETA = 0.3;
+
+    // ========== THREE.JS ==========
+    const canvas = document.getElementById('three-canvas');
+    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+    const scene = new THREE.Scene();
+    const camera3D = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+    camera3D.position.z = 5;
+
+    window.addEventListener('resize', () => {
+      camera3D.aspect = window.innerWidth / window.innerHeight;
+      camera3D.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    // ========== MALLA DEFORMABLE GENÉRICA (sin color ni textura) ==========
+    // Misma idea que el cuadrilátero original, generalizada para poder tener
+    // varias figuras (distinto número de vértices) sin duplicar código. Cada
+    // "shape" es un mesh propio con sus vértices reposicionados cada frame
+    // según el tracking — no rota como objeto rígido, se DEFORMA. Se incluyen
+    // UVs desde ya (no se usan todavía) para no rehacer la geometría cuando
+    // llegue la textura en la fase de decoración.
+    //
+    // `material.transparent = true` + `opacity` es para el pop-in al
+    // aparecer (ver `updatePopAnimation` más abajo) — no es decoración, es
+    // parte del mecanismo de transición entre figuras.
+    function createDeformableShape(vertexCount, indices, uvs) {
+      const geometry = new THREE.BufferGeometry();
+      const positions = new Float32Array(vertexCount * 3);
+      geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+      geometry.setAttribute('uv', new THREE.BufferAttribute(new Float32Array(uvs), 2));
+      geometry.setIndex(indices);
+      geometry.computeVertexNormals();
+
+      const material = new THREE.MeshNormalMaterial({
+        flatShading: true,
+        side: THREE.DoubleSide,
+        transparent: true,
+        opacity: 0
+      });
+      const mesh = new THREE.Mesh(geometry, material);
+      mesh.visible = false;
+      scene.add(mesh);
+
+      // stillCenter/stillSince/hasStamped: estado del mecanismo de "fijado
+      // por quietud" — ver checkStillness() más abajo.
+      return { mesh, geometry, material, appearAt: 0, stillCenter: null, stillSince: 0, hasStamped: false };
+    }
+
+    // Cuadrilátero: 4 vértices, 2 triángulos. Layout: 0=arriba-izq,
+    // 1=arriba-der, 2=abajo-izq, 3=abajo-der.
+    const quadShape = createDeformableShape(
+      4,
+      [0, 2, 1, 1, 2, 3],
+      [0, 1, 1, 1, 0, 0, 1, 0]
+    );
+
+    // Triángulo: 3 vértices, 1 triángulo. Layout: 0=muñeca, 1=índice, 2=meñique.
+    const triShape = createDeformableShape(
+      3,
+      [0, 1, 2],
+      [0, 0, 1, 0, 0.5, 1]
+    );
+
+    // ========== CÁMARA ==========
+    const videoEl = document.getElementById('cam-video');
+
+    async function startCamera() {
+      // Máxima calidad disponible (igual que CHASQUIDO): ya se midió que
+      // pedir 1080p no le cuesta rendimiento en la máquina de la demo, y
+      // MediaPipe/Three.js leen el tamaño real vía videoEl.videoWidth/Height
+      // en cada frame — no hay ningún número fijo en otro lado que dependa
+      // de esto, así que subir la resolución no rompe nada más.
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          width: { ideal: 1920 },
+          height: { ideal: 1080 },
+          aspectRatio: { ideal: 16 / 9 },
+          facingMode: 'user'
+        }
+      });
+      videoEl.srcObject = stream;
+      await new Promise((resolve) => videoEl.addEventListener('loadedmetadata', resolve, { once: true }));
+      await videoEl.play();
+    }
+
+    // ========== MEDIAPIPE: MANOS + POSE (comparten el mismo runtime WASM) ==========
+    // numHands: 2 es un MÁXIMO, no un mínimo — MediaPipe reporta cuántas
+    // manos encuentra de verdad (0, 1 o 2) hasta ese tope, así que el mismo
+    // detector sirve para las dos figuras sin cambiar nada aquí.
+    //
+    // PoseLandmarker (variante "lite", la más liviana disponible) es
+    // exclusivamente para leer el codo — HandLandmarker no tiene ese dato.
+    // Se crea a partir del mismo `vision` (FilesetResolver) que HandLandmarker
+    // para no cargar el runtime WASM dos veces.
+    async function loadLandmarkers() {
+      const vision = await FilesetResolver.forVisionTasks(
+        'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm'
+      );
+      const handLandmarker = await HandLandmarker.createFromOptions(vision, {
+        baseOptions: {
+          modelAssetPath: 'https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task',
+          delegate: 'GPU'
+        },
+        runningMode: 'VIDEO',
+        numHands: 2
+      });
+      const poseLandmarker = await PoseLandmarker.createFromOptions(vision, {
+        baseOptions: {
+          modelAssetPath: 'https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task',
+          delegate: 'GPU'
+        },
+        runningMode: 'VIDEO',
+        numPoses: 1
+      });
+      return { handLandmarker, poseLandmarker };
+    }
+
+    // ========== DETECCIÓN DE PUÑO (espacio libre, sin trackear) ==========
+    // Mismo criterio que ya usaba particle_system.html (el proyecto
+    // original): comparar qué tan lejos está la punta de cada dedo respecto
+    // a la muñeca, contra qué tan lejos está su nudillo medio (PIP) — si la
+    // punta está más cerca que el nudillo, el dedo está doblado. No se
+    // incluye el pulgar (su anatomía no se comporta igual con esta
+    // comparación, sería menos confiable) — con los otros 4 dedos alcanza
+    // para una señal robusta.
+    function isFist(landmarks) {
+      const wrist = landmarks[0];
+      const fingers = [[8, 6], [12, 10], [16, 14], [20, 18]]; // [punta, pip] de índice/medio/anular/meñique
+      let curled = 0;
+      let indexCurled = false;
+      for (const [tipIdx, pipIdx] of fingers) {
+        const tipDist = Math.hypot(landmarks[tipIdx].x - wrist.x, landmarks[tipIdx].y - wrist.y);
+        const pipDist = Math.hypot(landmarks[pipIdx].x - wrist.x, landmarks[pipIdx].y - wrist.y);
+        const isCurled = tipDist < pipDist * 1.05;
+        if (isCurled) curled++;
+        if (tipIdx === 8) indexCurled = isCurled;
+      }
+      // El índice tiene que estar doblado SÍ o SÍ para contar como puño — un
+      // puño de verdad siempre lo tiene doblado, y esto evita que choque con
+      // otros gestos que lo mantienen estirado a propósito (pistola del
+      // arco, chasquido): ambos doblan medio/anular/meñique pero dejan el
+      // índice afuera, lo que antes bastaba para cruzar el umbral de "3 de
+      // 4" y quedaban mal clasificados como puño.
+      return indexCurled && curled >= 3;
+    }
+
+    // ========== GESTOS: "PISTOLA" Y "PELLIZCO" (para el arco y flecha) ==========
+    // Mismo estilo de criterio auto-normalizado que isFist (comparar dos
+    // distancias entre sí en vez de usar un número absoluto) — así no
+    // importa qué tan cerca o lejos esté la mano de la cámara.
+    function handScale(landmarks) {
+      // Distancia muñeca (0) -> nudillo medio (9): referencia estable del
+      // "tamaño" de la mano en pantalla, para normalizar otras distancias.
+      const wrist = landmarks[0], midMcp = landmarks[9];
+      return Math.hypot(midMcp.x - wrist.x, midMcp.y - wrist.y) || 1e-6;
+    }
+
+    function pinchRatio(landmarks, tipA, tipB) {
+      // < ~0.35 = dedos juntos (pellizco/chasquido cerrado), > ~0.6 = bien
+      // separados. Sirve tanto para pulgar+índice (tensar el arco) como
+      // para pulgar+medio (chasquido) pasando los índices de landmark.
+      return Math.hypot(landmarks[tipA].x - landmarks[tipB].x, landmarks[tipA].y - landmarks[tipB].y) / handScale(landmarks);
+    }
+    const PINCH_CLOSED_RATIO = 0.35; // dedos juntos = pellizco cerrado
+    const PINCH_OPEN_RATIO = 0.6;    // ...separados = abierto (zona muerta entre ambos, evita parpadeo)
+
+    function isGunHand(landmarks) {
+      // Índice extendido (como el cañón) + medio/anular/meñique doblados
+      // (mismo criterio de isFist) + pulgar CLARAMENTE separado de la punta
+      // del índice.
+      //
+      // Ese último punto es el que faltaba y causaba que se confundieran
+      // las manos: un pellizco natural (pulgar+índice juntos) también suele
+      // doblar un poco el resto de los dedos, así que sin esta condición la
+      // mano del pellizco podía calificar como "pistola" igual que la mano
+      // que de verdad hace el gesto — cuál ganaba dependía del orden en que
+      // MediaPipe las reportaba, no de la intención real. La separación
+      // pulgar-índice es lo que de verdad distingue las dos poses: en la
+      // pistola el pulgar apunta lejos del índice (arriba), en el pellizco
+      // están juntos por definición.
+      const wrist = landmarks[0];
+      const curledFingers = [[12, 10], [16, 14], [20, 18]]; // medio/anular/meñique
+      let curled = 0;
+      for (const [tipIdx, pipIdx] of curledFingers) {
+        const tipDist = Math.hypot(landmarks[tipIdx].x - wrist.x, landmarks[tipIdx].y - wrist.y);
+        const pipDist = Math.hypot(landmarks[pipIdx].x - wrist.x, landmarks[pipIdx].y - wrist.y);
+        if (tipDist < pipDist * 1.05) curled++;
+      }
+      const indexTip = Math.hypot(landmarks[8].x - wrist.x, landmarks[8].y - wrist.y);
+      const indexPip = Math.hypot(landmarks[6].x - wrist.x, landmarks[6].y - wrist.y);
+      const indexExtended = indexTip > indexPip * 1.15;
+      const notPinching = pinchRatio(landmarks, 4, 8) > PINCH_OPEN_RATIO;
+      return curled >= 2 && indexExtended && notPinching;
+    }
+
+    // ========== LANDMARKS -> VÉRTICES ==========
+    // Cuadrilátero: pulgar (4) + índice (8) de cada mano, asignadas a
+    // "izquierda"/"derecha" de la PANTALLA comparando su posición X en cada
+    // frame (no por la etiqueta Left/Right que da MediaPipe) — así el lado
+    // izquierdo de la malla siempre corresponde a la mano que está
+    // visualmente a la izquierda, sin saltos raros si se cruzan.
+    //
+    // Triángulo: muñeca (0) + índice (8) + meñique (20) de la única mano
+    // detectada. Primer intento fue pulgar+índice+medio (extensión directa
+    // del patrón del cuadrilátero), pero en vivo se veía como una astilla
+    // delgada en vez de un triángulo — esas tres puntas quedan muy cerca
+    // entre sí en cuanto la mano no está muy abierta, casi degenerando la
+    // forma a una línea. La muñeca es un punto que casi no se mueve con el
+    // gesto de los dedos (ancla estable), e índice/meñique son los dos dedos
+    // más separados de la mano — da un triángulo grande y robusto incluso
+    // con la mano relajada.
+    //
+    // El "zoom" no necesita cálculo aparte en ninguna de las dos: al acercar
+    // la(s) mano(s) a la cámara, los puntos se separan más entre sí en el
+    // espacio de imagen (perspectiva), así que la figura crece sola.
+    //
+    // Mapeo landmark -> mundo 3D en dos pasos (ver PLAN.md para el porqué):
+    //  1) `getCoverCrop()`: qué porción del frame de la cámara es la que
+    //     realmente se ve en pantalla (el video usa `object-fit: cover`).
+    //  2) `getVisibleFrustum()`: tamaño real visible (unidades de mundo) a la
+    //     profundidad de la malla, calculado del FOV — no un número inventado.
+    function getCoverCrop() {
+      const vw = videoEl.videoWidth, vh = videoEl.videoHeight;
+      const cw = window.innerWidth, ch = window.innerHeight;
+      if (!vw || !vh) return { sx: 0, sy: 0, sw: cw, sh: ch, vw: cw, vh: ch };
+      const videoAspect = vw / vh;
+      const containerAspect = cw / ch;
+      let sx, sy, sw, sh;
+      if (videoAspect > containerAspect) {
+        sh = vh; sw = vh * containerAspect; sx = (vw - sw) / 2; sy = 0;
+      } else {
+        sw = vw; sh = vw / containerAspect; sx = 0; sy = (vh - sh) / 2;
+      }
+      return { sx, sy, sw, sh, vw, vh };
+    }
+
+    function getVisibleFrustum() {
+      const distance = camera3D.position.z; // las mallas viven en z=0
+      const vFov = THREE.MathUtils.degToRad(camera3D.fov);
+      const height = 2 * Math.tan(vFov / 2) * distance;
+      const width = height * camera3D.aspect;
+      return { width, height };
+    }
+
+    function toWorld(landmark, crop, frustum) {
+      // Posición del landmark dentro del frame CRUDO de la cámara -> dentro
+      // de la porción que realmente se ve en pantalla (0..1) -> mundo 3D.
+      // Espejado en X: el video se muestra en espejo (CSS) pero MediaPipe
+      // analiza el frame sin espejar.
+      const px = landmark.x * crop.vw;
+      const py = landmark.y * crop.vh;
+      const dispX = (px - crop.sx) / crop.sw;
+      const dispY = (py - crop.sy) / crop.sh;
+      return {
+        x: (0.5 - dispX) * frustum.width,
+        y: -(dispY - 0.5) * frustum.height
+      };
+    }
+
+    function makeCornerFilters(count) {
+      return Array.from({ length: count }, () => ({
+        x: new OneEuroFilter(30, POS_MINCUTOFF, POS_BETA),
+        y: new OneEuroFilter(30, POS_MINCUTOFF, POS_BETA)
+      }));
+    }
+    const quadFilters = makeCornerFilters(4);
+    const triFilters = makeCornerFilters(3);
+    // Filtros propios para la flecha del arco (no se comparten con
+    // triFilters): aunque ambas usan triShape, vienen de landmarks
+    // distintos (muñeca+índice+meñique vs. muñeca+pulgar+índice). Si
+    // compartieran filtro, cambiar de fuente de golpe al entrar/salir del
+    // modo arco haría que el 1 Euro Filter viera un "salto" brusco en la
+    // posición cruda y overshoot-eara tratando de suavizarlo.
+    const arrowFilters = makeCornerFilters(3);
+
+    function updateShapeVertices(shape, filters, points, timestamp, { stampable = true } = {}) {
+      const crop = getCoverCrop();
+      const frustum = getVisibleFrustum();
+      const posAttr = shape.geometry.attributes.position;
+      for (let i = 0; i < points.length; i++) {
+        const w = toWorld(points[i], crop, frustum);
+        const sx = filters[i].x.filter(w.x, timestamp);
+        const sy = filters[i].y.filter(w.y, timestamp);
+        posAttr.setXYZ(i, sx, sy, 0);
+      }
+      posAttr.needsUpdate = true;
+      // La malla se deforma cada frame — hay que recalcular las normales
+      // para que el sombreado de MeshNormalMaterial siga siendo correcto.
+      shape.geometry.computeVertexNormals();
+      // El fijado por quietud (checkStillness) es del mecanismo de
+      // cuadrilátero/triángulo "decorativo" — la flecha del arco tiene su
+      // propio mecanismo de "soltar" (el disparo), y necesita sostener la
+      // mano pistola quieta mientras se tensa con la otra mano, que es
+      // justo la condición que dispararía un fijado no deseado. Por eso
+      // updateArrowhead llama con stampable:false.
+      if (stampable) checkStillness(shape, timestamp);
+    }
+
+    // ========== FIGURAS FIJADAS (quedan en pantalla) ==========
+    // No se fijan al soltar la mano — se fijan si la figura se queda
+    // QUIETA en más o menos el mismo lugar un rato corto. "Quieta" tolera un
+    // radio pequeño, no un punto exacto: con un punto exacto, el temblor
+    // natural de la mano (por más suavizado que ya tenga) nunca cumpliría la
+    // condición. La figura viva sigue funcionando normal después de fijar
+    // una copia — puede volver a fijar otra si se queda quieta en otro lugar.
+    const STILL_TOLERANCE = 0.45;   // unidades de mundo — radio de tolerancia
+    const STILL_DURATION_MS = 600;  // "no tiene que ser mucho"
+    const MAX_STAMPED_SHAPES = 5;
+    const stampedShapes = [];
+
+    // Al arrancar (o justo después de un borrado completo) hay un ratito de
+    // "calentamiento" sin poder fijar nada — fiel al video de referencia,
+    // que empieza jugando con la figura antes de dejar la primera. A
+    // diferencia del sistema de fases (que se sacó por sentirse demasiado
+    // restrictivo), esto NO bloquea qué figuras se reconocen — cuadrilátero,
+    // triángulo y arco siguen disponibles todo el tiempo — solo retrasa el
+    // FIJADO un momento al principio de cada ronda.
+    const STAMPING_LOCKED_MS = 4000;
+    let sessionStartAt = performance.now();
+
+    function shapeCentroid(shape) {
+      const posAttr = shape.geometry.attributes.position;
+      const c = new THREE.Vector3();
+      const v = new THREE.Vector3();
+      for (let i = 0; i < posAttr.count; i++) c.add(v.fromBufferAttribute(posAttr, i));
+      return c.divideScalar(posAttr.count);
+    }
+
+    function stampShape(shape) {
+      // Copia independiente (geometry/material clonados) con la forma
+      // deformada exacta que tenía en el momento de fijarse — no una
+      // referencia a la malla viva, si no cambiaría junto con ella después.
+      const geometry = shape.geometry.clone();
+      const material = shape.material.clone();
+      material.opacity = 1;      // ya estaba totalmente visible: esto es un
+      material.transparent = false; // congelamiento instantáneo, no una aparición nueva
+      // (la escala queda en (1,1,1), el default de un Mesh recién creado —
+      // no hereda la escala de pop-in de la malla viva, que es lo que
+      // importa: el tamaño final no depende de en qué punto del pop-in
+      // estaba cuando se fijó)
+      const mesh = new THREE.Mesh(geometry, material);
+      scene.add(mesh);
+      stampedShapes.push(mesh);
+
+      if (stampedShapes.length > MAX_STAMPED_SHAPES) {
+        const old = stampedShapes.shift();
+        scene.remove(old);
+        old.geometry.dispose();
+        old.material.dispose();
+      }
+    }
+
+    function checkStillness(shape, now) {
+      const center = shapeCentroid(shape);
+      if (!shape.stillCenter || center.distanceTo(shape.stillCenter) > STILL_TOLERANCE) {
+        // Se movió más que la tolerancia (o es la primera medición): arranca
+        // de nuevo el reloj de quietud en la posición actual.
+        shape.stillCenter = center;
+        shape.stillSince = now;
+        shape.hasStamped = false;
+        return;
+      }
+      if (
+        !shape.hasStamped &&
+        now - shape.stillSince >= STILL_DURATION_MS &&
+        now - sessionStartAt >= STAMPING_LOCKED_MS // todavía en el "calentamiento" inicial — ver declaración
+      ) {
+        stampShape(shape);
+        shape.hasStamped = true; // no fijar de nuevo en el mismo sitio hasta que se mueva
+      }
+    }
+
+    // ========== GESTO DE BORRADO: PUÑO + CODO VISIBLE ==========
+    // Combina dos señales que ya existen en el proyecto en vez de inventar
+    // una tercera detección: el PUÑO (isFist, ya usado para "espacio libre")
+    // y el CODO visible (PoseLandmarker, landmarks 13/14 = codo
+    // izquierdo/derecho — HandLandmarker no ve más allá de la muñeca).
+    //
+    // Se descartaron dos alternativas: un "swipe" de mano (no se sentía
+    // claro ni confiable) y codo-solo por proximidad/movimiento (obligaba a
+    // enseñar la palma abierta para que el codo quedara bien visible, lo que
+    // disparaba el modo triángulo de fondo justo mientras se intentaba
+    // borrar — molesto). Con el puño no hay ese choque: un puño ya hace que
+    // `usableHands` lo filtre, así que no aparece ninguna figura mientras se
+    // hace el gesto.
+    //
+    // `elbowVisible` y `anyHandIsFist` se actualizan cada uno a su propia
+    // frecuencia (el codo mucho menos seguido, ver POSE_DETECT_EVERY_N) pero
+    // el chequeo combinado corre en CADA frame usando el último valor
+    // conocido de cada uno — así no hace falta que las dos detecciones
+    // coincidan en el mismo tick exacto.
+    //
+    // Se exige sostener ambas condiciones un momento corto
+    // (ELBOW_CLEAR_HOLD_MS) antes de borrar: un puño rápido con el codo de
+    // paso en cuadro (por ejemplo, solo reacomodando la postura) no debería
+    // disparar el borrado sin querer — tiene que ser un gesto sostenido, no
+    // instantáneo.
+    const ELBOW_MIN_VISIBILITY = 0.5; // ignora landmarks de baja confianza del codo
+    const ELBOW_CLEAR_HOLD_MS = 600;  // cuánto hay que sostener puño+codo
+    const ELBOW_CLEAR_COOLDOWN_MS = 1200;
+    let elbowVisible = false;
+    let anyHandIsFist = false;
+    let elbowClearHeldSince = null;
+    let lastElbowClearAt = -Infinity;
+
+    function isElbowVisible(poseLandmarksList) {
+      if (!poseLandmarksList || poseLandmarksList.length === 0) return false;
+      const lm = poseLandmarksList[0]; // numPoses: 1 -> a lo sumo una persona
+      return [lm[13], lm[14]].some(
+        (p) => p && (p.visibility === undefined || p.visibility >= ELBOW_MIN_VISIBILITY)
+      );
+    }
+
+    function clearAllStamped() {
+      for (const mesh of stampedShapes) {
+        scene.remove(mesh);
+        mesh.geometry.dispose();
+        mesh.material.dispose();
+      }
+      stampedShapes.length = 0;
+      // Cada borrado da un nuevo "calentamiento" antes de poder volver a
+      // fijar algo — ver STAMPING_LOCKED_MS.
+      sessionStartAt = performance.now();
+      // Confirmación clara del momento exacto del borrado (antes no había
+      // ninguna señal de "esto fue lo que lo disparó") — vuelve al contador
+      // normal después de un momento.
+      stampedStatusEl.textContent = '¡BORRADO!';
+      stampedStatusEl.classList.add('ok');
+      setTimeout(() => {
+        stampedStatusEl.textContent = 'Fijadas: 0/' + MAX_STAMPED_SHAPES;
+        stampedStatusEl.classList.remove('ok');
+      }, 900);
+    }
+
+    function checkElbowClearGesture(now) {
+      setElbowStatus(elbowVisible ? 'listo' : 'fuera de cuadro', elbowVisible ? 'ok' : 'bad');
+
+      const active = elbowVisible && anyHandIsFist;
+      if (!active) {
+        elbowClearHeldSince = null;
+        return;
+      }
+      if (elbowClearHeldSince === null) {
+        elbowClearHeldSince = now;
+        return;
+      }
+      if (
+        now - elbowClearHeldSince >= ELBOW_CLEAR_HOLD_MS &&
+        now - lastElbowClearAt >= ELBOW_CLEAR_COOLDOWN_MS &&
+        stampedShapes.length > 0
+      ) {
+        clearAllStamped();
+        lastElbowClearAt = now;
+        elbowClearHeldSince = null;
+      }
+    }
+
+    function updateQuad(leftHandLm, rightHandLm, timestamp) {
+      updateShapeVertices(quadShape, quadFilters, [
+        leftHandLm[8], rightHandLm[8],  // índice izq, índice der (arriba)
+        leftHandLm[4], rightHandLm[4]   // pulgar izq, pulgar der (abajo)
+      ], timestamp);
+    }
+
+    function isFormingGunHand(landmarks) {
+      // Señal más laxa que isGunHand: solo pide índice extendido + AL MENOS
+      // uno de medio/anular/meñique doblado (isGunHand pide 2+, y además
+      // pulgar separado). Una mano abierta normal (los 5 dedos extendidos)
+      // no cumple esto, así que no afecta el fijado del triángulo en el
+      // caso común. Cubre la ventana de tiempo en la que alguien está
+      // formando la pose de pistola a mano (el índice ya salió, el resto
+      // todavía se está doblando) — sin esto, si la muñeca se queda
+      // relativamente quieta mientras solo los dedos terminan de acomodarse
+      // (lo natural al armar la pistola), el triángulo normal alcanza a
+      // fijar una copia no deseada antes de que isGunHand la reconozca del
+      // todo y el modo arco tome el control.
+      const wrist = landmarks[0];
+      const indexTip = Math.hypot(landmarks[8].x - wrist.x, landmarks[8].y - wrist.y);
+      const indexPip = Math.hypot(landmarks[6].x - wrist.x, landmarks[6].y - wrist.y);
+      if (indexTip <= indexPip * 1.15) return false;
+
+      const otherFingers = [[12, 10], [16, 14], [20, 18]];
+      return otherFingers.some(([tipIdx, pipIdx]) => {
+        const tipDist = Math.hypot(landmarks[tipIdx].x - wrist.x, landmarks[tipIdx].y - wrist.y);
+        const pipDist = Math.hypot(landmarks[pipIdx].x - wrist.x, landmarks[pipIdx].y - wrist.y);
+        return tipDist < pipDist * 1.05;
+      });
+    }
+
+    function updateTriangle(handLm, timestamp) {
+      // Solo se llama en fase 2+ (ver processHandDetection) — el paso de
+      // fase 1 a 2 ya pasó antes de llegar acá, así que no hace falta
+      // ninguna lógica de desbloqueo en esta función.
+      // stampable:false mientras la mano parece estar formando una pistola
+      // (ver isFormingGunHand) — no se quiere fijar el triángulo genérico a
+      // mitad de ese gesto.
+      updateShapeVertices(triShape, triFilters, [
+        handLm[0], handLm[8], handLm[20]  // muñeca, índice, meñique
+      ], timestamp, { stampable: !isFormingGunHand(handLm) });
+    }
+
+    // ========== TRANSICIÓN ENTRE FIGURAS ==========
+    // No es un morph geométrico entre cuadrilátero y triángulo — no tendría
+    // sentido físico, porque el cambio de 1 a 2 manos es discreto (una
+    // persona no "interpola" entre mostrar una mano y dos). En vez de eso: la
+    // figura que aparece entra con un pop-in corto (escala + opacidad), la
+    // que desaparece se oculta directo. Se ve intencional, no es un corte
+    // seco, y no exige resolver una correspondencia de vértices sin sentido.
+    const POP_DURATION_MS = 220;
+
+    function showShape(shape, now) {
+      if (!shape.mesh.visible) {
+        shape.mesh.visible = true;
+        shape.appearAt = now;
+      }
+    }
+    function hideShape(shape) {
+      shape.mesh.visible = false;
+      shape.mesh.position.set(0, 0, 0); // por si quedó desplazada de una animación de disparo (ver ARCO Y FLECHA)
+      shape.material.opacity = 0;
+      // Se resetea el reloj de quietud: al reaparecer puede estar en
+      // cualquier otro lugar, no debe arrastrar la posición/tiempo viejos.
+      shape.stillCenter = null;
+    }
+    function updatePopAnimation(shape, now) {
+      if (!shape.mesh.visible) return;
+      const t = Math.min(1, (now - shape.appearAt) / POP_DURATION_MS);
+      const eased = t * (2 - t); // ease-out cuadrático
+      shape.mesh.scale.setScalar(0.6 + 0.4 * eased);
+      shape.material.opacity = eased;
+    }
+
+    // ========== ARCO Y FLECHA ==========
+    // Primer intento: reevaluar "¿hay pistola + pellizco AHORA MISMO?" cada
+    // frame, como una clasificación más del mismo tipo que cuadrilátero/
+    // triángulo. No se sintió bien en la prueba — exigir que las DOS manos
+    // den justo en el blanco en el mismo frame exacto es fragil, y cualquier
+    // parpadeo de tracking te saca del modo. Rediseñado como una máquina de
+    // dos fases con un gesto de entrada explícito, para que no tenga que
+    // competir cuadro a cuadro con cuadrilátero/triángulo/puño:
+    //
+    //   idle  --(pistola sostenida BOW_ARM_HOLD_MS)-->  armed
+    //   armed --(se pierde la pistola BOW_EXIT_HOLD_MS)--> idle  (se cancela sin disparar)
+    //   armed --(pellizco tensado y soltado)--> dispara --> idle
+    //
+    // Una vez "armed", el sistema DEJA de evaluar cuadrilátero/triángulo/
+    // puño por completo — solo mira la mano pistola (para la posición del
+    // triángulo) y la otra mano (para el pellizco). Si la pistola
+    // desaparece un instante (parpadeo normal de tracking) no se sale
+    // inmediatamente: se tolera hasta BOW_EXIT_HOLD_MS antes de cancelar.
+    //
+    // El chasquido (pulgar+medio, mismo patrón de apertura rápida) revierte
+    // el color de pantalla completa que activa el disparo.
+    //
+    // Los umbrales (PINCH_*, MIN_DRAW_RATIO, SNAP_CLOSED_RATIO, los tiempos
+    // de armado) son un primer intento razonable, no medidos con datos
+    // reales — a diferencia de otras constantes de este archivo
+    // (STILL_TOLERANCE, DETECT_EVERY_N) que sí se calibraron en vivo. Hay un
+    // debug temporal en pantalla (#bow-debug) para leer valores reales
+    // mientras se prueba y ajustar con datos, no a ciegas.
+    // PINCH_CLOSED_RATIO / PINCH_OPEN_RATIO viven arriba, junto a
+    // pinchRatio() — se reutilizan tal cual (isGunHand también las usa,
+    // para descartar que una mano pellizcando cuente como pistola).
+    const BOW_ARM_HOLD_MS = 350;     // cuánto sostener la pose de pistola para "armar" el arco
+    const BOW_EXIT_HOLD_MS = 700;    // cuánto tiempo SIN pistola para desarmar sin disparar
+    const MIN_DRAW_RATIO = 1.4;      // qué tan lejos debe estar la mano del pellizco de la mano pistola para contar como "tensado"
+    const LAUNCH_DURATION_MS = 350;  // duración de la animación de disparo
+    const SNAP_CLOSED_RATIO = 0.35;  // pulgar+medio juntos = a punto de chasquear
+
+    let bowState = 'idle'; // 'idle' | 'armed'
+    let gunHandHoldStartedAt = null;
+    let gunHandLostAt = null;
+    let bowPinchWasClosed = false;
+    let triLaunchStartAt = null;
+    let colorEffectActive = false;
+    let snapPinchWasClosed = false;
+    let lastPinchRatio = null; // solo para #bow-debug — se arma UNA vez por tick en el loop, no acá
+    let lastDrawRatio = null;
+
+    // Posición (muñeca) de la última mano identificada como "pistola" — ver
+    // pickGunHand() más abajo. Null significa "no hay identidad establecida
+    // todavía, hay que reclasificar por pose".
+    let gunHandRefPos = null;
+    const GUN_HAND_MATCH_MAX_DIST = 0.3; // qué tan lejos puede estar y seguir contando como "la misma mano"
+
+    // Empieza abierto (arco disponible desde el arranque); resetColorEffect()
+    // lo cierra tras cada chasquido — ver comentario ahí y en el loop.
+    let bowGateOpen = true;
+
+    // Resetea TODO el estado del ciclo de armado de una sola vez. Se
+    // centraliza a propósito: cada punto de salida (disparar, perder la
+    // pistola) tenía que acordarse por su cuenta de resetear la combinación
+    // correcta de variables, y más de una vez se olvidó alguna durante el
+    // desarrollo (el bug de "se queda armado para siempre" fue justo eso —
+    // launchTriangle nunca volvía bowState a 'idle'). Con esto, agregar un
+    // campo de estado nuevo en el futuro es tocar un solo lugar.
+    //
+    // bowGateOpen NO se toca acá a propósito — sigue un ciclo de vida
+    // distinto (lo cierra resetColorEffect() tras un chasquido, lo abre
+    // soltar la pose de pistola), independiente de si se está armando o no.
+    function resetBowCycle() {
+      bowState = 'idle';
+      gunHandHoldStartedAt = null;
+      gunHandLostAt = null;
+      gunHandRefPos = null;
+      bowPinchWasClosed = false;
+      lastPinchRatio = null;
+      lastDrawRatio = null;
+    }
+
+    function pickGunHand(allHands) {
+      if (allHands.length === 0) return null;
+
+      if (bowState !== 'armed') {
+        // Todavía sin confirmar (armando, o recién reiniciado): hay que
+        // exigir que la pose siga pareciendo pistola en CADA frame, no
+        // basta con haberla visto una vez. Sin esto, un solo frame con
+        // ruido — por ejemplo, una mano de cuadrilátero que por un instante
+        // se parece a una pistola — fijaba la identidad por posición para
+        // siempre (ver más abajo), y el cuadrilátero se quedaba "secuestrado"
+        // por el modo arco aunque la mano volviera enseguida a su pose
+        // normal. Re-clasificar acá hace que ese ruido de un solo frame no
+        // alcance a acumular el tiempo de armado (BOW_ARM_HOLD_MS): en
+        // cuanto la mano deja de parecer pistola, se resetea el conteo.
+        //
+        // EXACTAMENTE una mano tiene que parecer pistola. Si las DOS
+        // parecen pistola a la vez (el cuadrilátero también se puede hacer
+        // con las dos manos en esa pose, apuntando hacia arriba — se ve
+        // bien y es válido), es el gesto normal de cuadrilátero, no el
+        // arco — sin este chequeo, ruido de un solo frame en el que una de
+        // las dos manos no se clasifica del todo bien (aunque la otra sí)
+        // hacía que se armara el arco por error mientras se hacía
+        // cuadrilátero con esa pose.
+        const gunHands = allHands.filter((lm) => isGunHand(lm));
+        return gunHands.length === 1 ? gunHands[0] : null;
+      }
+
+      // Ya armado de verdad (se sostuvo la pose el tiempo suficiente): a
+      // partir de acá nos quedamos con la mano más cercana a su última
+      // posición conocida, en vez de seguir reclasificando la pose cada
+      // frame. Esto es a propósito distinto de arriba — mientras se tensa
+      // el arco con la otra mano, la pose de la mano pistola puede
+      // relajarse un poco sin que eso signifique que cambió de mano, y
+      // reclasificar cada frame en ESTA etapa era lo que causaba el bug de
+      // "se confunden las manos" (ver historial en PLAN.md).
+      let closest = null, closestDist = Infinity;
+      for (const lm of allHands) {
+        const d = Math.hypot(lm[0].x - gunHandRefPos.x, lm[0].y - gunHandRefPos.y);
+        if (d < closestDist) { closestDist = d; closest = lm; }
+      }
+      return closestDist <= GUN_HAND_MATCH_MAX_DIST ? closest : null;
+    }
+
+    function launchTriangle(now) {
+      triLaunchStartAt = now;
+      videoEl.classList.add('fx-thermal');
+      colorEffectActive = true;
+      // El disparo termina el ciclo de armado — hay que volver a sostener
+      // la pose de pistola para el próximo tiro, no queda "armado" para
+      // siempre.
+      resetBowCycle();
+    }
+
+    function resetColorEffect() {
+      videoEl.classList.remove('fx-thermal');
+      colorEffectActive = false;
+      // El arco queda bloqueado hasta que se suelte la pose de pistola al
+      // menos una vez (ver bowGateOpen en el loop) — si no, con la mano
+      // todavía en esa posición justo después de chasquear, se volvía a
+      // armar solo de inmediato.
+      bowGateOpen = false;
+    }
+
+    function updateArrowhead(gunHandLm, pinchHandLm, timestamp) {
+      // La flecha tiene que ESTIRARSE de verdad entre las dos manos al
+      // tensar (como la cuerda de un arco), no vivir entera en una sola
+      // mano. Primer intento: pulgar+índice del PELLIZCO como los dos
+      // puntos "anchos" — se veía como una línea delgada, no un triángulo,
+      // porque esos dos dedos están juntos por definición mientras se
+      // pellizca (eso es lo que hace que sea un pellizco). Correguido:
+      //   - los DOS puntos separados (pulgar + índice) vienen de la mano
+      //     PISTOLA — ahí sí están bien abiertos (pulgar arriba, índice al
+      //     frente), nunca colapsan entre sí sin importar el pellizco.
+      //   - el pellizco de la OTRA mano aporta un solo punto (su centro) —
+      //     ese es el que se aleja al tensar, estirando el triángulo.
+      // Todavía sin la segunda mano (armando, esperando), se usa la muñeca
+      // de la MISMA mano pistola como reemplazo provisional del tercer
+      // punto (una flechita quieta, "guardada", hasta que aparezca la otra
+      // mano). stampable:false — ver updateShapeVertices.
+      const points = pinchHandLm
+        ? [gunHandLm[4], gunHandLm[8], {
+            x: (pinchHandLm[4].x + pinchHandLm[8].x) / 2,
+            y: (pinchHandLm[4].y + pinchHandLm[8].y) / 2
+          }]
+        : [gunHandLm[4], gunHandLm[8], gunHandLm[0]];
+      updateShapeVertices(triShape, arrowFilters, points, timestamp, { stampable: false });
+    }
+
+    function updateBowAndArrow(gunHandLm, pinchHandLm, canLaunch, now) {
+      updateArrowhead(gunHandLm, pinchHandLm, now); // la flecha sigue a AMBAS manos, no solo a la pistola
+      showShape(triShape, now);
+      hideShape(quadShape);
+
+      if (!canLaunch) {
+        // Todavía sosteniendo la pose para armar (no pasó BOW_ARM_HOLD_MS) —
+        // se muestra la flecha ya para que se sienta responsivo, pero no se
+        // evalúa pellizco/disparo todavía.
+        bowPinchWasClosed = false;
+        lastPinchRatio = null;
+        lastDrawRatio = null;
+        setHandStatus('arco (armando…)', 'ok');
+        return;
+      }
+
+      if (!pinchHandLm) {
+        // Ya armado, pero solo se ve la mano pistola — esperando la otra
+        // mano para poder tensar. No hay pellizco que evaluar aún.
+        bowPinchWasClosed = false;
+        lastPinchRatio = null;
+        lastDrawRatio = null;
+        setHandStatus('arco (armado, falta la otra mano)', 'ok');
+        return;
+      }
+
+      const pRatio = pinchRatio(pinchHandLm, 4, 8);
+      // Zona muerta entre CLOSED y OPEN: mientras el ratio esté ahí en
+      // medio, se mantiene el último estado conocido en vez de titubear.
+      const pinchClosed = pRatio < PINCH_CLOSED_RATIO ? true : (pRatio > PINCH_OPEN_RATIO ? false : bowPinchWasClosed);
+
+      const scale = (handScale(gunHandLm) + handScale(pinchHandLm)) / 2;
+      const gunAnchor = gunHandLm[0]; // muñeca de la mano pistola
+      const pinchPoint = {
+        x: (pinchHandLm[4].x + pinchHandLm[8].x) / 2,
+        y: (pinchHandLm[4].y + pinchHandLm[8].y) / 2
+      };
+      const drawRatio = Math.hypot(gunAnchor.x - pinchPoint.x, gunAnchor.y - pinchPoint.y) / scale;
+      lastPinchRatio = pRatio; // ver comentario junto a la declaración — el debug se arma en el loop, no acá
+      lastDrawRatio = drawRatio;
+
+      if (bowPinchWasClosed && !pinchClosed && drawRatio >= MIN_DRAW_RATIO) {
+        launchTriangle(now);
+      }
+      bowPinchWasClosed = pinchClosed;
+      setHandStatus('arco (' + (pinchClosed ? 'tensando' : 'listo') + ')', 'ok');
+    }
+
+    function updateLaunchAnimation(now) {
+      const t = (now - triLaunchStartAt) / LAUNCH_DURATION_MS;
+      if (t >= 1) {
+        hideShape(triShape);
+        triLaunchStartAt = null;
+        return;
+      }
+      const eased = t * t; // acelera — se siente más como un disparo que un deslizamiento
+      triShape.mesh.scale.setScalar(1 + eased * 2.5);
+      triShape.mesh.position.z = eased * 4; // "sale" de la pantalla hacia la cámara
+      triShape.material.opacity = 1 - eased;
+    }
+
+    function checkSnapReset(allHands) {
+      // Recibe TODAS las manos, sin filtrar puños a propósito (ver
+      // comentario en el loop principal) — la mano que chasquea dobla el
+      // medio hacia el pulgar, lo que puede leerse como puño para el
+      // detector genérico, pero acá es justo el gesto esperado.
+      if (!colorEffectActive) {
+        snapPinchWasClosed = false;
+        return;
+      }
+      const anyClosed = allHands.some((lm) => pinchRatio(lm, 4, 12) < SNAP_CLOSED_RATIO);
+      if (snapPinchWasClosed && !anyClosed) {
+        resetColorEffect();
+      }
+      snapPinchWasClosed = anyClosed;
+    }
+
+    // ========== LOOP PRINCIPAL ==========
+    const handStatusEl = document.getElementById('hand-status');
+    const elbowStatusEl = document.getElementById('elbow-status');
+    const fpsEl = document.getElementById('fps');
+    const stampedStatusEl = document.getElementById('stamped-status');
+    const bowDebugEl = document.getElementById('bow-debug');
+    const DEBUG_BOW = true; // ver comentario en el HTML de #bow-debug — quitar cuando los umbrales queden confirmados
+
+    // Fábrica de setters de estado: evita reescribir el DOM cuando el texto
+    // no cambió. Importa sobre todo para el codo — `checkElbowClearGesture`
+    // corre en CADA frame (~60/seg), así que sin este filtro se estaría
+    // reescribiendo `innerHTML` constantemente aunque diga lo mismo.
+    function makeStatusSetter(el, label) {
+      let last = null;
+      return (text, cls) => {
+        const key = text + '|' + cls;
+        if (key === last) return;
+        last = key;
+        el.innerHTML = label + ': <span class="' + cls + '">' + text + '</span>';
+      };
+    }
+    const setHandStatus = makeStatusSetter(handStatusEl, 'Manos');
+    const setElbowStatus = makeStatusSetter(elbowStatusEl, 'Codo');
+
+    let frames = 0, lastFpsTime = performance.now();
+
+    // `detectForVideo` de manos mide en vivo ~19-23ms con 2 manos a 1080p —
+    // más que el presupuesto de un frame a 60 FPS (16.7ms). Correrla cada
+    // tick topa el render entero a ~40-53 FPS, medido. La solución no es
+    // hacer la detección más rápida (no hay modelo más liviano para
+    // hand_landmarker, y darle un canvas más chico en vez del <video>
+    // resultó ser MÁS lento, no menos — MediaPipe tiene un camino optimizado
+    // para leer `<video>` directamente que un canvas no aprovecha) — es
+    // desacoplarla del render: se detecta cada `DETECT_EVERY_N` frames, pero
+    // se renderiza SIEMPRE. Con esto: 40-53 FPS -> 52-58 FPS.
+    //
+    // El pose (para el codo) corre a una frecuencia MUCHO menor todavía
+    // (`POSE_DETECT_EVERY_N`) — el gesto de pasar el codo es deliberado, no
+    // necesita 30Hz como el tracking de dedos, y sumar un segundo modelo
+    // corriendo tan seguido como el de manos hubiera repetido el mismo
+    // problema de rendimiento que ya se resolvió.
+    const DETECT_EVERY_N = 2;
+    const POSE_DETECT_EVERY_N = 16; // ~3-4 veces por segundo a 60 FPS de render
+    let frameCounter = 0;
+
+    // Todo el procesamiento de manos de un tick vive acá — se extrajo de
+    // tick() para que esa función se pueda leer de un vistazo como
+    // "orquestación del frame" (detectar, procesar, animar, renderizar)
+    // sin tener que bucear entre gestos para llegar al render. Las tres
+    // figuras están siempre disponibles en paralelo, diferenciadas solo por
+    // la pose de las manos — no hay fases ni orden obligatorio:
+    //   - exactamente una mano en pose "pistola" (+ opcionalmente la otra
+    //     pellizcando) -> arco (se evalúa primero acá mismo).
+    //   - lo que no sea arco se delega a processQuadAndTriangle(): 2 manos
+    //     (incluye "dos pistolas hacia arriba", ver isGunHand/pickGunHand)
+    //     -> cuadrilátero; 1 mano -> triángulo.
+    function processHandDetection(allHands, now) {
+      checkSnapReset(allHands);
+
+      if (triLaunchStartAt !== null) {
+        // La flecha está en pleno vuelo — no se actualiza nada más
+        // hasta que termine la animación de disparo.
+        return;
+      }
+
+      if (colorEffectActive) {
+        // Ya se disparó: el sistema queda bloqueado hasta el chasquido
+        // (ya evaluado arriba, checkSnapReset corre siempre). No se
+        // vuelve a armar el arco ni se procesa cuadrilátero/triángulo/
+        // puño — si no, con las manos todavía en la misma posición de
+        // después de disparar, el triángulo se volvía a armar solo.
+        setHandStatus('esperando chasquido…', 'ok');
+        return;
+      }
+
+      if (DEBUG_BOW) {
+        // Detalle por mano (¿cada una clasifica como pistola? ¿qué
+        // tan pellizcada está?) — más útil para diagnosticar que solo
+        // el resumen, si hace falta seguir ajustando umbrales.
+        const perHand = allHands
+          .map((lm) => (isGunHand(lm) ? 'PISTOLA' : 'no') + '/p' + pinchRatio(lm, 4, 8).toFixed(2))
+          .join('  ');
+        let txt = 'estado:' + bowState + ' [' + perHand + ']';
+        if (lastPinchRatio !== null) {
+          txt += ' tensado:' + lastDrawRatio.toFixed(2) + '(min ' + MIN_DRAW_RATIO + ')';
+        }
+        bowDebugEl.textContent = txt;
+      }
+
+      // Compuerta del arco: tras un chasquido queda cerrada hasta que se
+      // suelte la pose de "exactamente una pistola" (con las manos crudas,
+      // sin pasar por pickGunHand — no queremos que la continuidad de
+      // identidad la mantenga "vista" indefinidamente). Se compara contra
+      // !== 1, no contra "ninguna mano parece pistola": si el cuadrilátero
+      // se hace con las DOS manos en pose de pistola (ver pickGunHand), esa
+      // pose nunca tendría "cero manos pistola" y la compuerta se quedaría
+      // cerrada para siempre.
+      if (!bowGateOpen && allHands.filter((lm) => isGunHand(lm)).length !== 1) {
+        bowGateOpen = true;
+      }
+      const gunHandLm = bowGateOpen ? pickGunHand(allHands) : null;
+
+      if (gunHandLm) {
+        // Se ve una mano pistola: se muestra la flecha YA (se siente
+        // responsivo) aunque todavía no se haya cumplido el tiempo de
+        // armado — así se evita el destello del triángulo normal
+        // (muñeca+índice+meñique, el que se ve mal en esta pose)
+        // durante la ventana de armado. El pellizco/disparo solo se
+        // habilita una vez armado de verdad (canLaunch).
+        gunHandRefPos = { x: gunHandLm[0].x, y: gunHandLm[0].y }; // mantiene la identidad estable frame a frame
+        gunHandLostAt = null;
+        if (gunHandHoldStartedAt === null) gunHandHoldStartedAt = now;
+        if (bowState !== 'armed' && now - gunHandHoldStartedAt >= BOW_ARM_HOLD_MS) {
+          bowState = 'armed';
+        }
+
+        // Ninguna mano cuenta como puño acá por definición (isGunHand
+        // e isFist ya son mutuamente excluyentes) — sin este reset,
+        // anyHandIsFist se queda "pegado" en lo último que valía ANTES
+        // de entrar en modo arco, y si el codo sigue visible (se seguiría
+        // viendo, corre aparte) podría disparar el borrado sin que se
+        // haga el gesto de verdad durante toda la sesión de arco.
+        anyHandIsFist = false;
+
+        const pinchHandLm = allHands.find((lm) => lm !== gunHandLm) || null;
+        updateBowAndArrow(gunHandLm, pinchHandLm, bowState === 'armed', now);
+        return;
+      }
+
+      gunHandHoldStartedAt = null;
+
+      if (bowState === 'armed') {
+        // No se ve la pistola este frame, pero seguimos armados: se
+        // tolera un ratito (parpadeo normal de tracking) antes de
+        // desarmar del todo — no se cae al primer frame en que
+        // MediaPipe dude. Mientras tanto NO se procesa cuadrilátero/
+        // triángulo/puño — seguimos protegiendo el modo arco.
+        anyHandIsFist = false; // mismo razonamiento que arriba
+        if (gunHandLostAt === null) gunHandLostAt = now;
+        setHandStatus('arco (mano pistola perdida)', 'bad');
+        if (now - gunHandLostAt >= BOW_EXIT_HOLD_MS) {
+          resetBowCycle();
+          hideShape(triShape);
+        }
+        return;
+      }
+
+      // Ni pistola ni arco en curso: cuadrilátero/triángulo/puño normal.
+      processQuadAndTriangle(allHands, now);
+    }
+
+    function processQuadAndTriangle(allHands, now) {
+      // Una mano en puño NO cuenta para el tracking — da "espacio
+      // libre" para moverse sin que nada trackee ni se fije. Si de 2
+      // manos mostradas una está en puño, queda 1 mano usable (pasa a
+      // modo triángulo con la mano abierta); si las dos están en puño
+      // (o no hay manos), no se trackea nada. Una sola pasada: separa
+      // en usables/puños en vez de llamar isFist() dos veces por mano.
+      const usableHands = [];
+      anyHandIsFist = false;
+      for (const lm of allHands) {
+        if (isFist(lm)) anyHandIsFist = true;
+        else usableHands.push(lm);
+      }
+      const count = usableHands.length;
+
+      if (count === 2) {
+        // Ordenar por X para asignar "izquierda"/"derecha" de forma
+        // estable (no depende de la etiqueta Left/Right de MediaPipe —
+        // así el lado izquierdo de la malla siempre corresponde a la
+        // mano que está visualmente a la izquierda).
+        const [a, b] = usableHands;
+        const [leftHandLm, rightHandLm] = a[0].x <= b[0].x ? [a, b] : [b, a];
+        updateQuad(leftHandLm, rightHandLm, now);
+        showShape(quadShape, now);
+        hideShape(triShape);
+        setHandStatus('cuadrilátero (2 manos)', 'ok');
+      } else if (count === 1) {
+        showShape(triShape, now);
+        updateTriangle(usableHands[0], now);
+        hideShape(quadShape);
+        setHandStatus('triángulo (1 mano)', 'ok');
+      } else {
+        hideShape(quadShape);
+        hideShape(triShape);
+        setHandStatus(allHands.length > 0 ? 'pausado (puño)' : 'buscando…', 'bad');
+      }
+    }
+
+    function loop(handLandmarker, poseLandmarker) {
+      function tick() {
+        requestAnimationFrame(tick);
+        frameCounter++;
+        const now = performance.now();
+
+        if (videoEl.readyState >= 2 && frameCounter % POSE_DETECT_EVERY_N === 0) {
+          const poseResult = poseLandmarker.detectForVideo(videoEl, now);
+          elbowVisible = isElbowVisible(poseResult.landmarks);
+        }
+
+        if (videoEl.readyState >= 2 && frameCounter % DETECT_EVERY_N === 0) {
+          const result = handLandmarker.detectForVideo(videoEl, now);
+          processHandDetection(result.landmarks || [], now);
+        }
+
+        // El gesto de borrado se revisa en CADA tick (no solo cuando corre
+        // alguna detección) porque acumula tiempo sostenido — usa el último
+        // valor conocido de elbowVisible/anyHandIsFist, sin esperar a que
+        // ambas detecciones coincidan en el mismo frame.
+        checkElbowClearGesture(now);
+
+        // El pop-in y el render corren SIEMPRE, aunque este tick no haya
+        // corrido detección — es lo que mantiene todo a 60 FPS reales.
+        updatePopAnimation(quadShape, now);
+        if (triLaunchStartAt !== null) {
+          updateLaunchAnimation(now);
+        } else {
+          updatePopAnimation(triShape, now);
+        }
+        renderer.render(scene, camera3D);
+
+        frames++;
+        if (now - lastFpsTime > 1000) {
+          fpsEl.textContent = frames + ' FPS';
+          if (stampedStatusEl.textContent !== '¡BORRADO!') {
+            stampedStatusEl.textContent = 'Fijadas: ' + stampedShapes.length + '/' + MAX_STAMPED_SHAPES;
+          }
+          frames = 0;
+          lastFpsTime = now;
+        }
+      }
+      tick();
+    }
+
+    async function main() {
+      setHandStatus('cargando modelo…', 'bad');
+      const [{ handLandmarker, poseLandmarker }] = await Promise.all([loadLandmarkers(), startCamera()]);
+      setHandStatus('buscando…', 'bad');
+      loop(handLandmarker, poseLandmarker);
+    }
+
+    main().catch((err) => {
+      console.error(err);
+      setHandStatus('ERROR: ' + err.message, 'bad');
+    });
+  </script>
+</body>
+</html>
