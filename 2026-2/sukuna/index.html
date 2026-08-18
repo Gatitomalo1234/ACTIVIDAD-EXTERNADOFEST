@@ -55,22 +55,16 @@
     body { font-family: ui-monospace, Menlo, Consolas, monospace; color: #ddd; }
 
     #cam-video {
+      /* Ya NO es lo que se ve en pantalla — es solo la fuente de textura
+         para el fondo shader que se dibuja dentro de #three-canvas (ver
+         EFECTO DE COLOR: SHADER en el script). El canvas la tapa por
+         completo, pero tiene que seguir en el DOM y reproduciéndose para
+         que WebGL pueda leer sus frames. */
       position: fixed;
       inset: 0;
       width: 100%;
       height: 100%;
       object-fit: cover;
-      transform: scaleX(-1); /* espejo: se ve natural, como mirarse */
-      transition: filter 220ms ease-out;
-    }
-    /* Efecto de pantalla completa al "disparar" el arco — primer intento
-       vía filtro CSS puro (sin tocar el pipeline de Three.js), pensado para
-       iterar rápido mirando capturas reales. No es una réplica exacta de la
-       paleta magenta/cian/amarillo del video de referencia (eso pediría un
-       LUT de verdad vía shader) — es una aproximación "térmica" psicodélica
-       con las herramientas más simples posibles primero. */
-    #cam-video.fx-thermal {
-      filter: saturate(4.5) contrast(1.35) hue-rotate(235deg) brightness(1.1);
     }
 
     #three-canvas {
@@ -79,6 +73,24 @@
       width: 100%;
       height: 100%;
     }
+
+    #shader-controls {
+      position: fixed;
+      top: 10px;
+      right: 10px;
+      z-index: 10;
+      font-size: 11px;
+      line-height: 1.6;
+      background: rgba(0, 0, 0, 0.6);
+      border: 1px solid #444;
+      padding: 10px 14px;
+      width: 200px;
+      color: #ddd;
+    }
+    #shader-controls .title { font-weight: bold; color: #fff; margin-bottom: 6px; }
+    #shader-controls label { display: flex; justify-content: space-between; gap: 8px; margin-top: 6px; }
+    #shader-controls input[type="range"] { width: 100%; margin-top: 2px; }
+    #shader-controls .row { display: flex; flex-direction: column; }
 
     #status {
       position: fixed;
@@ -125,6 +137,29 @@
          cuando los umbrales queden confirmados (mismo patrón que se usó
          para calibrar STILL_TOLERANCE, REFERENCE_HAND_SPAN, etc). -->
     <div id="bow-debug" style="opacity:0.65; font-size:10px;"></div>
+  </div>
+
+  <!-- Panel permanente del efecto de color del arco (esquina opuesta al
+       panel de estado, mismo patrón que leaderboard.html separa sus
+       botones de admin). Cada slider mueve un uniform del shader en vivo,
+       sin recargar — ver EFECTO DE COLOR: SHADER en el script. -->
+  <div id="shader-controls">
+    <div class="title">Efecto de color (arco)</div>
+    <label class="row">Intensidad
+      <input type="range" id="ctrl-intensity" min="0" max="1" step="0.01" value="1">
+    </label>
+    <label class="row">Contraste
+      <input type="range" id="ctrl-contrast" min="0.5" max="2.5" step="0.01" value="1.4">
+    </label>
+    <label class="row">Saturación
+      <input type="range" id="ctrl-saturation" min="0" max="3" step="0.01" value="1.8">
+    </label>
+    <label class="row">Brillo
+      <input type="range" id="ctrl-brightness" min="-0.5" max="0.5" step="0.01" value="0">
+    </label>
+    <label class="row">Desplaz. paleta
+      <input type="range" id="ctrl-palette-shift" min="-0.5" max="0.5" step="0.01" value="0">
+    </label>
   </div>
 
   <script type="module">
@@ -189,6 +224,10 @@
       camera3D.aspect = window.innerWidth / window.innerHeight;
       camera3D.updateProjectionMatrix();
       renderer.setSize(window.innerWidth, window.innerHeight);
+      // bgUniforms se declara más abajo en el archivo, pero para cuando
+      // este callback corra de verdad (un resize real) el módulo ya
+      // terminó de inicializar todo — es seguro referenciarlo acá.
+      bgUniforms.uCanvasSize.value.set(window.innerWidth, window.innerHeight);
     });
 
     // ========== MALLA DEFORMABLE GENÉRICA (sin color ni textura) ==========
@@ -261,6 +300,307 @@
       await new Promise((resolve) => videoEl.addEventListener('loadedmetadata', resolve, { once: true }));
       await videoEl.play();
     }
+
+    // ========== EFECTO DE COLOR: SHADER (arco) ==========
+    // Reemplaza el filtro CSS del primer intento (saturate/hue-rotate) por
+    // un shader de verdad: video -> textura WebGL -> luminancia -> paleta
+    // por tramos (mapeo real de color, no una capa encima) -> contraste/
+    // saturación/brillo -> mezcla con el original -> salida. Se integra en
+    // el mismo canvas/renderer que ya existe (sin canvas nuevo): un plano
+    // de pantalla completa con cámara ortográfica se dibuja PRIMERO cada
+    // frame (el video ya procesado), y las figuras (cuadrilátero/triángulo/
+    // arco) se dibujan encima con la cámara perspectiva de siempre.
+    //
+    // El <video> HTML deja de ser lo que se ve — el canvas lo tapa por
+    // completo — pero sigue en el DOM reproduciéndose porque WebGL necesita
+    // leer sus frames (THREE.VideoTexture se encarga de subir cada frame
+    // solo, no hace falta actualizarla a mano).
+    const videoTexture = new THREE.VideoTexture(videoEl);
+    videoTexture.minFilter = THREE.LinearFilter;
+    videoTexture.magFilter = THREE.LinearFilter;
+
+    // Uniforms expuestos en el panel #shader-controls (permanente, se puede
+    // ajustar en vivo sin recargar) + los que maneja el propio código
+    // (uMix, tamaños). Los valores iniciales de contraste/saturación son
+    // altos a propósito — la referencia pide "colores muy saturados,
+    // contraste bastante fuerte".
+    const bgUniforms = {
+      uVideoTexture: { value: videoTexture },
+      uVideoSize: { value: new THREE.Vector2(1, 1) },
+      uCanvasSize: { value: new THREE.Vector2(window.innerWidth, window.innerHeight) },
+      uMix: { value: 0 },              // 0 = video normal, 1 = efecto completo — lo mueve el arco, no el panel
+      uEffectIntensity: { value: 1.0 },
+      uContrast: { value: 1.4 },
+      uSaturation: { value: 1.8 },
+      uBrightness: { value: 0.0 },
+      uPaletteShift: { value: 0.0 }
+    };
+
+    const bgVertexShader = `
+      varying vec2 vUv;
+      void main() {
+        vUv = uv;
+        // Posición local del plano (-1..1) usada directo como espacio de
+        // recorte: PlaneGeometry(2,2) ya coincide con NDC, así que no hace
+        // falta aplicar matrices de cámara — es el truco estándar del
+        // "quad de pantalla completa".
+        gl_Position = vec4(position.xy, 0.0, 1.0);
+      }
+    `;
+
+    // GLSL compartido entre el fondo (bgFragmentShader) y la "ventana" del
+    // arco (arrowFragmentShader, ver ARCO Y FLECHA más abajo) — ambos
+    // necesitan exactamente el mismo recorte/paleta/gradación, para que la
+    // punta de la flecha muestre EL MISMO efecto que después inunda toda la
+    // pantalla al disparar. Un solo lugar para tocar la paleta.
+    const gradingGLSL = `
+      uniform sampler2D uVideoTexture;
+      uniform vec2 uVideoSize;
+      uniform vec2 uCanvasSize;
+      uniform float uEffectIntensity;
+      uniform float uContrast;
+      uniform float uSaturation;
+      uniform float uBrightness;
+      uniform float uPaletteShift;
+
+      // Mismo recorte "cover" que getCoverCrop()/toWorld() ya usan para
+      // mapear los landmarks de la mano — si no coincidiera, las figuras
+      // quedarían desalineadas del video que se ve de fondo.
+      vec2 coverUv(vec2 uv) {
+        float videoAspect = uVideoSize.x / uVideoSize.y;
+        float canvasAspect = uCanvasSize.x / uCanvasSize.y;
+        vec2 scale = vec2(1.0);
+        if (videoAspect > canvasAspect) {
+          scale.x = canvasAspect / videoAspect;
+        } else {
+          scale.y = videoAspect / canvasAspect;
+        }
+        return (uv - 0.5) * scale + 0.5;
+      }
+
+      // Paleta por tramos inspirada en la referencia (azul oscuro -> cian ->
+      // verde -> amarillo -> naranja -> magenta), interpolada con
+      // smoothstep para que las transiciones sean suaves, no bruscas.
+      vec3 palette(float t) {
+        vec3 c0 = vec3(0.02, 0.02, 0.28); // azul oscuro (sombras)
+        vec3 c1 = vec3(0.0, 0.35, 0.78);  // azul eléctrico
+        vec3 c2 = vec3(0.0, 0.80, 0.85);  // cian
+        vec3 c3 = vec3(0.05, 0.85, 0.35); // verde/turquesa
+        vec3 c4 = vec3(0.95, 0.90, 0.10); // amarillo
+        vec3 c5 = vec3(1.0, 0.50, 0.0);   // naranja
+        vec3 c6 = vec3(1.0, 0.15, 0.55);  // rosa/fucsia
+        vec3 c7 = vec3(0.85, 0.0, 0.80);  // magenta (highlights)
+
+        vec3 color = c0;
+        color = mix(color, c1, smoothstep(0.00, 0.20, t));
+        color = mix(color, c2, smoothstep(0.20, 0.40, t));
+        color = mix(color, c3, smoothstep(0.40, 0.55, t));
+        color = mix(color, c4, smoothstep(0.55, 0.70, t));
+        color = mix(color, c5, smoothstep(0.70, 0.82, t));
+        color = mix(color, c6, smoothstep(0.82, 0.92, t));
+        color = mix(color, c7, smoothstep(0.92, 1.00, t));
+        return color;
+      }
+
+      // Muestrea el video (con recorte "cover") sin gradar. NO espeja acá
+      // adentro a propósito — el fondo (bgFragmentShader, vUv sin cámara) y
+      // la ventana del arco (arrowFragmentShader, vScreenUv CON cámara) no
+      // necesitan el mismo espejo porque llegan a este punto por caminos
+      // distintos: cada fragment shader espeja (o no) su propio screenUv
+      // ANTES de llamar a esta función, según le corresponda.
+      vec3 sampleOriginalVideo(vec2 screenUv) {
+        vec2 videoUv = coverUv(screenUv);
+        return texture2D(uVideoTexture, videoUv).rgb;
+      }
+
+      // Pipeline completo: luminancia real del píxel (Rec.709, no un valor
+      // inventado — esto es lo que determina el color, conservando el
+      // detalle original) -> paleta -> intensidad -> contraste/saturación/
+      // brillo. Comparten esto el fondo Y la ventana del arco.
+      vec3 sampleGradedVideo(vec2 screenUv) {
+        vec3 original = sampleOriginalVideo(screenUv);
+        float luminance = dot(original, vec3(0.2126, 0.7152, 0.0722));
+        float t = clamp(luminance + uPaletteShift, 0.0, 1.0);
+        vec3 mapped = palette(t);
+        mapped = mix(vec3(luminance), mapped, uEffectIntensity);
+        mapped += uBrightness;
+        mapped = (mapped - 0.5) * uContrast + 0.5;
+        float mappedGray = dot(mapped, vec3(0.2126, 0.7152, 0.0722));
+        mapped = mix(vec3(mappedGray), mapped, uSaturation);
+        return clamp(mapped, 0.0, 1.0);
+      }
+    `;
+
+    const bgFragmentShader = `
+      precision mediump float;
+      uniform float uMix;
+      varying vec2 vUv;
+      ${gradingGLSL}
+      void main() {
+        // Espejo (equivalente al scaleX(-1) que antes tenía el <video> en
+        // CSS) — vUv viene del plano de fondo (sin cámara, NDC directo), así
+        // que hace falta espejarlo acá antes de muestrear.
+        vec2 mirroredUv = vec2(1.0 - vUv.x, vUv.y);
+        // uMix: mezcla con el video sin procesar — esto es lo que anima
+        // launchTriangle()/resetColorEffect() al disparar/chasquear.
+        vec3 finalColor = mix(sampleOriginalVideo(mirroredUv), sampleGradedVideo(mirroredUv), uMix);
+        gl_FragColor = vec4(finalColor, 1.0);
+      }
+    `;
+
+    const bgMaterial = new THREE.ShaderMaterial({
+      uniforms: bgUniforms,
+      vertexShader: bgVertexShader,
+      fragmentShader: bgFragmentShader,
+      depthTest: false,
+      depthWrite: false
+    });
+    const bgScene = new THREE.Scene();
+    const bgCamera = new THREE.Camera(); // no se usan sus matrices — ver comentario en el vertex shader
+    const bgMesh = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), bgMaterial);
+    bgScene.add(bgMesh);
+
+    // "Ventana" al efecto dentro de la punta del arco — a pedido explícito:
+    // que la flecha se vea como la "culpable" de que la pantalla cambie de
+    // color, no que el cambio sea un interruptor plano y desconectado de
+    // ella. Mientras se tensa el arco, la flecha muestra EL MISMO video
+    // gradado que después inunda toda la pantalla al disparar (comparten
+    // gradingGLSL y los mismos uniforms del panel — mover un slider afecta
+    // a los dos por igual).
+    //
+    // Es un mesh SEPARADO, no un cambio de material sobre triShape.mesh:
+    // comparte la geometría de triShape (mismo THREE.BufferGeometry, así
+    // que sus vértices se actualizan solos cuando updateShapeVertices
+    // mueve los de triShape) pero tiene su propio material — así el pop-in/
+    // opacidad/quietud de triShape (showShape, hideShape, updatePopAnimation,
+    // checkStillness) siguen funcionando exactamente igual que antes, sin
+    // tocarlos: este mesh solo se DIBUJA ENCIMA (depthTest:false) tapando
+    // visualmente a triShape.mesh mientras está activo, copiando su
+    // posición/escala/opacidad cada frame — ver updateBowAndArrow() y
+    // updateLaunchAnimation().
+    const arrowUniforms = {
+      uVideoTexture: bgUniforms.uVideoTexture,
+      uVideoSize: bgUniforms.uVideoSize,
+      uCanvasSize: bgUniforms.uCanvasSize,
+      uEffectIntensity: bgUniforms.uEffectIntensity,
+      uContrast: bgUniforms.uContrast,
+      uSaturation: bgUniforms.uSaturation,
+      uBrightness: bgUniforms.uBrightness,
+      uPaletteShift: bgUniforms.uPaletteShift,
+      uOpacity: { value: 1 }
+    };
+    const arrowVertexShader = `
+      varying vec2 vScreenUv;
+      void main() {
+        // A diferencia del fondo (que ignora la cámara a propósito), acá sí
+        // hace falta: la flecha se mueve/deforma con el tracking, así que
+        // su posición en pantalla cambia cuadro a cuadro. projectionMatrix/
+        // modelViewMatrix las inyecta Three.js solo, no hace falta
+        // declararlas.
+        vec4 clipPos = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        gl_Position = clipPos;
+        vScreenUv = clipPos.xy / clipPos.w * 0.5 + 0.5;
+      }
+    `;
+    const arrowFragmentShader = `
+      precision mediump float;
+      uniform float uOpacity;
+      varying vec2 vScreenUv;
+      ${gradingGLSL}
+      void main() {
+        // Acá NO se espeja vScreenUv (a diferencia del fondo) — llegaba
+        // espejado dos veces: una porque toWorld() ya posiciona la malla
+        // en el lado correcto de la pantalla (mismo espejo que usan todas
+        // las figuras), y otra porque sampleOriginalVideo() espejaba de
+        // nuevo — el resultado era que la ventana mostraba el video del
+        // lado contrario al que ocupa la flecha en pantalla.
+        gl_FragColor = vec4(sampleGradedVideo(vScreenUv), uOpacity);
+      }
+    `;
+    const arrowMaterial = new THREE.ShaderMaterial({
+      uniforms: arrowUniforms,
+      vertexShader: arrowVertexShader,
+      fragmentShader: arrowFragmentShader,
+      transparent: true,
+      depthTest: false,
+      depthWrite: false,
+      // Sin esto, Three.js solo dibuja la cara frontal del triángulo (según
+      // el orden de sus vértices) — las otras figuras (createDeformableShape)
+      // ya usan DoubleSide, a esta se le había quedado afuera. Sin
+      // DoubleSide, según el ángulo/orden con el que updateArrowhead arma
+      // los puntos, la ventana podía quedar "recortada" (cara trasera,
+      // invisible) y se veía el triángulo azul de triShape.mesh por debajo.
+      side: THREE.DoubleSide
+    });
+    const arrowMesh = new THREE.Mesh(triShape.geometry, arrowMaterial);
+    arrowMesh.visible = false;
+    // triShape.mesh también es transparent:true, así que ambos entran en la
+    // cola de objetos transparentes de Three.js (se ordenan por distancia a
+    // la cámara por defecto) — como comparten la misma posición, ese orden
+    // podría no ser estable. renderOrder alto fuerza que arrowMesh SIEMPRE
+    // se dibuje después (encima), sin depender de ese sorteo.
+    arrowMesh.renderOrder = 999;
+    scene.add(arrowMesh);
+
+    // El renderer ya no puede auto-limpiar entre pasadas (fondo + figuras)
+    // o la segunda pasada borraría la primera — se limpia a mano una vez
+    // por tick, ver renderBoth() más abajo.
+    renderer.autoClear = false;
+
+    let __debugSkipBg = false; // DEBUG TEMPORAL — investigando baja de FPS
+    function renderBoth() {
+      // uVideoSize se actualiza acá (no en cada updateShapeVertices) porque
+      // solo cambia si cambia la resolución de cámara — muy poco costo,
+      // simplemente evita quedar desalineado si eso llegara a pasar.
+      if (videoEl.videoWidth && videoEl.videoHeight) {
+        bgUniforms.uVideoSize.value.set(videoEl.videoWidth, videoEl.videoHeight);
+      }
+      renderer.clear();
+      if (!__debugSkipBg) renderer.render(bgScene, bgCamera);
+      renderer.clearDepth();
+      renderer.render(scene, camera3D);
+    }
+    window.__setSkipBg = (v) => { __debugSkipBg = v; };
+
+    // ---- Animación de encendido/apagado (reemplaza la transición CSS) ----
+    // Mismo patrón de easing por duración que ya se usa en updatePopAnimation
+    // / updateLaunchAnimation, aplicado acá a uMix en vez de a una malla.
+    const COLOR_MIX_DURATION_MS = 220;
+    let colorMixFrom = 0;
+    let colorMixTarget = 0;
+    let colorMixAnimStartAt = 0;
+
+    function setColorMixTarget(target, now) {
+      colorMixFrom = bgUniforms.uMix.value;
+      colorMixTarget = target;
+      colorMixAnimStartAt = now;
+    }
+
+    function updateColorMixAnimation(now) {
+      const t = Math.min(1, (now - colorMixAnimStartAt) / COLOR_MIX_DURATION_MS);
+      const eased = t * (2 - t); // ease-out cuadrático, igual que el pop-in
+      bgUniforms.uMix.value = colorMixFrom + (colorMixTarget - colorMixFrom) * eased;
+    }
+
+    // Panel permanente: cada slider mueve su uniform en vivo. uMix
+    // deliberadamente NO tiene slider — ya tiene su propio control
+    // dedicado (el gesto del arco), exponerlo también acá duplicaría esa
+    // interacción de forma confusa.
+    document.getElementById('ctrl-intensity').addEventListener('input', (e) => {
+      bgUniforms.uEffectIntensity.value = parseFloat(e.target.value);
+    });
+    document.getElementById('ctrl-contrast').addEventListener('input', (e) => {
+      bgUniforms.uContrast.value = parseFloat(e.target.value);
+    });
+    document.getElementById('ctrl-saturation').addEventListener('input', (e) => {
+      bgUniforms.uSaturation.value = parseFloat(e.target.value);
+    });
+    document.getElementById('ctrl-brightness').addEventListener('input', (e) => {
+      bgUniforms.uBrightness.value = parseFloat(e.target.value);
+    });
+    document.getElementById('ctrl-palette-shift').addEventListener('input', (e) => {
+      bgUniforms.uPaletteShift.value = parseFloat(e.target.value);
+    });
 
     // ========== MEDIAPIPE: MANOS + POSE (comparten el mismo runtime WASM) ==========
     // numHands: 2 es un MÁXIMO, no un mínimo — MediaPipe reporta cuántas
@@ -700,6 +1040,9 @@
       // Se resetea el reloj de quietud: al reaparecer puede estar en
       // cualquier otro lugar, no debe arrastrar la posición/tiempo viejos.
       shape.stillCenter = null;
+      // La "ventana" del arco (ver ARCO Y FLECHA) tapa a triShape.mesh
+      // mientras está activa — al ocultar triShape, se apaga junto con él.
+      if (shape === triShape) arrowMesh.visible = false;
     }
     function updatePopAnimation(shape, now) {
       if (!shape.mesh.visible) return;
@@ -745,6 +1088,13 @@
     const MIN_DRAW_RATIO = 1.4;      // qué tan lejos debe estar la mano del pellizco de la mano pistola para contar como "tensado"
     const LAUNCH_DURATION_MS = 350;  // duración de la animación de disparo
     const SNAP_CLOSED_RATIO = 0.35;  // pulgar+medio juntos = a punto de chasquear
+    // Al soltar el pellizco para disparar, la mano se relaja de golpe — eso
+    // puede acercar el pulgar al medio sin querer (la misma seña del
+    // chasquido) y reabrir el bloqueo casi de inmediato, sin que se haga el
+    // gesto de verdad. Se ignora el chasquido este ratito después de cada
+    // disparo, dándole tiempo a la mano de asentarse antes de empezar a
+    // escuchar un chasquido deliberado.
+    const SNAP_IGNORE_MS = 600;
 
     let bowState = 'idle'; // 'idle' | 'armed'
     let gunHandHoldStartedAt = null;
@@ -752,6 +1102,7 @@
     let bowPinchWasClosed = false;
     let triLaunchStartAt = null;
     let colorEffectActive = false;
+    let colorEffectActivatedAt = 0;
     let snapPinchWasClosed = false;
     let lastPinchRatio = null; // solo para #bow-debug — se arma UNA vez por tick en el loop, no acá
     let lastDrawRatio = null;
@@ -832,16 +1183,17 @@
 
     function launchTriangle(now) {
       triLaunchStartAt = now;
-      videoEl.classList.add('fx-thermal');
+      setColorMixTarget(1, now); // anima uMix hacia el efecto completo — ver EFECTO DE COLOR: SHADER
       colorEffectActive = true;
+      colorEffectActivatedAt = now; // ver SNAP_IGNORE_MS
       // El disparo termina el ciclo de armado — hay que volver a sostener
       // la pose de pistola para el próximo tiro, no queda "armado" para
       // siempre.
       resetBowCycle();
     }
 
-    function resetColorEffect() {
-      videoEl.classList.remove('fx-thermal');
+    function resetColorEffect(now) {
+      setColorMixTarget(0, now); // anima uMix de vuelta a video normal
       colorEffectActive = false;
       // El arco queda bloqueado hasta que se suelte la pose de pistola al
       // menos una vez (ver bowGateOpen en el loop) — si no, con la mano
@@ -879,6 +1231,10 @@
       updateArrowhead(gunHandLm, pinchHandLm, now); // la flecha sigue a AMBAS manos, no solo a la pistola
       showShape(triShape, now);
       hideShape(quadShape);
+      // Prende la "ventana" al efecto — el sincronizado de posición/escala/
+      // opacidad frame a frame corre en el loop principal (syncArrowMesh),
+      // no acá, para que siga el ritmo del render y no el de detección.
+      arrowMesh.visible = true;
 
       if (!canLaunch) {
         // Todavía sosteniendo la pose para armar (no pasó BOW_ARM_HOLD_MS) —
@@ -923,6 +1279,18 @@
       setHandStatus('arco (' + (pinchClosed ? 'tensando' : 'listo') + ')', 'ok');
     }
 
+    // Copia posición/escala/opacidad de triShape.mesh a arrowMesh cada
+    // frame de render (no cada detección) — así la "ventana" sigue el pop-in
+    // Y la animación de disparo (updateLaunchAnimation) sin necesitar lógica
+    // propia para ninguna de las dos: solo refleja lo que sea que ya haya
+    // calculado triShape ese frame.
+    function syncArrowMesh() {
+      if (!arrowMesh.visible) return;
+      arrowMesh.position.copy(triShape.mesh.position);
+      arrowMesh.scale.copy(triShape.mesh.scale);
+      arrowUniforms.uOpacity.value = triShape.material.opacity;
+    }
+
     function updateLaunchAnimation(now) {
       const t = (now - triLaunchStartAt) / LAUNCH_DURATION_MS;
       if (t >= 1) {
@@ -936,18 +1304,21 @@
       triShape.material.opacity = 1 - eased;
     }
 
-    function checkSnapReset(allHands) {
+    function checkSnapReset(allHands, now) {
       // Recibe TODAS las manos, sin filtrar puños a propósito (ver
       // comentario en el loop principal) — la mano que chasquea dobla el
       // medio hacia el pulgar, lo que puede leerse como puño para el
       // detector genérico, pero acá es justo el gesto esperado.
-      if (!colorEffectActive) {
+      if (!colorEffectActive || now - colorEffectActivatedAt < SNAP_IGNORE_MS) {
+        // El segundo caso (recién disparado) es a propósito — ver
+        // SNAP_IGNORE_MS: la mano relajándose después de soltar el
+        // pellizco no debe leerse como un chasquido.
         snapPinchWasClosed = false;
         return;
       }
       const anyClosed = allHands.some((lm) => pinchRatio(lm, 4, 12) < SNAP_CLOSED_RATIO);
       if (snapPinchWasClosed && !anyClosed) {
-        resetColorEffect();
+        resetColorEffect(now);
       }
       snapPinchWasClosed = anyClosed;
     }
@@ -1009,7 +1380,7 @@
     //     (incluye "dos pistolas hacia arriba", ver isGunHand/pickGunHand)
     //     -> cuadrilátero; 1 mano -> triángulo.
     function processHandDetection(allHands, now) {
-      checkSnapReset(allHands);
+      checkSnapReset(allHands, now);
 
       if (triLaunchStartAt !== null) {
         // La flecha está en pleno vuelo — no se actualiza nada más
@@ -1171,7 +1542,9 @@
         } else {
           updatePopAnimation(triShape, now);
         }
-        renderer.render(scene, camera3D);
+        syncArrowMesh(); // copia posición/escala/opacidad de triShape.mesh YA actualizadas este frame
+        updateColorMixAnimation(now);
+        renderBoth();
 
         frames++;
         if (now - lastFpsTime > 1000) {
