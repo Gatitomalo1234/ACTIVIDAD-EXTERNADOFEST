@@ -476,5 +476,176 @@ nuevos, comportamiento idéntico al de antes de la limpieza (confirmado por el
 usuario: "todo quedo funcionando exactamente como estaba el anterior, quedo
 perfecto").
 
-Próximo paso: la decoración — textura a rayas (o lo que se defina) usando las
-UVs ya preparadas, y look de marca si aplica.
+### Cuarta figura: arco y flecha (mano pistola + pellizco)
+
+Inspirado en un nuevo video de referencia (Instagram). Una mano en pose
+"pistola" (índice extendido, resto de dedos doblados, pulgar separado) ancla
+un triángulo-flecha; la otra mano hace un pellizco (pulgar+índice) y se aleja,
+tensando como una cuerda de arco — al soltar con suficiente distancia, se
+"dispara": la flecha sale volando y dispara un efecto de color en toda la
+pantalla, revertido con un chasquido (pulgar+medio).
+
+**Máquina de dos fases**, no reevaluación cuadro a cuadro: primer intento
+(¿hay pistola+pellizco AHORA MISMO, cada frame?) se sentía fragil — cualquier
+parpadeo de tracking sacaba del modo. Rediseñado como
+`idle --(pistola sostenida 350ms)--> armed --(pellizco tensado y soltado)--> dispara --> idle`,
+con tolerancia de 700ms sin ver la pistola antes de desarmar (parpadeo normal
+de tracking no cancela el armado).
+
+**Bugs encontrados y corregidos, todos verificados en vivo:**
+- `isFist()` colisionaba con la pose de pistola (ambas curvan 3 de 4 dedos no
+  pulgar) — se corrigió exigiendo que el ÍNDICE específicamente esté doblado
+  para contar como puño.
+- `isFist()` también colisionaba con la mano de pellizco mientras tensa (sus
+  dedos curvados se leían como puño) — se resolvió evaluando pistola/arco
+  sobre las manos CRUDAS, antes del filtro de puño, y solo aplicando ese
+  filtro para cuadrilátero/triángulo/pausa cuando no se está en modo arco.
+- "Se puede disparar más de una vez": no era un hueco en el bloqueo
+  (`colorEffectActive` ya cortaba bien), sino el chasquido disparándose solo
+  por la mano relajándose naturalmente después de soltar el pellizco —
+  arreglado con `SNAP_IGNORE_MS = 600` de gracia tras cada disparo.
+- "Las manos se confunden" (identidad de la mano pistola saltaba a la otra
+  mano): `pickGunHand()` reclasificaba la pose cada frame incluso ya armado,
+  dejando que un solo frame ruidoso de la OTRA mano secuestrara la identidad.
+  Arreglado con dos modos: reclasificación estricta mientras no está
+  `armed`, y continuidad por POSICIÓN (mano más cercana a la última conocida,
+  `GUN_HAND_MATCH_MAX_DIST = 0.3`) una vez armado — tolera que la pose se
+  relaje un poco al tensar sin perder identidad.
+- "Dos pistolas hacia arriba" (pose válida para cuadrilátero) armaba el arco
+  por error: se corrigió exigiendo EXACTAMENTE una mano en pose pistola (no
+  `≥1`) tanto en `pickGunHand` como en la compuerta de reapertura.
+- Flecha con forma de astilla: los dos puntos "anchos" del triángulo salían
+  del pellizco (que por definición junta esos dedos, colapsando la forma).
+  Corregido tomando los dos puntos anchos (pulgar+índice) de la mano PISTOLA
+  (siempre bien abiertos) y solo el punto que se estira (centro del pellizco)
+  de la otra mano.
+
+Guardada una copia local de respaldo (`index.backup-fases.html`) antes de
+tocar esta parte por pedido explícito del usuario.
+
+### Simplificación: se sacó el sistema de fases
+
+Se había construido una coreografía de 3 fases (cuadrilátero → desbloquea
+triángulo → desbloquea arco) para ordenar cuándo aparece cada figura, imitando
+la secuencia del video de referencia. **Reportado como demasiado restrictivo
+en la práctica**: "si se llega a cumplir la condición ya no nos deja hacer
+nada hasta la última fase". Se revirtió por completo, con backup previo del
+archivo. Reemplazo mucho más simple: cuadrilátero, triángulo y arco quedan
+**siempre disponibles en paralelo**, diferenciados solo por la pose de las
+manos — la única "compuerta" que queda es un calentamiento plano de 4
+segundos al arrancar la sesión (`STAMPING_LOCKED_MS`) que retrasa el FIJADO
+(no el reconocimiento de figuras) al principio de cada ronda.
+
+### Efecto de color: shader WebGL real (no filtro CSS)
+
+Reemplazado el filtro CSS que activaba el disparo del arco por un pipeline
+real de grading en GLSL, a pedido explícito con especificación técnica
+propia del usuario: `VideoTexture` del `<video>` → textura de fondo dibujada
+en un quad de pantalla completa (cámara bypass, `gl_Position = vec4(xy,0,1)`)
+→ luminancia Rec.709 → paleta propia de 8 tonos (azul oscuro → cian → verde →
+amarillo → naranja → magenta) vía `smoothstep` → controles de
+brillo/contraste/saturación/intensidad, todos con sliders **visibles y
+permanentes** en pantalla (`#shader-controls`).
+
+`renderer.autoClear = false` + `renderBoth()` (limpia una vez, dibuja fondo,
+limpia profundidad, dibuja figuras 3D) reemplazó la única llamada a
+`renderer.render()` de antes.
+
+**"Ventana" al efecto dentro del propio triángulo del arco**: pedido
+explícito — "que el culpable de que se pusiera la pantalla así fuera el
+triángulo que hago con el arco". Se agregó `arrowMesh`, una malla que
+comparte el buffer de geometría de `triShape` (así los cambios de vértice se
+propagan solos) con su propio `ShaderMaterial` que muestrea el mismo video
+gradeado, `renderOrder = 999` para garantizar que dibuje encima.
+
+**Dos bugs de espejado/culling encontrados en pruebas reales, corregidos:**
+- El contenido de video dentro del triángulo aparecía espejado al lado
+  contrario de donde estaba la flecha — el flip de espejo se aplicaba dos
+  veces (una vez genérico en la función de muestreo compartida, otra
+  implícita en la posición ya espejada de la malla). Se sacó el flip interno
+  y se dejó explícito solo en el shader de fondo.
+- El efecto se veía "por la otra cara" del triángulo al girar la mano —
+  faltaba `side: THREE.DoubleSide` en el material de la ventana (por defecto
+  Three.js hace backface culling).
+
+### Acto 2: el chasquido ya no congela para siempre, arranca una segunda parte
+
+Primer diseño tras el disparo+chasquido: `sessionFrozen`, un estado terminal
+que dejaba de rastrear TODO por el resto de la sesión — pedido explícito del
+usuario ("que no traqueemos nada de lo que llevamos hasta ahora"). Luego
+extendido a pedido suyo: en vez de un callejón sin salida, el chasquido
+"olvida" el Acto 1 completo (borra automáticamente todas las copias fijadas,
+mismo mecanismo que el gesto de borrado por codo) y arranca un **Acto 2**
+donde el único gesto reconocido es una figura nueva. Renombrado
+`sessionFrozen` → `actTwoActive`; `processHandDetection` deriva a una función
+nueva, `processActTwo()`, que no reutiliza nada de la lógica de
+cuadrilátero/triángulo/arco/pausa del Acto 1.
+
+### Quinta figura: la "gema" (Acto 2, dos manos abiertas) — tres diseños hasta llegar al final
+
+Primera figura del proyecto con **volumen real** (las cuatro anteriores son
+planos con Z=0). Pasó por tres iteraciones completas, cada una probada en
+vivo con manos reales antes de descartarse:
+
+**Intento 1 — "viga"**: gesto de 2 puños separados (distinguido de la pausa
+normal de puños juntos por la distancia entre muñecas), un prisma
+rectangular de 8 vértices anclado en las 2 muñecas. Descartado ANTES de
+probarse en vivo — el usuario pidió cambiar el gesto a manos abiertas y una
+forma con más lados ("no es transformar un cuadrilátero en 3D").
+
+**Intento 2 — bipirámide procedural**: 2 muñecas como puntas, un anillo
+generado matemáticamente (círculo paramétrico, N lados ajustables) en el
+punto medio. Daba volumen real pero solo 2 puntos de control — probado en
+vivo, funcionaba, pero el usuario notó que al terminar en una sola punta por
+mano "solo hay un punto de trackeo" y pidió poder "plegar" la gema con más
+puntos reales.
+
+**Intento 3 — "corona de dedos"**: 2 coronas de 9 puntos reales cada una
+(muñeca + anillo de 8 landmarks de dedo — punta y nudillo PIP de índice,
+medio, anular y meñique; el pulgar se dejó afuera por no encajar en un
+anillo continuo), conectadas dedo-con-dedo por una "cintura". Control real
+por dedo, pero probado en vivo se veía como **dos conos pegados por una
+línea**, no una gema única — el usuario lo describió como "quiero que
+entiendas que un octágono en 2D en la palma de mi mano, yo pueda juntarlo con
+la otra mano y hacerlo 3D", una pirámide de base única, no dos.
+
+**Diseño final — pirámide de base octagonal**: una mano ("base", la de más a
+la izquierda, por posición X estable) pone los 8 puntos reales del octágono
+(mismo anillo de punta+PIP del intento 3); la otra mano ("ápice", la de más
+a la derecha) aporta un solo punto — su muñeca — que "levanta" ese octágono a
+volumen. El volumen usa la Z real de cada landmark de MediaPipe (no una
+fórmula inventada), así que doblar los dedos de la mano base pliega la gema
+de verdad. 9 vértices en total.
+
+**Bug encontrado y corregido en la prueba final**: con las manos separadas
+(lo natural al mostrar "dos manos abiertas"), la gema salía como un cuchillo
+larguísimo — el anillo es del tamaño de una mano pero la distancia entre
+manos es del tamaño de un brazo, dos escalas sin relación entre sí. Corregido
+recortando la distancia del ápice a un máximo proporcional al tamaño real del
+anillo, medido cada frame (`GEM_MAX_HEIGHT_RATIO = 3`, mismo espíritu que
+`handScale()` — una referencia que se auto-normaliza en vez de un número fijo
+de mundo). La dirección real del ápice se respeta siempre; solo se acorta el
+largo. **Verificado en vivo tras el arreglo**: pirámide facetada, bien
+proporcionada, ya no lee como "barra"/"cuchillo".
+
+La gema **no se fija nunca** (a diferencia de cuadrilátero/triángulo del
+Acto 1) — pedido explícito: "cuando aparezca el diamante quita absolutamente
+todo lo de fijar".
+
+## Estado actual (actualizado)
+
+- **Acto 1** (cuadrilátero, triángulo, arco+flecha, shader de color): ✅
+  validado en vivo, estable.
+- **Acto 2** (gema, pirámide de base octagonal, dos manos abiertas): ✅
+  validado en vivo con manos reales, incluido el arreglo de proporción.
+  Todavía **Fase A** — un solo `MeshNormalMaterial`, sin decorar.
+
+## Próximos pasos
+
+- **Fase B de la gema** (pendiente, explícitamente pospuesta por el usuario):
+  decoración por cara — el shader térmico ya construido en una cara, un
+  patrón propio (rayas diagonales, según las referencias) en otra.
+- Decoración del cuadrilátero/triángulo del Acto 1 (textura a rayas, UVs ya
+  preparadas desde el principio) — sigue pendiente desde antes del arco.
+- Vendorizar Three.js/MediaPipe al disco si el lugar del evento no tiene
+  wifi confiable (mismo pendiente que CHASQUIDO, nunca resuelto).
