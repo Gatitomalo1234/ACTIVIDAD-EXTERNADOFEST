@@ -61,34 +61,44 @@
     fijadas hasta ese momento, que se borran automáticamente — mismo
     mecanismo que el gesto de borrado por codo). De ahí en adelante el
     único gesto que existe es dos manos ABIERTAS -> gema: primera figura
-    con volumen real (las del Acto 1 son planos con Z=0), y una PIRÁMIDE
-    de verdad, no dos conos empalmados — una mano ("base", la de más a la
-    izquierda) pone los 8 puntos REALES de un octágono —punta + nudillo
-    PIP de cada uno de los 4 dedos largos (el pulgar queda afuera, su
-    geometría no encaja en el anillo)—, como un octágono plano en la
-    palma; la OTRA mano ("ápice", la de más a la derecha) aporta un solo
-    punto —su muñeca— que "levanta" ese octágono a volumen: acercarla
-    aplana la gema, alejarla la afila, moverla la inclina (ver
-    GEM_RING_LANDMARKS, GEM_APEX_LANDMARK, buildGemGeometry, updateGem).
-    El volumen usa la Z real de cada landmark (MediaPipe la da para toda
-    la mano, no solo X/Y) en vez de una fórmula inventada, así que doblar
-    o girar los dedos de la mano base también pliega esa cara.
-    Se probaron varios diseños antes de este: 2 puntos (una muñeca por
-    mano) + un anillo generado geométricamente (daba volumen real pero
-    solo 2 puntos de control, se sentía como un cuadrilátero estirado en
-    3D); dos "coronas" de 9 puntos (una por mano, muñeca+anillo cada una)
-    conectadas por una cintura (más control, pero se veía como dos conos
-    pegados por una línea, no una gema única). Esta pirámide de base
-    única es la que quedó: una sola figura continua, y más fiel a la idea
-    original ("un octágono en la palma que la otra mano convierte en 3D").
-    La distancia del ápice al anillo se recorta a un máximo proporcional
-    al tamaño del propio anillo (GEM_MAX_HEIGHT_RATIO) — probado en vivo
-    sin este límite, con las manos separadas (lo natural al mostrarlas)
-    la gema quedaba como un cuchillo larguísimo en vez de una gema
-    proporcionada, porque el anillo es del tamaño de una mano y la
-    distancia entre manos es del tamaño de un brazo.
+    con volumen real (las del Acto 1 son planos con Z=0). Al arrancar el
+    Acto 2 la cámara se desliza sola hacia abajo hasta desaparecer del
+    todo (ver startCameraSlide/updateCameraSlideAnimation, uSlideOffset en
+    el shader de fondo) — de ahí en más, pantalla negra con solo la gema.
+    Van CUATRO diseños de gema probados (ver PLAN.md para el historial
+    completo) — los primeros tres leían landmarks individuales de dedo
+    (con o sin la Z cruda de MediaPipe) y las tres, probadas en vivo, se
+    veían erráticas/sin sentido: la Z de MediaPipe es el eje MENOS preciso
+    de los tres, y leerla en 8 puntos independientes a la vez amplifica
+    cualquier tembleque a saltos grandes de volumen; encima un anillo de
+    landmarks reales se puede "retorcer" (dejar de ser un anillo válido)
+    apenas los dedos no se mueven perfectamente sincronizados, que es
+    prácticamente siempre.
+    Diseño actual (v4): forma FIJA y reconocible —dos anillos octagonales
+    regulares (geometría, nunca landmarks, así que nunca se retuercen) con
+    una punta chica más allá de cada uno, silueta punta-ancho-ancho-punta—
+    controlada por señales AGREGADAS y estables, no por landmarks
+    individuales: la "apertura" de cada mano (un solo número — qué tan
+    lejos están en promedio las puntas de los 4 dedos largos respecto a la
+    muñeca, normalizado por handScale()) controla el RADIO del anillo de
+    ESA mano (mano abierta ensancha esa punta, cerrada la afila, sin leer
+    Z de ningún dedo); la posición de las 2 muñecas controla tamaño e
+    inclinación general (ver GEM_RING_SIDES, handOpenness,
+    buildGemGeometry, updateGem). La separación entre anillos se recorta a
+    un máximo proporcional a su propio radio promedio
+    (GEM_MAX_LENGTH_RATIO) — mismo problema ya encontrado en diseños
+    anteriores: con las manos separadas (lo natural al mostrarlas) la gema
+    puede quedar como un cuchillo larguísimo si no se limita la proporción
+    largo/ancho.
     La gema NO se fija nunca (sin STILL_TOLERANCE ni copias congeladas) —
     solo sigue viva a las manos.
+    Tres movimientos con "comando": levantar UNA mano con 1, 2 o 3 dedos
+    arriba (sostenido un instante) dispara GIRO / LATIDO / SALTO
+    respectivamente. Se probó primero con gestos de movimiento (girar
+    rápido, abrir/cerrar rápido, subir rápido) y no se sentían bien ni
+    eran fáciles de repetir a propósito — contar dedos es mucho más
+    discreto y confiable de leer. Ver countExtendedFingers/
+    checkGemCommands/fireGemCommand junto a updateGem.
     Sigue siendo Fase 1 en espíritu para todo: sin color de marca, sin
     decoración — validar primero que cada mecanismo se sienta bien.
   -->
@@ -323,48 +333,63 @@
     );
 
     // Gema: primera figura con volumen real (las demás son planos), del
-    // ACTO 2 (ver más abajo, sección ACTO 2). Una PIRÁMIDE de base
-    // octagonal, no dos conos empalmados (ese fue el primer intento —
-    // se veía como dos puntas pegadas por una línea, no una gema única).
-    // Una mano ("base") pone los 8 puntos REALES del octágono —su punta y
-    // su nudillo PIP de cada uno de los 4 dedos largos (índice, medio,
-    // anular, meñique); el pulgar queda afuera, su geometría no encaja en
-    // el anillo—, como un octágono plano en la palma. La OTRA mano
-    // ("ápice") aporta un solo punto —su muñeca— que "levanta" ese
-    // octágono a volumen real: acercarla aplana la pirámide, alejarla la
-    // hace más alta, moverla de lado la inclina. 9 vértices en total,
-    // todos landmarks reales. Fase A (mecanismo, sin decoración): un solo
-    // MeshNormalMaterial.
-    const GEM_APEX_LANDMARK = 0; // muñeca de la mano "ápice"
-    // Recorrido de las puntas (arco externo) y después los nudillos PIP en
-    // sentido inverso (arco interno) — así los vecinos de la lista quedan
-    // espacialmente cerca (dedo consigo mismo, o dedo con el dedo de al
-    // lado) y el anillo cierra en un lazo simple, sin cruzarse.
-    const GEM_RING_LANDMARKS = [20, 16, 12, 8, 6, 10, 14, 18]; // meñique,anular,medio,índice (puntas) · índice,medio,anular,meñique (PIP), de la mano "base"
-    const GEM_RING_SIZE = GEM_RING_LANDMARKS.length; // 8 — dos vértices por dedo (punta + nudillo), 4 dedos
-    // Layout: 0 = ápice, 1..GEM_RING_SIZE = anillo (base octagonal).
-    function buildGemGeometry(ringSize) {
-      const apex = 0;
-      const ring = (i) => 1 + i;
+    // ACTO 2 (ver más abajo, sección ACTO 2). Rediseño (v4) — se probaron
+    // tres versiones basadas en landmarks individuales de dedo (con o sin
+    // Z cruda de MediaPipe) y las tres, probadas en vivo, se veían
+    // erráticas o "sin sentido" — la Z de MediaPipe es el eje MENOS
+    // preciso de los tres, y ocho puntos independientes leyéndola a la vez
+    // amplifica cualquier tembleque a saltos grandes; encima un anillo de
+    // landmarks reales se puede "retorcer" (dejar de ser un anillo válido)
+    // apenas los dedos no se mueven perfectamente sincronizados, que es
+    // prácticamente siempre. Ver historial completo en PLAN.md.
+    //
+    // Esta versión vuelve a una forma FIJA y reconocible —dos anillos
+    // octagonales regulares (nunca se retuercen, son geometría, no
+    // landmarks) con una punta chica más allá de cada uno, silueta
+    // punta-ancho-ancho-punta— controlada por señales AGREGADAS y
+    // estables en vez de landmarks individuales:
+    //   - la "apertura" de cada mano (un solo número, ver handOpenness())
+    //     controla el RADIO del anillo de ESA mano — mano abierta ensancha
+    //     esa punta, mano cerrada la afila. Sin Z de dedo individual.
+    //   - la posición de las 2 muñecas controla tamaño e inclinación
+    //     general (mismo principio que ya usaba la viga).
+    // Ver updateGem() más abajo para el armado completo.
+    const GEM_RING_SIDES = 8;
+    // Layout: 0 = punta izquierda, 1..GEM_RING_SIDES = anillo izquierdo,
+    // GEM_RING_SIDES+1..2*GEM_RING_SIDES = anillo derecho, último = punta
+    // derecha.
+    function buildGemGeometry(sides) {
+      const apexLeft = 0;
+      const ringLeft = (i) => 1 + i;
+      const ringRight = (i) => 1 + sides + i;
+      const apexRight = 1 + 2 * sides;
+
       const indices = [];
-      // Manto: caras laterales, en abanico desde el ápice hacia el anillo.
-      for (let i = 0; i < ringSize; i++) {
-        indices.push(apex, ring(i), ring((i + 1) % ringSize));
+      // Tapa izquierda: abanico desde su punta hacia su anillo.
+      for (let i = 0; i < sides; i++) {
+        indices.push(apexLeft, ringLeft(i), ringLeft((i + 1) % sides));
       }
-      // Base: cierra el octágono por abajo (otro abanico, del anillo
-      // consigo mismo) para que no se vea hueca al girarla — sin esto
-      // sería un cono abierto, no un sólido.
-      for (let i = 1; i < ringSize - 1; i++) {
-        indices.push(ring(0), ring(i + 1), ring(i));
+      // Cintura: conecta los dos anillos índice a índice — como los dos
+      // están construidos con el MISMO marco angular (ver updateGem), los
+      // vértices ya quedan alineados, sin torsión ni costura rara.
+      for (let i = 0; i < sides; i++) {
+        const a0 = ringLeft(i), a1 = ringLeft((i + 1) % sides);
+        const b0 = ringRight(i), b1 = ringRight((i + 1) % sides);
+        indices.push(a0, a1, b1);
+        indices.push(a0, b1, b0);
       }
-      const uvs = [0.5, 0.5]; // ápice
-      for (let i = 0; i < ringSize; i++) {
-        const theta = (2 * Math.PI * i) / ringSize;
-        uvs.push(0.5 + 0.5 * Math.cos(theta), 0.5 + 0.5 * Math.sin(theta));
+      // Tapa derecha: mismo abanico del otro lado (orden invertido).
+      for (let i = 0; i < sides; i++) {
+        indices.push(apexRight, ringRight((i + 1) % sides), ringRight(i));
       }
-      return { vertexCount: ringSize + 1, indices, uvs };
+
+      const uvs = [0.5, 0]; // punta izquierda
+      for (let i = 0; i < sides; i++) uvs.push(i / sides, 0.33); // anillo izquierdo
+      for (let i = 0; i < sides; i++) uvs.push(i / sides, 0.67); // anillo derecho
+      uvs.push(0.5, 1); // punta derecha
+      return { vertexCount: 2 * sides + 2, indices, uvs };
     }
-    const gemGeo = buildGemGeometry(GEM_RING_SIZE);
+    const gemGeo = buildGemGeometry(GEM_RING_SIDES);
     const gemShape = createDeformableShape(gemGeo.vertexCount, gemGeo.indices, gemGeo.uvs);
 
     // ========== CÁMARA ==========
@@ -421,7 +446,11 @@
       uContrast: { value: 1.4 },
       uSaturation: { value: 1.8 },
       uBrightness: { value: 0.0 },
-      uPaletteShift: { value: 0.0 }
+      uPaletteShift: { value: 0.0 },
+      // 0 = cámara normal, 1 = deslizada del todo fuera de cuadro (negro).
+      // La anima updateCameraSlideAnimation() al entrar al Acto 2 — ver esa
+      // función y ACTO 2 más abajo.
+      uSlideOffset: { value: 0 }
     };
 
     const bgVertexShader = `
@@ -522,6 +551,7 @@
     const bgFragmentShader = `
       precision mediump float;
       uniform float uMix;
+      uniform float uSlideOffset;
       varying vec2 vUv;
       ${gradingGLSL}
       void main() {
@@ -529,9 +559,19 @@
         // CSS) — vUv viene del plano de fondo (sin cámara, NDC directo), así
         // que hace falta espejarlo acá antes de muestrear.
         vec2 mirroredUv = vec2(1.0 - vUv.x, vUv.y);
+        // uSlideOffset "empuja" el punto de muestreo hacia arriba del
+        // video — cuando eso cae fuera del cuadro (>1.0), ya no hay nada
+        // que mostrar ahí: negro. El efecto visual es que la cámara se va
+        // deslizando hacia abajo hasta desaparecer del todo (Acto 2, ver
+        // updateCameraSlideAnimation).
+        vec2 slidUv = mirroredUv + vec2(0.0, uSlideOffset);
+        if (slidUv.y > 1.0) {
+          gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
+          return;
+        }
         // uMix: mezcla con el video sin procesar — esto es lo que anima
         // launchTriangle()/resetColorEffect() al disparar/chasquear.
-        vec3 finalColor = mix(sampleOriginalVideo(mirroredUv), sampleGradedVideo(mirroredUv), uMix);
+        vec3 finalColor = mix(sampleOriginalVideo(slidUv), sampleGradedVideo(slidUv), uMix);
         gl_FragColor = vec4(finalColor, 1.0);
       }
     `;
@@ -666,6 +706,23 @@
       const t = Math.min(1, (now - colorMixAnimStartAt) / COLOR_MIX_DURATION_MS);
       const eased = t * (2 - t); // ease-out cuadrático, igual que el pop-in
       bgUniforms.uMix.value = colorMixFrom + (colorMixTarget - colorMixFrom) * eased;
+    }
+
+    // Al entrar al Acto 2 (ver resetColorEffect), la cámara se desliza
+    // sola hacia abajo hasta desaparecer del todo — de ahí en adelante
+    // queda negro de fondo, con solo la gema visible. Es de una sola vía
+    // (no hay "deslizar de vuelta"): el Acto 2 tampoco tiene vuelta atrás.
+    const CAMERA_SLIDE_DURATION_MS = 900;
+    let cameraSlideStartAt = null;
+
+    function startCameraSlide(now) { cameraSlideStartAt = now; }
+
+    function updateCameraSlideAnimation(now) {
+      if (cameraSlideStartAt === null) return;
+      const t = Math.min(1, (now - cameraSlideStartAt) / CAMERA_SLIDE_DURATION_MS);
+      const eased = t * (2 - t); // mismo ease-out que el resto de las animaciones
+      bgUniforms.uSlideOffset.value = eased;
+      if (t >= 1) cameraSlideStartAt = null; // terminó — se queda en 1 (negro)
     }
 
     // Panel permanente: cada slider mueve su uniform en vivo. uMix
@@ -877,19 +934,14 @@
     // modo arco haría que el 1 Euro Filter viera un "salto" brusco en la
     // posición cruda y overshoot-eara tratando de suavizarlo.
     const arrowFilters = makeCornerFilters(3);
-    // La gema tiene 12 vértices, TODOS con landmark real detrás (2
-    // muñecas + 10 puntas de dedo) — a diferencia de makeCornerFilters,
-    // acá cada vértice también necesita suavizar profundidad (Z real del
-    // landmark, no solo X/Y), así que se arma con su propio filtro de 3
-    // ejes (ver updateGem).
-    function makeGemFilters(count) {
-      return Array.from({ length: count }, () => ({
-        x: new OneEuroFilter(30, POS_MINCUTOFF, POS_BETA),
-        y: new OneEuroFilter(30, POS_MINCUTOFF, POS_BETA),
-        z: new OneEuroFilter(30, POS_MINCUTOFF, POS_BETA)
-      }));
-    }
-    const gemFilters = makeGemFilters(GEM_RING_SIZE + 1);
+    // La gema ya NO lee landmarks individuales de dedo — solo 2 muñecas
+    // (posición) y 2 números de "apertura" (uno por mano, ver
+    // handOpenness() más abajo), cada uno con su propio filtro.
+    const gemWristFilters = makeCornerFilters(2); // x,y — muñeca izquierda y derecha
+    const gemOpennessFilters = [
+      new OneEuroFilter(30, POS_MINCUTOFF, POS_BETA),
+      new OneEuroFilter(30, POS_MINCUTOFF, POS_BETA)
+    ];
 
     function updateShapeVertices(shape, filters, points, timestamp, { stampable = true } = {}) {
       const crop = getCoverCrop();
@@ -915,85 +967,249 @@
     }
 
     // ========== GEMA (Acto 2 — dos manos abiertas) ==========
-    // A diferencia de las demás figuras (planos deformados con Z=0), la
-    // gema tiene volumen real de verdad: usa la Z real de cada landmark
-    // (MediaPipe la da para los 21 puntos de la mano, no solo X/Y), no un
-    // desplazamiento inventado — así el volumen lo define la mano de
-    // verdad (girarla, doblar un dedo hacia la cámara) en vez de una
-    // fórmula fija. GEM_DEPTH_SCALE controla cuánto se exagera esa Z
-    // (viene en una escala parecida a X/Y de MediaPipe, no directamente
-    // en unidades de mundo) — valor de partida, por calibrar en vivo.
-    const GEM_DEPTH_SCALE = 2.2;
+    // A diferencia de las demás figuras (planos con Z=0), la gema tiene
+    // volumen real — pero a diferencia de los intentos anteriores (ver
+    // comentario junto a buildGemGeometry), ese volumen sale de señales
+    // AGREGADAS y estables, no de landmarks individuales de dedo.
 
-    // landmark.z de MediaPipe: negativo = más cerca de la cámara que la
-    // muñeca. Se invierte el signo para que "más cerca de cámara" empuje
-    // hacia +Z en mundo (mismo sentido que usa la animación de disparo
-    // del arco, ver updateLaunchAnimation) — o sea, hacia el espectador.
-    function landmarkWorldZ(landmark, frustum) {
-      return -landmark.z * frustum.width * GEM_DEPTH_SCALE;
+    // "Apertura" de una mano: un solo número — el promedio de qué tan
+    // lejos están las puntas de los 4 dedos largos (sin pulgar, igual que
+    // isFist) respecto a la muñeca, normalizado por handScale() (mismo
+    // truco de auto-normalización que ya usan pinchRatio/el arco, así no
+    // importa qué tan lejos esté la mano de la cámara). Puño cerrado da un
+    // número chico, mano bien abierta uno grande — es un solo escalar
+    // filtrado, no 4 puntos temblando cada uno por su cuenta.
+    const GEM_OPENNESS_LANDMARKS = [8, 12, 16, 20]; // puntas índice/medio/anular/meñique
+    function handOpenness(landmarks) {
+      const scale = handScale(landmarks);
+      let sum = 0;
+      for (const li of GEM_OPENNESS_LANDMARKS) {
+        sum += Math.hypot(landmarks[li].x - landmarks[0].x, landmarks[li].y - landmarks[0].y);
+      }
+      return (sum / GEM_OPENNESS_LANDMARKS.length) / scale;
+    }
+    // Rango de calibración de handOpenness() — valores de partida, por
+    // ajustar en vivo (mismo criterio que PINCH_CLOSED/OPEN_RATIO).
+    const GEM_OPENNESS_MIN = 1.4; // puño cerrado, aprox.
+    const GEM_OPENNESS_MAX = 3.2; // mano bien abierta, aprox.
+    const GEM_RADIUS_MIN = 0.35;  // radio del anillo (mundo) con la mano cerrada
+    const GEM_RADIUS_MAX = 1.15;  // ...con la mano bien abierta
+    function opennessToRadius(openness) {
+      const t = THREE.MathUtils.clamp((openness - GEM_OPENNESS_MIN) / (GEM_OPENNESS_MAX - GEM_OPENNESS_MIN), 0, 1);
+      return GEM_RADIUS_MIN + t * (GEM_RADIUS_MAX - GEM_RADIUS_MIN);
     }
 
-    // Qué tan alta puede llegar a ser la gema, en "radios de anillo" (el
-    // tamaño propio del octágono, medido cada frame — mismo espíritu que
-    // handScale(), una referencia que se auto-normaliza con el tamaño
-    // real de la mano en vez de un número fijo de mundo). Probado en vivo
-    // sin este límite: con las manos separadas (lo más natural al
-    // mostrar "dos manos abiertas") la gema quedaba como un cuchillo
-    // larguísimo, no una gema — el anillo es del tamaño de una mano pero
-    // la distancia al ápice es del tamaño de un brazo estirado, y esas
-    // dos escalas no tienen nada que ver entre sí. Este límite SOLO
-    // recorta qué tan lejos puede llegar a estar el vértice del ápice —
-    // la dirección real (hacia dónde apunta la mano ápice) se respeta
-    // siempre, y mientras la distancia esté dentro del límite el
-    // seguimiento sigue siendo 1:1 con la mano de verdad.
-    const GEM_MAX_HEIGHT_RATIO = 3;
+    // Qué tan lejos sobresale la punta chica de cada anillo, relativo al
+    // propio radio de ESE anillo (no un tamaño fijo de mundo — así se ve
+    // bien tanto con la mano cerrada como abierta).
+    const GEM_TAPER_RATIO = 0.9;
+    // Separación máxima entre los dos anillos, en "radios promedio" —
+    // mismo problema ya encontrado en el intento anterior: con las manos
+    // separadas (lo natural al mostrar "dos manos abiertas") la gema
+    // puede quedar como un cuchillo larguísimo si no se limita la
+    // proporción largo/ancho. La dirección real siempre se respeta, solo
+    // se acorta la distancia.
+    const GEM_MAX_LENGTH_RATIO = 3.5;
 
-    // handBase pone el anillo (octágono), handApex pone el ápice — los
-    // roles NO se detectan por pose (nada de clasificar "cuál mano está
-    // plana"; eso sería frágil, ver isGunHand en su momento) sino que se
-    // fijan por posición en processActTwo (izquierda = base, derecha =
-    // ápice), igual que el cuadrilátero ya hace con izquierda/derecha.
-    function updateGem(handBase, handApex, timestamp) {
+    // ---- Movimientos con "comando" (contar dedos) ----
+    // Tres animaciones sobre la gema ya armada arriba, disparadas por un
+    // comando explícito y discreto — se probaron gestos de movimiento
+    // (girar rápido, abrir/cerrar rápido, subir rápido) y no se sentían
+    // bien ni eran confiables de repetir a propósito. Reemplazado por algo
+    // mucho más simple: levantar UNA mano mostrando 1, 2 o 3 dedos — igual
+    // de fácil de leer para MediaPipe que el resto de las poses del
+    // proyecto (mismo criterio punta-vs-nudillo que ya usa isFist, pero
+    // contado por dedo en vez de agregado en un sí/no).
+
+    // Cuenta cuántos de los 4 dedos largos (sin pulgar, mismo criterio de
+    // exclusión que isFist) están extendidos: punta más lejos de la
+    // muñeca que su nudillo medio (PIP).
+    const GEM_COMMAND_FINGERS = [
+      { tip: 8, pip: 6 },   // índice
+      { tip: 12, pip: 10 }, // medio
+      { tip: 16, pip: 14 }, // anular
+      { tip: 20, pip: 18 }  // meñique
+    ];
+    function countExtendedFingers(landmarks) {
+      const wrist = landmarks[0];
+      let count = 0;
+      for (const f of GEM_COMMAND_FINGERS) {
+        const tipDist = Math.hypot(landmarks[f.tip].x - wrist.x, landmarks[f.tip].y - wrist.y);
+        const pipDist = Math.hypot(landmarks[f.pip].x - wrist.x, landmarks[f.pip].y - wrist.y);
+        if (tipDist > pipDist) count++;
+      }
+      return count;
+    }
+    // Cuánto sostener el conteo (1/2/3) antes de confirmar el comando —
+    // evita disparar por un solo frame mal leído al pasar de un número a
+    // otro. Después de disparar, un enfriamiento evita repetir el mismo
+    // comando muchas veces solo por seguir sosteniendo la mano.
+    const GEM_COMMAND_HOLD_MS = 350;
+    const GEM_COMMAND_COOLDOWN_MS = 700;
+    const GEM_COMMAND_SPIN_KICK = 14; // impulso de giro (rad/s) que da el comando de 1 dedo
+    let gemCommandCandidate = null;
+    let gemCommandCandidateSince = 0;
+    let gemCommandCooldownUntil = 0;
+
+    function fireGemCommand(n, now) {
+      if (n === 1) {
+        gemSpinVelocity = THREE.MathUtils.clamp(gemSpinVelocity + GEM_COMMAND_SPIN_KICK, -GEM_SPIN_MAX_VELOCITY, GEM_SPIN_MAX_VELOCITY);
+      } else if (n === 2) {
+        triggerGemPulse(now);
+      } else if (n === 3) {
+        triggerGemJump(now);
+      }
+    }
+
+    // Si cualquiera de las dos manos sostiene 1, 2 o 3 dedos el tiempo
+    // suficiente, dispara ese comando (con enfriamiento después).
+    function checkGemCommands(handLeft, handRight, now) {
+      if (now < gemCommandCooldownUntil) return;
+      const countLeft = countExtendedFingers(handLeft);
+      const countRight = countExtendedFingers(handRight);
+      let candidate = null;
+      if (countLeft >= 1 && countLeft <= 3) candidate = countLeft;
+      else if (countRight >= 1 && countRight <= 3) candidate = countRight;
+
+      if (candidate !== gemCommandCandidate) {
+        gemCommandCandidate = candidate;
+        gemCommandCandidateSince = now;
+        return;
+      }
+      if (candidate !== null && now - gemCommandCandidateSince >= GEM_COMMAND_HOLD_MS) {
+        fireGemCommand(candidate, now);
+        gemCommandCooldownUntil = now + GEM_COMMAND_COOLDOWN_MS;
+        gemCommandCandidate = null;
+      }
+    }
+
+    // Giro: decae solo con fricción una vez que algo le dio impulso (ver
+    // fireGemCommand) — como un trompo. GEM_SPIN_MAX_VELOCITY topa
+    // impulsos repetidos para que no se vuelva absurdo.
+    const GEM_SPIN_MAX_VELOCITY = 30;
+    const GEM_SPIN_FRICTION = 0.98; // decae multiplicándose por esto cada ~frame — <1, se va frenando solo
+    let gemSpinPhase = 0;
+    let gemSpinVelocity = 0;
+    let gemLastUpdateAt = null;
+
+    // Latido: un pulso de tamaño que sube y vuelve a bajar solo.
+    const GEM_PULSE_DURATION_MS = 400;
+    const GEM_PULSE_PEAK = 0.4; // +40% de radio en el punto más alto
+    let gemPulseStartAt = null;
+
+    // Salto: sube y cae solo, una vez.
+    const GEM_JUMP_HEIGHT = 1.2;
+    const GEM_JUMP_DURATION_MS = 500;
+    let gemJumpStartAt = null;
+
+    function triggerGemPulse(now) { gemPulseStartAt = now; }
+    function triggerGemJump(now) { gemJumpStartAt = now; }
+
+    // Se llama al ocultar la gema (ver hideShape) — sin esto, al
+    // reaparecer heredaría un dt gigante (todo el tiempo que estuvo
+    // oculta) y lo leería como un giro brusco que nunca pasó.
+    function resetGemMotionState() {
+      gemSpinVelocity = 0;
+      gemLastUpdateAt = null;
+      gemPulseStartAt = null;
+      gemJumpStartAt = null;
+      gemCommandCandidate = null;
+      gemCommandCandidateSince = 0;
+      gemCommandCooldownUntil = 0;
+    }
+
+    function gemPulseFactor(now) {
+      if (gemPulseStartAt === null) return 1;
+      const t = (now - gemPulseStartAt) / GEM_PULSE_DURATION_MS;
+      if (t >= 1) { gemPulseStartAt = null; return 1; }
+      return 1 + GEM_PULSE_PEAK * Math.sin(Math.PI * t); // sube y baja, un solo pulso
+    }
+    function gemJumpOffset(now) {
+      if (gemJumpStartAt === null) return 0;
+      const t = (now - gemJumpStartAt) / GEM_JUMP_DURATION_MS;
+      if (t >= 1) { gemJumpStartAt = null; return 0; }
+      return GEM_JUMP_HEIGHT * Math.sin(Math.PI * t); // sube y vuelve a bajar, un solo salto
+    }
+
+    // handLeft/handRight ya vienen ordenadas por posición X (ver
+    // processActTwo, mismo criterio estable que ya usa el cuadrilátero) —
+    // cada mano molda su propio extremo, ningún rol especial para
+    // ninguna de las dos.
+    function updateGem(handLeft, handRight, timestamp) {
       const crop = getCoverCrop();
       const frustum = getVisibleFrustum();
+
+      const wLeft = toWorld(handLeft[0], crop, frustum);
+      const wRight = toWorld(handRight[0], crop, frustum);
+      const lx = gemWristFilters[0].x.filter(wLeft.x, timestamp);
+      const ly = gemWristFilters[0].y.filter(wLeft.y, timestamp);
+      const rx = gemWristFilters[1].x.filter(wRight.x, timestamp);
+      const ry = gemWristFilters[1].y.filter(wRight.y, timestamp);
+
+      const openLeft = gemOpennessFilters[0].filter(handOpenness(handLeft), timestamp);
+      const openRight = gemOpennessFilters[1].filter(handOpenness(handRight), timestamp);
+      let radiusLeft = opennessToRadius(openLeft);
+      let radiusRight = opennessToRadius(openRight);
+
+      const left = new THREE.Vector3(lx, ly, 0);
+      const right = new THREE.Vector3(rx, ry, 0);
+      const spine = right.clone().sub(left);
+      const rawDist = spine.length();
+      if (rawDist < 1e-4) return; // manos coincidiendo — evita NaN más abajo
+      spine.normalize();
+
+      // dt general de este tramo, para la fricción del giro —
+      // `gemLastUpdateAt` se resetea al ocultarse la gema (ver hideShape)
+      // así que no arrastra un dt gigante de cuando estuvo oculta.
+      const dt = gemLastUpdateAt !== null ? (timestamp - gemLastUpdateAt) / 1000 : 0;
+      gemLastUpdateAt = timestamp;
+
+      // Comando por dedos (1/2/3) — ver checkGemCommands/fireGemCommand.
+      checkGemCommands(handLeft, handRight, timestamp);
+
+      if (dt > 0) {
+        gemSpinPhase += gemSpinVelocity * dt;
+        gemSpinVelocity *= GEM_SPIN_FRICTION;
+      }
+      const pulseFactor = gemPulseFactor(timestamp);
+      radiusLeft *= pulseFactor;
+      radiusRight *= pulseFactor;
+
+      const avgRadius = (radiusLeft + radiusRight) / 2;
+      const maxDist = avgRadius * GEM_MAX_LENGTH_RATIO;
+      const dist = Math.min(rawDist, maxDist);
+      const mid = left.clone().add(right).multiplyScalar(0.5);
+      mid.y += gemJumpOffset(timestamp);
+
+      const half = spine.clone().multiplyScalar(dist / 2);
+      const centerLeft = mid.clone().sub(half);
+      const centerRight = mid.clone().add(half);
+
+      // Mismo marco angular (perpRight/perpDepth) para los dos anillos —
+      // así quedan alineados vértice a vértice y la cintura no se tuerce.
+      // gemSpinPhase se suma acá: es lo que hace que el anillo "gire
+      // sobre su propio eje" en vez de solo trasladarse.
+      const perpRight = new THREE.Vector3(-spine.y, spine.x, 0).normalize();
+      const perpDepth = new THREE.Vector3(0, 0, 1);
+
       const posAttr = gemShape.geometry.attributes.position;
-
-      const filterPoint = (vi, landmark) => {
-        const w = toWorld(landmark, crop, frustum);
-        const rawZ = landmarkWorldZ(landmark, frustum);
-        return {
-          x: gemFilters[vi].x.filter(w.x, timestamp),
-          y: gemFilters[vi].y.filter(w.y, timestamp),
-          z: gemFilters[vi].z.filter(rawZ, timestamp)
-        };
+      const sides = GEM_RING_SIDES;
+      const writeRing = (baseIndex, center, radius) => {
+        for (let i = 0; i < sides; i++) {
+          const theta = (2 * Math.PI * i) / sides + gemSpinPhase;
+          const p = center.clone()
+            .addScaledVector(perpRight, Math.cos(theta) * radius)
+            .addScaledVector(perpDepth, Math.sin(theta) * radius);
+          posAttr.setXYZ(baseIndex + i, p.x, p.y, p.z);
+        }
       };
+      writeRing(1, centerLeft, radiusLeft);
+      writeRing(1 + sides, centerRight, radiusRight);
 
-      // Anillo: puntos reales de la mano base, sin recortar — se escriben
-      // tal cual.
-      const ringPts = GEM_RING_LANDMARKS.map((li, i) => filterPoint(1 + i, handBase[li]));
-      ringPts.forEach((p, i) => posAttr.setXYZ(1 + i, p.x, p.y, p.z));
-
-      // Centroide y "radio" del anillo — la referencia de escala de este
-      // frame (ver GEM_MAX_HEIGHT_RATIO).
-      const centroid = ringPts.reduce(
-        (acc, p) => ({ x: acc.x + p.x, y: acc.y + p.y, z: acc.z + p.z }),
-        { x: 0, y: 0, z: 0 }
-      );
-      centroid.x /= ringPts.length; centroid.y /= ringPts.length; centroid.z /= ringPts.length;
-      const ringRadius = ringPts.reduce(
-        (sum, p) => sum + Math.hypot(p.x - centroid.x, p.y - centroid.y, p.z - centroid.z),
-        0
-      ) / ringPts.length;
-
-      // Ápice: punto real de la otra mano, pero con la distancia al
-      // centroide recortada al máximo — ver comentario de
-      // GEM_MAX_HEIGHT_RATIO.
-      const rawApex = filterPoint(0, handApex[GEM_APEX_LANDMARK]);
-      const toApex = { x: rawApex.x - centroid.x, y: rawApex.y - centroid.y, z: rawApex.z - centroid.z };
-      const dist = Math.hypot(toApex.x, toApex.y, toApex.z) || 1e-6;
-      const maxDist = ringRadius * GEM_MAX_HEIGHT_RATIO;
-      const scale = Math.min(1, maxDist / dist);
-      posAttr.setXYZ(0, centroid.x + toApex.x * scale, centroid.y + toApex.y * scale, centroid.z + toApex.z * scale);
+      const apexLeft = centerLeft.clone().addScaledVector(spine, -radiusLeft * GEM_TAPER_RATIO);
+      const apexRight = centerRight.clone().addScaledVector(spine, radiusRight * GEM_TAPER_RATIO);
+      posAttr.setXYZ(0, apexLeft.x, apexLeft.y, apexLeft.z);
+      posAttr.setXYZ(1 + 2 * sides, apexRight.x, apexRight.y, apexRight.z);
 
       posAttr.needsUpdate = true;
       gemShape.geometry.computeVertexNormals();
@@ -1231,6 +1447,8 @@
       // La "ventana" del arco (ver ARCO Y FLECHA) tapa a triShape.mesh
       // mientras está activa — al ocultar triShape, se apaga junto con él.
       if (shape === triShape) arrowMesh.visible = false;
+      // Ver comentario en resetGemMotionState().
+      if (shape === gemShape) resetGemMotionState();
     }
     function updatePopAnimation(shape, now) {
       if (!shape.mesh.visible) return;
@@ -1400,6 +1618,10 @@
       hideShape(quadShape);
       hideShape(triShape);
       actTwoActive = true;
+      // La cámara empieza a deslizarse hacia abajo acá mismo, en paralelo
+      // con la animación de uMix de arriba — de acá en más, pantalla
+      // negra con solo la gema (ver startCameraSlide/updateCameraSlideAnimation).
+      startCameraSlide(now);
     }
 
     function updateArrowhead(gunHandLm, pinchHandLm, timestamp) {
@@ -1736,16 +1958,13 @@
       const openHands = allHands.filter((lm) => !isFist(lm));
 
       if (openHands.length === 2) {
-        // Izquierda = base (octágono), derecha = ápice — mismo orden
-        // estable por X que el cuadrilátero (ver processQuadAndTriangle).
-        // Sin este orden fijo, si el orden crudo de MediaPipe cambia de
-        // frame a frame, cada filtro de gemFilters (uno por vértice) vería
-        // saltar su fuente de una mano a la otra y la gema temblaría en
-        // vez de seguir suave — y encima los roles base/ápice se
-        // intercambiarían de golpe en vez de quedarse fijos por lado.
+        // Orden estable por X (misma idea que el cuadrilátero, ver
+        // processQuadAndTriangle) — sin esto, si el orden crudo de
+        // MediaPipe cambia de frame a frame, los filtros de muñeca/
+        // apertura verían saltar su fuente de una mano a la otra.
         const [a, b] = openHands;
-        const [handBase, handApex] = a[0].x <= b[0].x ? [a, b] : [b, a];
-        updateGem(handBase, handApex, now);
+        const [handLeft, handRight] = a[0].x <= b[0].x ? [a, b] : [b, a];
+        updateGem(handLeft, handRight, now);
         showShape(gemShape, now);
         setHandStatus('gema (2 manos abiertas)', 'ok');
       } else {
@@ -1787,6 +2006,7 @@
         }
         syncArrowMesh(); // copia posición/escala/opacidad de triShape.mesh YA actualizadas este frame
         updateColorMixAnimation(now);
+        updateCameraSlideAnimation(now);
         renderBoth();
 
         frames++;

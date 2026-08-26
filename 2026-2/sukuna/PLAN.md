@@ -632,19 +632,88 @@ La gema **no se fija nunca** (a diferencia de cuadrilátero/triángulo del
 Acto 1) — pedido explícito: "cuando aparezca el diamante quita absolutamente
 todo lo de fijar".
 
+### La gema, ronda 2: probada en vivo con manos reales, rediseño completo
+
+La pirámide de base octagonal (landmarks reales de dedo + Z cruda de
+MediaPipe) se probó en vivo con manos reales de verdad — no simulado — y el
+resultado fue errático: formas puntiagudas sin relación clara con la mano,
+saltando de frame a frame. **Causa raíz investigada, no solo un ajuste de
+umbrales**: la Z de MediaPipe es el eje MENOS preciso de los tres (estimada,
+no medida como X/Y), y leerla en 8 puntos independientes a la vez amplifica
+cualquier tembleque a saltos grandes de volumen; encima el anillo de 8
+landmarks reales se puede "retorcer" (dejar de ser un anillo geométricamente
+válido) apenas los dedos no se mueven perfectamente sincronizados entre sí —
+que es prácticamente siempre, nadie controla 4 dedos con esa precisión.
+
+**Diseño v4 (el que quedó)**: se abandona por completo la lectura de
+landmarks de dedo individuales para la geometría. Vuelve a una forma FIJA y
+reconocible — dos anillos octagonales **regulares** (geometría pura, nunca
+landmarks, así que nunca se retuercen) con una punta chica más allá de cada
+uno (silueta punta-ancho-ancho-punta) — controlada por **señales agregadas y
+estables**:
+- `handOpenness(landmarks)`: un solo número por mano — promedio de qué tan
+  lejos están las puntas de los 4 dedos largos respecto a la muñeca,
+  normalizado por `handScale()` (mismo truco de auto-normalización que ya
+  usa el arco). Controla el RADIO del anillo de esa mano — mano abierta
+  ensancha esa punta, cerrada la afila. Cero Z de dedo individual.
+- Posición de las 2 muñecas: tamaño e inclinación general del conjunto
+  (mismo principio que ya usaba la viga).
+- Mismo recorte de proporción largo/ancho que el diseño anterior
+  (`GEM_MAX_LENGTH_RATIO`), ahora medido sobre el radio promedio de los dos
+  anillos en vez de sobre un solo anillo.
+
+**Verificado en vivo, con manos reales, varias capturas seguidas**: gema
+facetada estable, sigue la inclinación/posición de las manos de forma
+coherente entre frames — sin ninguna de las formas erráticas de antes.
+
+### Movimientos con "comando"
+
+Primer intento: gestos de MOVIMIENTO — girar las manos rápido (detectando
+velocidad angular del eje), abrir/cerrar rápido dos veces (detectando cruces
+de umbral en `handOpenness`), subir las manos rápido (detectando velocidad
+vertical). Los tres se implementaron y se probaron, pero el usuario los
+encontró poco confiables/no se sentían bien de repetir a propósito —
+**se descartaron los tres detectores de movimiento por completo**, quedando
+solo la animación resultante (giro con fricción, pulso de tamaño, salto con
+rebote), todas reutilizables con cualquier disparador.
+
+**Reemplazo — contar dedos** (pedido explícito del usuario): con una mano
+levantada, `countExtendedFingers()` cuenta cuántos de los 4 dedos largos
+están extendidos (punta más lejos de la muñeca que su nudillo PIP — mismo
+tipo de comparación que ya usa `isFist`, pero por dedo). Sostener 1/2/3 dedos
+un instante (`GEM_COMMAND_HOLD_MS`) dispara GIRO/LATIDO/SALTO respectivamente,
+con un enfriamiento después (`GEM_COMMAND_COOLDOWN_MS`) para no repetir el
+mismo comando solo por seguir sosteniendo la mano.
+
+### Pantalla negra automática al entrar al Acto 2
+
+Pedido explícito: justo al terminar el arco (disparo + chasquido), en vez de
+quedar la cámara visible de fondo, la pantalla se pone sola en negro y solo
+se ve la gema — "la cámara se pasa abajo de manera suave". Implementado
+enteramente en el shader de fondo (`uSlideOffset`, animado por
+`updateCameraSlideAnimation`): desplaza el punto de muestreo del video hacia
+arriba progresivamente; en cuanto ese punto cae fuera del cuadro (>1.0), se
+pinta negro en vez de video — el efecto visual es la cámara deslizándose
+hacia abajo hasta desaparecer del todo (~0.9s). De una sola vía, como el
+resto del Acto 2: no hay animación de vuelta.
+
 ## Estado actual (actualizado)
 
 - **Acto 1** (cuadrilátero, triángulo, arco+flecha, shader de color): ✅
   validado en vivo, estable.
-- **Acto 2** (gema, pirámide de base octagonal, dos manos abiertas): ✅
-  validado en vivo con manos reales, incluido el arreglo de proporción.
-  Todavía **Fase A** — un solo `MeshNormalMaterial`, sin decorar.
+- **Acto 2** (gema v4 + pantalla negra + comandos por dedos): ✅ validado en
+  vivo con manos reales — gema estable, transición a negro fluida, los tres
+  comandos (giro/latido/salto) responden. **El usuario dio por cerrada esta
+  fase de desarrollo** ("quedo perfecto y exactamente como lo quería") —
+  próxima etapa: diseño visual, no mecanismo.
 
 ## Próximos pasos
 
-- **Fase B de la gema** (pendiente, explícitamente pospuesta por el usuario):
-  decoración por cara — el shader térmico ya construido en una cara, un
-  patrón propio (rayas diagonales, según las referencias) en otra.
+- **Trabajo de diseño** (etapa actual, a partir de acá): look visual de la
+  gema y del resto de las figuras — la mecánica ya está cerrada.
+- **Fase B de la gema** (pendiente, pospuesta): decoración por cara — el
+  shader térmico ya construido en una cara, un patrón propio (rayas
+  diagonales, según las referencias) en otra.
 - Decoración del cuadrilátero/triángulo del Acto 1 (textura a rayas, UVs ya
   preparadas desde el principio) — sigue pendiente desde antes del arco.
 - Vendorizar Three.js/MediaPipe al disco si el lugar del evento no tiene
