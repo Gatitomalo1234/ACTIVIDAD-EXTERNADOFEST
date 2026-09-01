@@ -1,0 +1,16 @@
+[build]
+  publish = "."
+
+# Sitio de CHASQUIDO (photo_particles.html). Vive en su propio netlify.toml,
+# aparte del de la raíz del repo (ese es el de Prisma, publica
+# "2026-2/prisma"): son dos sitios Netlify distintos apuntando a carpetas
+# distintas del mismo repo, cada uno con su "Base directory" propio en la
+# configuración del sitio (este va con Base directory = "2026-2").
+#
+# publish="." sirve toda esta carpeta tal cual (photo_particles.html,
+# foto.html, vendor/) — no hace falta build step, es HTML autocontenido.
+
+[[redirects]]
+  from = "/"
+  to = "/photo_particles.html"
+  status = 200

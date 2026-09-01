@@ -10,24 +10,30 @@
   <link rel="icon"
     href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%AB%B0%3C/text%3E%3C/svg%3E">
 
+  <!-- Librerías vendorizadas en vendor/ (ver vendor/README.md): la instalación
+       corre en el venue del evento, sin depender de su wifi para arrancar.
+       Solo el QR (Supabase upload) necesita internet real. -->
+
   <!-- Three.js Core (r128) -->
-  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+  <script src="vendor/three/three.min.js"></script>
 
   <!-- Three.js Post-Processing (Bloom) -->
-  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/CopyShader.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/LuminosityHighPassShader.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/EffectComposer.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/ShaderPass.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
+  <script src="vendor/three/shaders/CopyShader.js"></script>
+  <script src="vendor/three/shaders/LuminosityHighPassShader.js"></script>
+  <script src="vendor/three/postprocessing/EffectComposer.js"></script>
+  <script src="vendor/three/postprocessing/RenderPass.js"></script>
+  <script src="vendor/three/postprocessing/ShaderPass.js"></script>
+  <script src="vendor/three/postprocessing/UnrealBloomPass.js"></script>
 
-  <!-- Compartir: Supabase Storage + generador de QR -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
+  <!-- Compartir: Supabase Storage + generador de QR (estas dos SÍ necesitan
+       internet en tiempo real para funcionar, pero cargan locales) -->
+  <script src="vendor/supabase/supabase.js"></script>
+  <script src="vendor/qrcode/qrcode.js"></script>
 
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
-    @import url('https://fonts.googleapis.com/css2?family=Unbounded:wght@700;900&display=swap');
+    /* Vendorizada en vendor/fonts/ (ver vendor/README.md) para no depender
+       de la wifi del venue al arrancar */
+    @import url('vendor/fonts/fonts.css');
 
     * {
       margin: 0;
@@ -376,6 +382,40 @@
       50% { opacity: 0.35; }
     }
 
+    /* ---- Chip contador en vivo (estado espejo): sincronización en tiempo
+       real de verdad, no decorativa — mismo patrón que leaderboard.html ---- */
+    #visits-chip {
+      position: fixed;
+      top: 66px;
+      left: 24px;
+      z-index: 20;
+      display: none;
+      align-items: center;
+      gap: 7px;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      color: rgba(255, 255, 255, 0.8);
+      background: rgba(8, 8, 18, 0.5);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      padding: 7px 12px;
+      border-radius: 30px;
+      animation: fadeSlideIn 0.6s ease both;
+      animation-delay: 1.95s;
+    }
+
+    body[data-state="mirror"] #visits-chip,
+    body[data-state="countdown"] #visits-chip {
+      display: flex;
+    }
+
+    #visits-chip .count {
+      color: #c084fc;
+      font-weight: 900;
+    }
+
+
     /* ---- Obturador (estado espejo) ---- */
     #shutter-wrap {
       position: fixed;
@@ -481,21 +521,74 @@
       50% { opacity: 1; letter-spacing: 4px; }
     }
 
-    /* ---- Acciones (estado foto): discretas, esquina inferior izquierda ---- */
+    /* ---- Acciones (estado foto): botón circular en la esquina inferior
+       izquierda que despliega las 3 opciones al tocarlo — antes eran 3
+       pills sueltas siempre visibles, esto es más discreto y más claro
+       (una sola cosa que tocar primero) ---- */
     #photo-actions {
       position: fixed;
       bottom: 40px;
       left: 44px;
       z-index: 10;
       display: none;
-      flex-direction: row;
-      gap: 8px;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 10px;
     }
 
     body[data-state="photo"] #photo-actions {
       display: flex;
       animation: fadeSlideIn 0.6s ease both;
       animation-delay: 0.5s;
+    }
+
+    #actions-toggle {
+      width: 52px;
+      height: 52px;
+      border-radius: 50%;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      background: rgba(8, 8, 18, 0.55);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      color: rgba(255, 255, 255, 0.85);
+      font-size: 22px;
+      font-weight: 900;
+      line-height: 1;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+      transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1),
+                  background 0.25s ease, border-color 0.25s ease;
+    }
+
+    #actions-toggle:hover {
+      border-color: rgba(192, 132, 252, 0.5);
+      background: rgba(192, 132, 252, 0.2);
+    }
+
+    #photo-actions.open #actions-toggle {
+      transform: rotate(45deg);
+      background: rgba(192, 132, 252, 0.3);
+      border-color: rgba(192, 132, 252, 0.6);
+    }
+
+    #actions-menu {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      opacity: 0;
+      transform: translateY(10px) scale(0.92);
+      pointer-events: none;
+      transform-origin: bottom left;
+      transition: opacity 0.25s ease, transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    #photo-actions.open #actions-menu {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+      pointer-events: auto;
     }
 
     .mini-btn {
@@ -513,6 +606,7 @@
       backdrop-filter: blur(12px);
       -webkit-backdrop-filter: blur(12px);
       transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      white-space: nowrap;
     }
 
     .mini-btn:hover {
@@ -699,6 +793,7 @@
   <div class="corner" id="corner-br"></div>
 
   <div id="live-chip"><span class="dot"></span> EN VIVO</div>
+  <div id="visits-chip">✦ <span id="visits-count" class="count">—</span> CHASQUIDOS HOY</div>
 
   <div id="shutter-wrap">
     <button id="shutter-btn" aria-label="Tomar foto">🫰</button>
@@ -706,9 +801,12 @@
   </div>
 
   <div id="photo-actions">
-    <button class="mini-btn" id="qr-btn">📱 Descargar</button>
-    <button class="mini-btn" id="save-btn">⬇ Guardar</button>
-    <button class="mini-btn" id="snap-btn">💥 Chasquido</button>
+    <div id="actions-menu">
+      <button class="mini-btn" id="qr-btn">📱 Descargar</button>
+      <button class="mini-btn" id="save-btn">⬇ Guardar</button>
+      <button class="mini-btn" id="snap-btn">💥 Chasquido</button>
+    </div>
+    <button id="actions-toggle" aria-label="Más opciones">⋯</button>
   </div>
 
   <div id="qr-overlay">
@@ -730,7 +828,11 @@
 
   <script>
     // ========== CONFIG ==========
-    const PARTICLE_COUNT = 60000;
+    // 200k (prueba de rendimiento, subiendo desde 90k→150k→200k): en 150k el
+    // FPS no se movió, así que se sigue subiendo para encontrar el techo
+    // real del equipo. La foto queda en ~97.8k. Si el FPS se resiente acá,
+    // el paso anterior (150000) ya se sabe que corre bien.
+    const PARTICLE_COUNT = 200000;
     const LERP_SPEED = 0.04;
 
     // Foto
@@ -743,6 +845,50 @@
     const PHOTO_SATURATION = 1.25; // boost de saturación al capturar
     const PHOTO_STRETCH = 0.5;     // fuerza del estiramiento de contraste (0-1)
     const PHOTO_DEPTH = 0;         // relieve 3D desactivado: foto plana (para compartir por WhatsApp)
+
+    // Logo del departamento (cerebro + circuito, sin texto — el caption ya
+    // dice "CIENCIA DE DATOS") como decoración a ambos lados de la foto,
+    // simétrico. LOGO_COUNT es POR LADO (el presupuesto total es el doble).
+    // Subido de 8% a 12% al agregarle el fondo tipo estampa/sticker (ver
+    // getLogoPoints): el fondo blanco casi duplica el área a cubrir, y con
+    // el mismo presupuesto de antes se habría visto disperso otra vez.
+    const LOGO_COUNT = Math.round(PARTICLE_COUNT * 0.12);
+    const LOGO_MAX_HEIGHT_RATIO = 0.62; // no crece más de esta fracción de la altura de la foto
+    const LOGO_MARGIN = 0.22;           // separación foto↔logo, unidades de mundo (antes del fit-scale)
+    // Aire para que se vea como sticker pegado a mano, no copiado y pegado:
+    // cada lado (y cada foto) sale con una inclinación y una posición
+    // ligeramente distintas, dentro de estos topes.
+    const LOGO_TILT_MAX_DEG = 14;  // inclinación máxima, en cualquier sentido
+    const LOGO_Y_JITTER = 0.16;    // desplazamiento vertical máximo, fracción de la altura de la foto
+    const LOGO_X_JITTER = 0.12;    // variación en la separación foto↔logo, fracción de LOGO_MARGIN
+
+    // Stickers decorativos: acentos chicos apilados junto al logo, A LOS
+    // LADOS de la foto — nunca encima. Más chicos que el logo: son
+    // acompañantes, no protagonistas. Repertorio de 6 (diamante, cohete,
+    // planeta, corazón, rayo, cámara — ver getDiamondPoints y siguientes):
+    // en cada foto se sortean 4 sin repetir, uno por cada uno de los 4
+    // huecos (arriba/abajo de cada logo), así que la combinación cambia de
+    // persona a persona. STICKER_COUNT es por hueco (son 4 huecos, el
+    // presupuesto total es el cuádruple).
+    const STICKER_COUNT = Math.round(PARTICLE_COUNT * 0.02);
+    const STICKER_SIZE = 0.5;          // ancho del sticker, unidades de mundo (antes del fit-scale)
+    const STICKER_TILT_MAX_DEG = 20;   // más inclinados que el logo: se sienten más "tirados" a mano
+
+    // DEBUG TEMPORAL — pide una vista de "catálogo" con TODOS los stickers
+    // del repertorio a la vez (en vez del sorteo de 4) para revisarlos y
+    // decidir cuáles quitar/mejorar. Poner en false (o borrar este bloque)
+    // cuando ya se decidió la limpieza — no es el modo normal del photobooth.
+    const DEBUG_SHOW_ALL_STICKERS = false;
+    const STICKER_SLOTS = DEBUG_SHOW_ALL_STICKERS ? 9 : 4; // huecos disponibles: cuántos del repertorio salen por foto (9 = repertorio completo en modo DEBUG)
+
+    // Destellos de relleno: chiquitos y baratos, tapan el espacio negro
+    // entre el logo y los stickers en vez de dejarlo vacío. Un solo dibujo
+    // (blanco) reteñido al azar con los colores de las gemas del título —
+    // variedad de color sin necesitar múltiples dibujos.
+    const SPARKLE_TOTAL = 12;                                // múltiplo de 4 (una cuadrícula por cada zona-hueco) — repartidos entre ambos lados
+    const SPARKLE_COUNT = Math.round(PARTICLE_COUNT * 0.003); // por destello
+    const SPARKLE_SIZE = 0.16;         // unidades de mundo (antes del fit-scale)
+    const SPARKLE_COLORS = ['#a855f7', '#38bdf8', '#ef4444', '#f59e0b', '#34d399', '#fde047']; // las 6 gemas
 
     // Armado (chasquido inverso: el polvo se condensa en la foto)
     const ASSEMBLE_SWEEP = 1.8;    // s: la onda barre la foto de izquierda a derecha
@@ -770,7 +916,6 @@
     const ATTRACT_PHASE = 5;       // s por fase (texto ↔ polvo)
     const ATTRACT_TEXTS = ['CHASQUIDO', 'TOCA EL BOTON'];
     const ATTRACT_PARTICLES = 14000;
-    const AUTO_SNAP_AFTER = 60;    // s en estado foto antes del chasquido automático
 
     // Compartir por QR (Supabase Storage — mismo proyecto del leaderboard).
     // Requiere un bucket PÚBLICO llamado como SHARE_BUCKET con permiso de
@@ -987,8 +1132,10 @@
 
       const img = ctx.getImageData(0, 0, cw, ch).data;
 
-      // Rejilla uniforme: una celda por partícula (las del caption van aparte)
-      const photoParticles = PARTICLE_COUNT - CAPTION_COUNT;
+      // Rejilla uniforme: una celda por partícula (caption, logo, stickers y
+      // destellos van aparte). LOGO_COUNT * 2: un logo a cada lado de la foto.
+      const photoParticles = PARTICLE_COUNT - CAPTION_COUNT - LOGO_COUNT * 2
+        - STICKER_COUNT * STICKER_SLOTS - SPARKLE_COUNT * SPARKLE_TOTAL;
       const gridCols = Math.round(Math.sqrt(photoParticles * cw / ch));
       const gridRows = Math.floor(photoParticles / gridCols);
       const cellW = cw / gridCols;
@@ -1143,13 +1290,686 @@
       return captionPoints;
     }
 
+    // ========== UTILIDADES COMPARTIDAS DE STICKERS ==========
+    // Rasteriza un canvas ya dibujado a puntos + color (como capturePhoto,
+    // pero de un dibujo estático en vez de la cámara — por eso no usa
+    // rasterizeToPoints(), que descarta el color). La usan el logo y todos
+    // los stickers de esquina.
+    function rasterizeColorPoints(ctx, W, H) {
+      const img = ctx.getImageData(0, 0, W, H).data;
+      const pts = [];
+      const cols = [];
+      let minX = W, maxX = 0, minY = H, maxY = 0;
+      for (let y = 0; y < H; y += 2) {
+        for (let x = 0; x < W; x += 2) {
+          const idx = (y * W + x) * 4;
+          if (img[idx + 3] > 128) {
+            pts.push([x, y]);
+            cols.push([img[idx] / 255, img[idx + 1] / 255, img[idx + 2] / 255]);
+            if (x < minX) minX = x;
+            if (x > maxX) maxX = x;
+            if (y < minY) minY = y;
+            if (y > maxY) maxY = y;
+          }
+        }
+      }
+      return { pts, cols, minX, maxX, minY, maxY };
+    }
+
+    // Fondo tipo estampa/sticker: forma blanca cálida con borde sutil morado
+    // detrás del dibujo — asoma en el margen como el respaldo de un sticker
+    // real. Se dibuja primero (queda abajo, el ícono la tapa donde va encima).
+    function drawStickerBacking(ctx, shape, x0, y0, x1, y1, radiusOrNothing) {
+      if (shape === 'circle') {
+        const cx = (x0 + x1) / 2, cy = (y0 + y1) / 2, r = (x1 - x0) / 2;
+        ctx.beginPath();
+        ctx.arc(cx, cy, r, 0, Math.PI * 2);
+      } else {
+        const r = radiusOrNothing;
+        ctx.beginPath();
+        ctx.moveTo(x0 + r, y0);
+        ctx.arcTo(x1, y0, x1, y1, r);
+        ctx.arcTo(x1, y1, x0, y1, r);
+        ctx.arcTo(x0, y1, x0, y0, r);
+        ctx.arcTo(x0, y0, x1, y0, r);
+        ctx.closePath();
+      }
+      ctx.fillStyle = '#f5f2ff'; // blanco cálido, no puro — se siente más a papel de estampa
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(168, 85, 247, 0.55)'; // morado de marca, sutil
+      ctx.lineWidth = (x1 - x0) * 0.013;
+      ctx.stroke();
+    }
+
+    // ========== LOGO CIENCIA DE DATOS (decoración junto a la foto) ==========
+    // Se probó reemplazarlo por una red neuronal genérica (nodos+conexiones)
+    // — quedó descartado: el logo real de la carrera identifica y es útil,
+    // una red neuronal de stock no. Vuelve el dibujo a mano (Canvas 2D +
+    // Bézier) del logo de particle_system.html (2026-1): cerebro rojo +
+    // circuito azul. Sin el texto "CIENCIA DE DATOS" — el caption debajo de
+    // la foto ya lo dice. Se rasteriza una sola vez (estático) y se cachea,
+    // igual que el caption, pero conservando el color de cada punto (no es
+    // texto blanco/negro).
+    let logoPoints = null;
+
+    function getLogoPoints() {
+      if (logoPoints) return logoPoints;
+
+      const W = 1024, H = 1024;
+      const cvs = document.createElement('canvas');
+      cvs.width = W; cvs.height = H;
+      const ctx = cvs.getContext('2d');
+
+      const cx = W / 2;
+      const cy = H / 2 - 80;
+      const blueColor = '#00B0FF';
+      const redColor = '#E91E63';
+      const darkBorder = '#111';
+
+      // Fondo tipo estampa/sticker detrás del cerebro+circuito — el dibujo
+      // lo tapa donde va encima, así que solo asoma en el margen.
+      drawStickerBacking(ctx, 'rect', cx - 410, cy - 380, cx + 360, cy + 340, 70);
+
+      // Cerebro (mitad izquierda, rojo)
+      ctx.fillStyle = redColor;
+      ctx.strokeStyle = darkBorder;
+      ctx.lineWidth = 18;
+      ctx.lineJoin = 'round';
+
+      ctx.beginPath();
+      ctx.moveTo(cx - 20, cy - 260);
+      ctx.bezierCurveTo(cx - 50, cy - 280, cx - 80, cy - 290, cx - 110, cy - 270);
+      ctx.bezierCurveTo(cx - 150, cy - 310, cx - 210, cy - 300, cx - 240, cy - 240);
+      ctx.bezierCurveTo(cx - 290, cy - 220, cx - 310, cy - 160, cx - 280, cy - 110);
+      ctx.bezierCurveTo(cx - 330, cy - 80, cx - 340, cy + 10, cx - 290, cy + 60);
+      ctx.bezierCurveTo(cx - 320, cy + 120, cx - 290, cy + 200, cx - 210, cy + 220);
+      ctx.bezierCurveTo(cx - 180, cy + 260, cx - 110, cy + 270, cx - 70, cy + 230);
+      ctx.bezierCurveTo(cx - 40, cy + 250, cx - 30, cy + 220, cx - 20, cy + 190);
+      ctx.lineTo(cx - 20, cy - 260);
+      ctx.fill();
+      ctx.stroke();
+
+      // Pliegues del cerebro
+      ctx.strokeStyle = darkBorder;
+      ctx.lineWidth = 14;
+      const drawCrease = (mx, my, tx, ty, cpx, cpy) => {
+        ctx.beginPath(); ctx.moveTo(mx, my); ctx.quadraticCurveTo(cpx, cpy, tx, ty); ctx.stroke();
+      };
+      drawCrease(cx - 110, cy - 200, cx - 210, cy - 150, cx - 180, cy - 210);
+      drawCrease(cx - 80, cy - 50, cx - 240, cy + 10, cx - 180, cy - 20);
+      drawCrease(cx - 110, cy + 140, cx - 220, cy + 90, cx - 180, cy + 160);
+      drawCrease(cx - 20, cy, cx - 100, cy + 40, cx - 60, cy + 10);
+      drawCrease(cx - 150, cy - 240, cx - 230, cy - 210, cx - 200, cy - 250);
+      drawCrease(cx - 250, cy - 100, cx - 200, cy - 30, cx - 260, cy - 60);
+      drawCrease(cx - 240, cy + 140, cx - 180, cy + 190, cx - 220, cy + 180);
+      drawCrease(cx - 100, cy - 120, cx - 50, cy - 140, cx - 80, cy - 100);
+      drawCrease(cx - 100, cy + 60, cx - 40, cy + 80, cx - 70, cy + 50);
+      drawCrease(cx - 50, cy - 220, cx - 20, cy - 180, cx - 40, cy - 210);
+
+      // Circuito (mitad derecha, azul)
+      ctx.fillStyle = blueColor;
+      ctx.strokeStyle = darkBorder;
+      ctx.lineWidth = 18;
+
+      ctx.beginPath();
+      ctx.arc(cx + 20, cy - 35, 270, -Math.PI * 0.5, Math.PI * 0.5, false);
+      ctx.lineTo(cx + 20, cy - 305);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+
+      // Líneas escalonadas del circuito
+      const drawStepLine = (y1, x_step, y2, x_final, nodeCol) => {
+        ctx.strokeStyle = darkBorder;
+        ctx.lineWidth = 16;
+        ctx.beginPath();
+        ctx.moveTo(cx + 20, y1);
+        ctx.lineTo(cx + 20 + x_step, y1);
+        ctx.lineTo(cx + 20 + x_step + 40, y2);
+        ctx.lineTo(cx + 20 + x_final, y2);
+        ctx.stroke();
+        ctx.fillStyle = nodeCol;
+        ctx.beginPath();
+        ctx.arc(cx + 20 + x_final, y2, 28, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = darkBorder; ctx.lineWidth = 6;
+        ctx.stroke();
+      };
+      drawStepLine(cy - 220, 40, cy - 220, 150, '#FFD54F');
+      drawStepLine(cy - 120, 60, cy - 120, 220, '#F06292');
+      drawStepLine(cy - 30, 40, cy - 30, 190, '#FF8A65');
+      drawStepLine(cy + 60, 50, cy + 60, 230, '#81C784');
+      drawStepLine(cy + 160, 30, cy + 160, 170, '#FFD54F');
+
+      // Interconexiones del circuito
+      ctx.strokeStyle = darkBorder; ctx.lineWidth = 12;
+      const drawInter = (x1, y1, x2, y2) => {
+        ctx.beginPath(); ctx.moveTo(cx + 20 + x1, cy + y1); ctx.lineTo(cx + 20 + x2, cy + y2); ctx.stroke();
+        ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.arc(cx + 20 + x2, cy + y2, 10, 0, Math.PI * 2); ctx.fill();
+      };
+      drawInter(80, -220, 100, -120);
+      drawInter(120, -120, 90, -30);
+      drawInter(60, 60, 120, 160);
+      drawInter(180, -120, 150, -30);
+
+      logoPoints = rasterizeColorPoints(ctx, W, H);
+      return logoPoints;
+    }
+
+    // ========== STICKERS DECORATIVOS (cohete, planeta, diamante) ==========
+    // A los lados de la foto, junto al logo — sin fondo de estampa (ese
+    // queda solo para el logo del departamento, el resto son accesorios
+    // sueltos). Formas sólidas simples a propósito — nada de líneas finas ni
+    // contornos intrincados (la lección de la red neuronal): con el
+    // presupuesto chico que tiene cada uno, lo que se lee bien es pocas
+    // formas grandes. Ya están en el tagline del README ("🪐💎🚀"), así que
+    // refuerzan una identidad que ya existía sin dibujarse todavía.
+
+    let diamondPoints = null;
+    function getDiamondPoints() {
+      if (diamondPoints) return diamondPoints;
+      const W = 300, H = 300;
+      const cvs = document.createElement('canvas');
+      cvs.width = W; cvs.height = H;
+      const ctx = cvs.getContext('2d');
+      const cx = W / 2, cy = H / 2, s = 68;
+      const darkBorder = '#0a2540';
+
+      // Cuerpo del diamante (corte gema clásico)
+      ctx.beginPath();
+      ctx.moveTo(cx - s * 0.55, cy - s * 0.55);
+      ctx.lineTo(cx + s * 0.55, cy - s * 0.55);
+      ctx.lineTo(cx + s * 0.9, cy - s * 0.05);
+      ctx.lineTo(cx, cy + s * 0.85);
+      ctx.lineTo(cx - s * 0.9, cy - s * 0.05);
+      ctx.closePath();
+      ctx.fillStyle = '#22d3ee';
+      ctx.strokeStyle = darkBorder;
+      ctx.lineWidth = 6;
+      ctx.lineJoin = 'round';
+      ctx.fill();
+      ctx.stroke();
+
+      // Faceta superior, más clara — sugiere el "table cut"
+      ctx.beginPath();
+      ctx.moveTo(cx - s * 0.55, cy - s * 0.55);
+      ctx.lineTo(cx + s * 0.55, cy - s * 0.55);
+      ctx.lineTo(cx + s * 0.18, cy - s * 0.18);
+      ctx.lineTo(cx - s * 0.18, cy - s * 0.18);
+      ctx.closePath();
+      ctx.fillStyle = '#a5f3fc';
+      ctx.fill();
+
+      // Facetas: dos líneas de las esquinas superiores a la punta
+      ctx.strokeStyle = '#0e7490';
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.moveTo(cx - s * 0.55, cy - s * 0.55); ctx.lineTo(cx, cy + s * 0.85);
+      ctx.moveTo(cx + s * 0.55, cy - s * 0.55); ctx.lineTo(cx, cy + s * 0.85);
+      ctx.stroke();
+
+      // Destello
+      ctx.fillStyle = 'rgba(255,255,255,0.9)';
+      ctx.beginPath();
+      ctx.arc(cx - s * 0.22, cy - s * 0.32, s * 0.09, 0, Math.PI * 2);
+      ctx.fill();
+
+      diamondPoints = rasterizeColorPoints(ctx, W, H);
+      return diamondPoints;
+    }
+
+    let rocketPoints = null;
+    function getRocketPoints() {
+      if (rocketPoints) return rocketPoints;
+      const W = 300, H = 300;
+      const cvs = document.createElement('canvas');
+      cvs.width = W; cvs.height = H;
+      const ctx = cvs.getContext('2d');
+      const cx = W / 2, cy = H / 2;
+      const darkBorder = '#1e1b2e';
+
+      // Llama (se dibuja primero, queda detrás/debajo del cuerpo)
+      ctx.fillStyle = '#f97316';
+      ctx.strokeStyle = darkBorder;
+      ctx.lineWidth = 5;
+      ctx.beginPath();
+      ctx.moveTo(cx - 20, cy + 66);
+      ctx.quadraticCurveTo(cx - 25, cy + 95, cx, cy + 120);
+      ctx.quadraticCurveTo(cx + 25, cy + 95, cx + 20, cy + 66);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = '#fde047';
+      ctx.beginPath();
+      ctx.moveTo(cx - 10, cy + 66);
+      ctx.quadraticCurveTo(cx - 12, cy + 88, cx, cy + 104);
+      ctx.quadraticCurveTo(cx + 12, cy + 88, cx + 10, cy + 66);
+      ctx.closePath();
+      ctx.fill();
+
+      // Aletas
+      ctx.fillStyle = '#f59e0b';
+      ctx.strokeStyle = darkBorder;
+      ctx.lineWidth = 5;
+      ctx.beginPath();
+      ctx.moveTo(cx + 35, cy + 18); ctx.lineTo(cx + 65, cy + 68); ctx.lineTo(cx + 35, cy + 53);
+      ctx.closePath(); ctx.fill(); ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(cx - 35, cy + 18); ctx.lineTo(cx - 65, cy + 68); ctx.lineTo(cx - 35, cy + 53);
+      ctx.closePath(); ctx.fill(); ctx.stroke();
+
+      // Cuerpo
+      ctx.fillStyle = '#f1f5f9';
+      ctx.strokeStyle = darkBorder;
+      ctx.lineWidth = 6;
+      ctx.lineJoin = 'round';
+      ctx.beginPath();
+      ctx.moveTo(cx, cy - 108);
+      ctx.quadraticCurveTo(cx + 38, cy - 68, cx + 35, cy - 18);
+      ctx.lineTo(cx + 35, cy + 53);
+      ctx.quadraticCurveTo(cx + 35, cy + 68, cx + 20, cy + 68);
+      ctx.lineTo(cx - 20, cy + 68);
+      ctx.quadraticCurveTo(cx - 35, cy + 68, cx - 35, cy + 53);
+      ctx.lineTo(cx - 35, cy - 18);
+      ctx.quadraticCurveTo(cx - 38, cy - 68, cx, cy - 108);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+
+      // Ventana
+      ctx.fillStyle = '#38bdf8';
+      ctx.strokeStyle = darkBorder;
+      ctx.lineWidth = 5;
+      ctx.beginPath();
+      ctx.arc(cx, cy - 22, 18, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = 'rgba(255,255,255,0.5)';
+      ctx.beginPath();
+      ctx.arc(cx - 6, cy - 28, 6, 0, Math.PI * 2);
+      ctx.fill();
+
+      rocketPoints = rasterizeColorPoints(ctx, W, H);
+      return rocketPoints;
+    }
+
+    let planetPoints = null;
+    function getPlanetPoints() {
+      if (planetPoints) return planetPoints;
+      const W = 340, H = 260;
+      const cvs = document.createElement('canvas');
+      cvs.width = W; cvs.height = H;
+      const ctx = cvs.getContext('2d');
+      const cx = W / 2, cy = H / 2;
+      const darkBorder = '#78350f';
+      const ringRx = 130, ringRy = 34, planetR = 56;
+
+      // Mitad de atrás del anillo (detrás del planeta)
+      ctx.strokeStyle = '#fde68a';
+      ctx.lineWidth = 13;
+      ctx.beginPath();
+      ctx.ellipse(cx, cy, ringRx, ringRy, 0, Math.PI, Math.PI * 2);
+      ctx.stroke();
+
+      // Planeta encima, tapando la mitad de atrás
+      ctx.fillStyle = '#f59e0b';
+      ctx.strokeStyle = darkBorder;
+      ctx.lineWidth = 6;
+      ctx.beginPath();
+      ctx.arc(cx, cy, planetR, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+      // Franja
+      ctx.fillStyle = 'rgba(217, 119, 6, 0.55)';
+      ctx.beginPath();
+      ctx.ellipse(cx, cy - 10, planetR * 0.96, planetR * 0.22, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Mitad de adelante del anillo (por encima del planeta)
+      ctx.strokeStyle = '#fbbf24';
+      ctx.lineWidth = 13;
+      ctx.beginPath();
+      ctx.ellipse(cx, cy, ringRx, ringRy, 0, 0, Math.PI);
+      ctx.stroke();
+
+      planetPoints = rasterizeColorPoints(ctx, W, H);
+      return planetPoints;
+    }
+
+    let heartPoints = null;
+    function getHeartPoints() {
+      if (heartPoints) return heartPoints;
+      const W = 300, H = 300;
+      const cvs = document.createElement('canvas');
+      cvs.width = W; cvs.height = H;
+      const ctx = cvs.getContext('2d');
+      const cx = W / 2, cy = H / 2;
+      const darkBorder = '#4c1d95';
+
+      ctx.fillStyle = '#a855f7';
+      ctx.strokeStyle = darkBorder;
+      ctx.lineWidth = 6;
+      ctx.lineJoin = 'round';
+      ctx.beginPath();
+      ctx.moveTo(cx, cy + 55);
+      ctx.bezierCurveTo(cx - 95, cy - 40, cx - 42, cy - 105, cx, cy - 42);
+      ctx.bezierCurveTo(cx + 42, cy - 105, cx + 95, cy - 40, cx, cy + 55);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+
+      // Brillo
+      ctx.fillStyle = 'rgba(255,255,255,0.4)';
+      ctx.beginPath();
+      ctx.ellipse(cx - 32, cy - 45, 16, 24, -0.5, 0, Math.PI * 2);
+      ctx.fill();
+
+      heartPoints = rasterizeColorPoints(ctx, W, H);
+      return heartPoints;
+    }
+
+    let lightningPoints = null;
+    function getLightningPoints() {
+      if (lightningPoints) return lightningPoints;
+      const W = 260, H = 300;
+      const cvs = document.createElement('canvas');
+      cvs.width = W; cvs.height = H;
+      const ctx = cvs.getContext('2d');
+      const cx = W / 2, cy = H / 2;
+      const darkBorder = '#78350f';
+
+      ctx.fillStyle = '#fde047';
+      ctx.strokeStyle = darkBorder;
+      ctx.lineWidth = 6;
+      ctx.lineJoin = 'round';
+      ctx.beginPath();
+      ctx.moveTo(cx + 15, cy - 105);
+      ctx.lineTo(cx - 60, cy + 15);
+      ctx.lineTo(cx - 8, cy + 15);
+      ctx.lineTo(cx - 25, cy + 105);
+      ctx.lineTo(cx + 60, cy - 30);
+      ctx.lineTo(cx + 8, cy - 30);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+
+      lightningPoints = rasterizeColorPoints(ctx, W, H);
+      return lightningPoints;
+    }
+
+    let cameraPoints = null;
+    function getCameraPoints() {
+      if (cameraPoints) return cameraPoints;
+      const W = 300, H = 260;
+      const cvs = document.createElement('canvas');
+      cvs.width = W; cvs.height = H;
+      const ctx = cvs.getContext('2d');
+      const cx = W / 2, cy = H / 2;
+      const darkBorder = '#0f172a';
+
+      // Visor (chico, arriba)
+      ctx.fillStyle = '#334155';
+      ctx.strokeStyle = darkBorder;
+      ctx.lineWidth = 5;
+      ctx.beginPath();
+      ctx.moveTo(cx - 25, cy - 65); ctx.lineTo(cx + 25, cy - 65);
+      ctx.lineTo(cx + 18, cy - 42); ctx.lineTo(cx - 18, cy - 42);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+
+      // Cuerpo
+      const roundedRect = (x, y, w, h, r) => {
+        ctx.beginPath();
+        ctx.moveTo(x + r, y);
+        ctx.arcTo(x + w, y, x + w, y + h, r);
+        ctx.arcTo(x + w, y + h, x, y + h, r);
+        ctx.arcTo(x, y + h, x, y, r);
+        ctx.arcTo(x, y, x + w, y, r);
+        ctx.closePath();
+      };
+      ctx.fillStyle = '#475569';
+      ctx.strokeStyle = darkBorder;
+      ctx.lineWidth = 6;
+      roundedRect(cx - 88, cy - 42, 176, 100, 18);
+      ctx.fill();
+      ctx.stroke();
+
+      // Flash
+      ctx.fillStyle = '#fde047';
+      ctx.beginPath();
+      ctx.arc(cx + 62, cy - 22, 9, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Lente
+      ctx.fillStyle = '#0ea5e9';
+      ctx.strokeStyle = darkBorder;
+      ctx.lineWidth = 6;
+      ctx.beginPath();
+      ctx.arc(cx - 10, cy + 8, 38, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = '#0c4a6e';
+      ctx.beginPath();
+      ctx.arc(cx - 10, cy + 8, 20, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = 'rgba(255,255,255,0.55)';
+      ctx.beginPath();
+      ctx.arc(cx - 20, cy - 2, 8, 0, Math.PI * 2);
+      ctx.fill();
+
+      cameraPoints = rasterizeColorPoints(ctx, W, H);
+      return cameraPoints;
+    }
+
+    // Gráfico de barras, base de datos y lupa con dispersión — reemplazo de
+    // flor/moño (fuera del repertorio, ver historial): la idea es que se
+    // note que la actividad es de CIENCIA DE DATOS sin caer otra vez en la
+    // red neuronal (líneas finas = se ve disperso con pocas partículas).
+    // Formas sólidas y gruesas, mismo criterio que el resto del repertorio.
+
+    let barChartPoints = null;
+    function getBarChartPoints() {
+      if (barChartPoints) return barChartPoints;
+      const W = 300, H = 300;
+      const cvs = document.createElement('canvas');
+      cvs.width = W; cvs.height = H;
+      const ctx = cvs.getContext('2d');
+      const darkBorder = '#140a28';
+      const baseY = 235, barW = 46, gap = 16;
+      const bars = [
+        { h: 90, color: '#a855f7' },
+        { h: 150, color: '#38bdf8' },
+        { h: 115, color: '#34d399' },
+        { h: 175, color: '#f59e0b' },
+      ];
+      const totalW = bars.length * barW + (bars.length - 1) * gap;
+      let x = (W - totalW) / 2;
+      ctx.lineJoin = 'round';
+      for (const bar of bars) {
+        const y = baseY - bar.h;
+        const r = 10;
+        ctx.beginPath();
+        ctx.moveTo(x, baseY);
+        ctx.lineTo(x, y + r);
+        ctx.arcTo(x, y, x + r, y, r);
+        ctx.lineTo(x + barW - r, y);
+        ctx.arcTo(x + barW, y, x + barW, y + r, r);
+        ctx.lineTo(x + barW, baseY);
+        ctx.closePath();
+        ctx.fillStyle = bar.color;
+        ctx.fill();
+        ctx.strokeStyle = darkBorder;
+        ctx.lineWidth = 6;
+        ctx.stroke();
+        x += barW + gap;
+      }
+      // Línea base (eje)
+      ctx.strokeStyle = darkBorder;
+      ctx.lineWidth = 8;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo((W - totalW) / 2 - 14, baseY);
+      ctx.lineTo((W - totalW) / 2 + totalW + 14, baseY);
+      ctx.stroke();
+
+      barChartPoints = rasterizeColorPoints(ctx, W, H);
+      return barChartPoints;
+    }
+
+    let databasePoints = null;
+    function getDatabasePoints() {
+      if (databasePoints) return databasePoints;
+      const W = 260, H = 300;
+      const cvs = document.createElement('canvas');
+      cvs.width = W; cvs.height = H;
+      const ctx = cvs.getContext('2d');
+      const cx = W / 2;
+      const darkBorder = '#0a2540';
+      const rx = 88, ry = 32;      // radios de las elipses (tapa del cilindro)
+      const topY = 70, bodyH = 150; // alto del cuerpo del cilindro
+      const bottomY = topY + bodyH;
+      const fill = '#38bdf8';
+      const fillDark = '#0ea5e9';
+
+      // Cuerpo (rectángulo redondeado entre las dos tapas)
+      ctx.beginPath();
+      ctx.moveTo(cx - rx, topY);
+      ctx.lineTo(cx - rx, bottomY);
+      ctx.arc(cx, bottomY, rx, Math.PI, 0);
+      ctx.lineTo(cx + rx, topY);
+      ctx.closePath();
+      ctx.fillStyle = fill;
+      ctx.fill();
+
+      // Bandas divisorias (sugieren las 3 capas clásicas del ícono)
+      ctx.strokeStyle = fillDark;
+      ctx.lineWidth = 5;
+      for (const f of [0.34, 0.67]) {
+        const y = topY + bodyH * f;
+        ctx.beginPath();
+        ctx.ellipse(cx, y, rx, ry * 0.62, 0, 0.06 * Math.PI, 0.94 * Math.PI);
+        ctx.stroke();
+      }
+
+      // Contorno grueso de todo el cilindro (tapa superior, laterales, tapa inferior)
+      ctx.strokeStyle = darkBorder;
+      ctx.lineWidth = 7;
+      ctx.lineJoin = 'round';
+      ctx.beginPath();
+      ctx.moveTo(cx - rx, topY);
+      ctx.lineTo(cx - rx, bottomY);
+      ctx.arc(cx, bottomY, rx, Math.PI, 0);
+      ctx.lineTo(cx + rx, topY);
+      ctx.stroke();
+
+      // Tapa superior (elipse completa, encima del cuerpo — cierra el ícono)
+      ctx.beginPath();
+      ctx.ellipse(cx, topY, rx, ry, 0, 0, Math.PI * 2);
+      ctx.fillStyle = '#7dd3fc';
+      ctx.fill();
+      ctx.strokeStyle = darkBorder;
+      ctx.lineWidth = 7;
+      ctx.stroke();
+
+      databasePoints = rasterizeColorPoints(ctx, W, H);
+      return databasePoints;
+    }
+
+    let magnifierPoints = null;
+    function getMagnifierPoints() {
+      if (magnifierPoints) return magnifierPoints;
+      const W = 300, H = 300;
+      const cvs = document.createElement('canvas');
+      cvs.width = W; cvs.height = H;
+      const ctx = cvs.getContext('2d');
+      const cx = 120, cy = 120, r = 78;
+      const darkBorder = '#140a28';
+
+      // Mango (detrás del lente)
+      ctx.strokeStyle = '#f59e0b';
+      ctx.lineWidth = 26;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(cx + r * 0.72, cy + r * 0.72);
+      ctx.lineTo(cx + r * 1.62, cy + r * 1.62);
+      ctx.stroke();
+      ctx.strokeStyle = darkBorder;
+      ctx.lineWidth = 34;
+      ctx.beginPath();
+      ctx.moveTo(cx + r * 0.72, cy + r * 0.72);
+      ctx.lineTo(cx + r * 1.62, cy + r * 1.62);
+      ctx.stroke();
+      ctx.strokeStyle = '#f59e0b';
+      ctx.lineWidth = 26;
+      ctx.beginPath();
+      ctx.moveTo(cx + r * 0.72, cy + r * 0.72);
+      ctx.lineTo(cx + r * 1.62, cy + r * 1.62);
+      ctx.stroke();
+
+      // Cristal del lente (fondo claro, para que los puntos de dispersión se lean)
+      ctx.beginPath();
+      ctx.arc(cx, cy, r, 0, Math.PI * 2);
+      ctx.fillStyle = '#eef2ff';
+      ctx.fill();
+
+      // Puntos de dispersión (scatter plot) dentro del lente
+      const dots = [
+        [-38, -30, '#a855f7'], [-10, 10, '#38bdf8'], [22, -22, '#34d399'],
+        [8, 34, '#f59e0b'], [-28, 28, '#ef4444'], [40, 12, '#a855f7'],
+        [-2, -42, '#38bdf8'], [34, -40, '#34d399'],
+      ];
+      for (const [dx, dy, color] of dots) {
+        ctx.beginPath();
+        ctx.arc(cx + dx, cy + dy, 9, 0, Math.PI * 2);
+        ctx.fillStyle = color;
+        ctx.fill();
+      }
+
+      // Aro grueso del lente, encima de mango y puntos
+      ctx.beginPath();
+      ctx.arc(cx, cy, r, 0, Math.PI * 2);
+      ctx.strokeStyle = darkBorder;
+      ctx.lineWidth = 16;
+      ctx.stroke();
+
+      magnifierPoints = rasterizeColorPoints(ctx, W, H);
+      return magnifierPoints;
+    }
+
+    // Destello de relleno: una estrella de 4 puntas, blanca — se retiñe al
+    // azar con los colores de las gemas al colocarla (ver placeSparkle), así
+    // que un solo dibujo cachado da variedad de color gratis.
+    let sparklePoints = null;
+    function getSparklePoints() {
+      if (sparklePoints) return sparklePoints;
+      const W = 120, H = 120;
+      const cvs = document.createElement('canvas');
+      cvs.width = W; cvs.height = H;
+      const ctx = cvs.getContext('2d');
+      const cx = W / 2, cy = H / 2;
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.moveTo(cx, cy - 55);
+      ctx.quadraticCurveTo(cx + 8, cy - 8, cx + 55, cy);
+      ctx.quadraticCurveTo(cx + 8, cy + 8, cx, cy + 55);
+      ctx.quadraticCurveTo(cx - 8, cy + 8, cx - 55, cy);
+      ctx.quadraticCurveTo(cx - 8, cy - 8, cx, cy - 55);
+      ctx.closePath();
+      ctx.fill();
+
+      sparklePoints = rasterizeColorPoints(ctx, W, H);
+      return sparklePoints;
+    }
+
     // Escala aplicada al bloque foto+caption para que quepa en el viewport
     let photoFitScale = 1;
 
     function fillPhotoTargets() {
       if (!photoData) { fillDustTargets(); return; }
       const { cells, gridCols, gridRows } = photoData;
-      const photoCount = PARTICLE_COUNT - CAPTION_COUNT;
+      const photoCount = PARTICLE_COUNT - CAPTION_COUNT - LOGO_COUNT * 2
+        - STICKER_COUNT * STICKER_SLOTS - SPARKLE_COUNT * SPARKLE_TOTAL;
 
       const cap = getCaptionPoints();
       const capSpan = cap.maxX - cap.minX;
@@ -1189,7 +2009,8 @@
       // Caption: gradiente morado→cian de izquierda a derecha + destellos blancos
       const capCenterX = (cap.minX + cap.maxX) / 2;
       const capTopY = topY - planeH - gap;
-      for (let i = photoCount; i < PARTICLE_COUNT; i++) {
+      const captionEnd = photoCount + CAPTION_COUNT;
+      for (let i = photoCount; i < captionEnd; i++) {
         const i3 = i * 3;
         const p = cap.pts[(Math.random() * cap.pts.length) | 0];
         targets[i3] = (p[0] - capCenterX) * capScale;
@@ -1204,6 +2025,218 @@
           targetColors[i3] = 0.75 - 0.53 * nx;
           targetColors[i3 + 1] = 0.52 + 0.22 * nx;
           targetColors[i3 + 2] = 0.99 - 0.02 * nx;
+        }
+      }
+
+      // Logo (cerebro + circuito): uno a cada lado de la foto, cerca de su
+      // centro vertical pero no clavado — cada lado sale con su propia
+      // inclinación y posición (ver placeLogo) para que se sienta como un
+      // sticker pegado a mano, no una copia espejada perfecta. Tamaño
+      // limitado por dos cosas — el espacio real libre entre la foto y el
+      // borde de pantalla, y una fracción máxima de la altura de la foto —
+      // para que nunca compita en tamaño con la foto ni se salga de la
+      // pantalla en monitores angostos.
+      const logo = getLogoPoints();
+      const logoSpanX = logo.maxX - logo.minX;
+      const logoSpanY = logo.maxY - logo.minY;
+      const logoAspect = logoSpanY / logoSpanX;
+      // Cota real para que quepa incluso en el peor caso: máxima inclinación
+      // (±LOGO_TILT_MAX_DEG) + máximo jitter de margen (LOGO_X_JITTER) a la
+      // vez. cx (en placeLogo) se calcula SIN rotar, con logoW/2 de por
+      // medio; el borde real más lejano después de rotar un ángulo θ queda
+      // a cx + logoW·(|cosθ|/2 + aspect·|senθ|/2) del origen — por eso el
+      // divisor de abajo es 0.5 (el logoW/2 de cx) + esa protrusión extra.
+      // Se usa el ángulo máximo real (no "cualquier ángulo", que sería más
+      // conservador de lo necesario y le quitaría tamaño al logo sin razón).
+      const tiltRad = LOGO_TILT_MAX_DEG * Math.PI / 180;
+      const protrusionFactor = 0.5 + 0.5 * Math.cos(tiltRad) + 0.5 * logoAspect * Math.sin(tiltRad);
+      const marginJitterMax = LOGO_MARGIN * (1 + LOGO_X_JITTER);
+      // Piso mínimo solo para evitar tamaño 0/negativo (matemática degenerada);
+      // deliberadamente chico — en pantallas angostas (formato vertical) el
+      // logo debe achicarse de verdad, no desbordar el borde de la pantalla
+      const sideRoomRaw = Math.max(0.02, (visibleW * 0.92) / 2 - photoW / 2 - marginJitterMax * photoFitScale);
+      const sideRoom = sideRoomRaw / protrusionFactor;
+      const maxLogoH = planeH * LOGO_MAX_HEIGHT_RATIO;
+      const logoW = Math.min(sideRoom, maxLogoH / logoAspect);
+      const logoScale = logoW / logoSpanX;
+      const logoCenterX = logo.minX + logoSpanX / 2;
+      const logoCenterY = logo.minY + logoSpanY / 2;
+      const logoBaseCY = topY - planeH / 2; // centro vertical de la foto (referencia, no punto fijo)
+
+      // side: -1 = izquierda, +1 = derecha. Misma nube de puntos, mismo
+      // tamaño — cada lado tira su propia inclinación (±LOGO_TILT_MAX_DEG) y
+      // se desplaza un poco vertical/horizontalmente, sorteado de nuevo en
+      // cada captura para que no se repita siempre igual. El jitter horizontal
+      // solo toca el margen (no photoW/2 ni logoW/2, que ya están al límite
+      // seguro con sideRoom) — así nunca puede empujar el logo fuera de pantalla.
+      function placeLogo(startIdx, endIdx, side) {
+        const angle = (Math.random() * 2 - 1) * LOGO_TILT_MAX_DEG * Math.PI / 180;
+        const cos = Math.cos(angle), sin = Math.sin(angle);
+        const marginJitter = LOGO_MARGIN * (1 + (Math.random() * 2 - 1) * LOGO_X_JITTER);
+        const cx = side * (photoW / 2 + marginJitter * photoFitScale + logoW / 2);
+        const cy = logoBaseCY + (Math.random() * 2 - 1) * LOGO_Y_JITTER * planeH;
+        for (let i = startIdx; i < endIdx; i++) {
+          const i3 = i * 3;
+          const idx = (Math.random() * logo.pts.length) | 0;
+          const p = logo.pts[idx];
+          const col = logo.cols[idx];
+          const dx = (p[0] - logoCenterX) * logoScale;
+          const dy = -(p[1] - logoCenterY) * logoScale;
+          // Rotar alrededor del centro propio del logo, luego mover al lugar
+          targets[i3] = cx + (dx * cos - dy * sin);
+          targets[i3 + 1] = cy + (dx * sin + dy * cos);
+          targets[i3 + 2] = (Math.random() - 0.5) * 0.02;
+          targetColors[i3] = col[0];
+          targetColors[i3 + 1] = col[1];
+          targetColors[i3 + 2] = col[2];
+        }
+      }
+      placeLogo(captionEnd, captionEnd + LOGO_COUNT, -1);
+      placeLogo(captionEnd + LOGO_COUNT, captionEnd + LOGO_COUNT * 2, 1);
+
+      // Stickers decorativos: apilados junto al logo, A LOS LADOS — nunca
+      // encima de la foto. 4 huecos (arriba/abajo de cada logo); en cada
+      // foto se sortean 4 del repertorio de 6 sin repetir, así la
+      // combinación cambia de persona a persona. Cada uno con su propia
+      // inclinación al azar, igual que el logo.
+      function placeSideSticker(startIdx, endIdx, sticker, sideX, cy) {
+        const spanX = sticker.maxX - sticker.minX;
+        const spanY = sticker.maxY - sticker.minY;
+        const sizeWorld = STICKER_SIZE * photoFitScale;
+        const scale = sizeWorld / spanX;
+        const stCenterX = sticker.minX + spanX / 2;
+        const stCenterY = sticker.minY + spanY / 2;
+        const angle = (Math.random() * 2 - 1) * STICKER_TILT_MAX_DEG * Math.PI / 180;
+        const cos = Math.cos(angle), sin = Math.sin(angle);
+        for (let i = startIdx; i < endIdx; i++) {
+          const i3 = i * 3;
+          const idx = (Math.random() * sticker.pts.length) | 0;
+          const p = sticker.pts[idx];
+          const col = sticker.cols[idx];
+          const dx = (p[0] - stCenterX) * scale;
+          const dy = -(p[1] - stCenterY) * scale;
+          targets[i3] = sideX + (dx * cos - dy * sin);
+          targets[i3 + 1] = cy + (dx * sin + dy * cos);
+          targets[i3 + 2] = (Math.random() - 0.5) * 0.02;
+          targetColors[i3] = col[0];
+          targetColors[i3 + 1] = col[1];
+          targetColors[i3 + 2] = col[2];
+        }
+      }
+      // Fisher-Yates parcial: n elementos al azar del arreglo, sin repetir
+      function pickRandomDistinct(arr, n) {
+        const copy = arr.slice();
+        for (let i = copy.length - 1; i > 0; i--) {
+          const j = (Math.random() * (i + 1)) | 0;
+          const tmp = copy[i]; copy[i] = copy[j]; copy[j] = tmp;
+        }
+        return copy.slice(0, n);
+      }
+      // Cinco franjas por lado, de arriba a abajo: sticker-arriba, hueco,
+      // logo (en el medio), hueco, sticker-abajo. Usan el alto REAL de
+      // pantalla (visibleH), no solo el alto de la foto — antes el rango
+      // quedaba pegado al logo y todo se amontonaba encima de todo.
+      const sideRefX = photoW / 2 + LOGO_MARGIN * photoFitScale + logoW / 2;
+      const screenHalfH = visibleH * 0.46;
+      // Aspecto más alto del repertorio (rayo, ~1.15) para el peor caso de
+      // cuánto puede sobresalir un sticker verticalmente — margen de sobra,
+      // no ajustado al pixel.
+      const stickerHalfH = (STICKER_SIZE * photoFitScale * 1.2) / 2;
+      // Paso entre franjas: reparte el espacio libre desde el logo hasta el
+      // borde de pantalla en 2 pasos iguales (logo→hueco→sticker), con
+      // margen de sobra (/2.4 en vez de /2) para que el sticker de arriba
+      // nunca toque el borde.
+      const rowStep = (screenHalfH - Math.abs(logoBaseCY) - stickerHalfH) / 2.4;
+      const rowTop = logoBaseCY + rowStep * 2;
+      const rowGapUpper = logoBaseCY + rowStep;
+      const rowGapLower = logoBaseCY - rowStep;
+      const rowBottom = logoBaseCY - rowStep * 2;
+
+      const stickerPool = [getDiamondPoints, getRocketPoints, getPlanetPoints, getHeartPoints, getLightningPoints, getCameraPoints, getBarChartPoints, getDatabasePoints, getMagnifierPoints];
+      const chosenStickers = DEBUG_SHOW_ALL_STICKERS ? stickerPool : pickRandomDistinct(stickerPool, STICKER_SLOTS);
+      // Catálogo de prueba: 2 filas, pegadas a los bordes superior/inferior
+      // de la pantalla (nunca en el medio, ahí está la foto), repartidas en
+      // tantas columnas como haga falta según el tamaño del repertorio.
+      // Orden fijo (mismo que stickerPool) para poder señalar "el tercero
+      // de arriba es tal", etc.
+      const debugSlotPositions = () => {
+        const n = chosenStickers.length;
+        const topCount = Math.ceil(n / 2);
+        const botCount = n - topCount;
+        const rowXs = (count) => Array.from({ length: count }, (_, c) => (-0.5 + (c + 0.5) / count) * visibleW * 0.9);
+        const pos = [];
+        for (const x of rowXs(topCount)) pos.push([x, screenHalfH * 0.88]);
+        for (const x of rowXs(botCount)) pos.push([x, -screenHalfH * 0.88]);
+        return pos;
+      };
+      const slotPositions = DEBUG_SHOW_ALL_STICKERS ? debugSlotPositions() : [
+        [-sideRefX, rowTop],    // izquierda, franja de arriba
+        [-sideRefX, rowBottom], // izquierda, franja de abajo
+        [sideRefX, rowTop],     // derecha, franja de arriba
+        [sideRefX, rowBottom],  // derecha, franja de abajo
+      ];
+      let cursor = captionEnd + LOGO_COUNT * 2;
+      for (let s = 0; s < STICKER_SLOTS; s++) {
+        const [sx, sy] = slotPositions[s];
+        placeSideSticker(cursor, cursor + STICKER_COUNT, chosenStickers[s](), sx, sy);
+        cursor += STICKER_COUNT;
+      }
+
+      // Destellos de relleno: SOLO en las franjas-hueco (entre el logo y
+      // cada sticker) — nunca en la franja del sticker ni la del logo, así
+      // no le caen encima a nada. Color al azar de las 6 gemas.
+      //
+      // Reparto en cuadrícula, no puro azar: antes cada destello sorteaba su
+      // posición de forma totalmente independiente dentro de la zona, y con
+      // 14 tirados al azar en un espacio chico, por pura probabilidad varios
+      // caían pegados o encimados entre sí (el problema de cumpleaños). Acá
+      // cada zona-hueco se divide en franjas iguales, una por destello, con
+      // jitter acotado a una fracción de su propia franja — así ninguno
+      // puede invadir el espacio del vecino, sin importar el azar.
+      const hexToRgb01 = (hex) => {
+        const n = parseInt(hex.slice(1), 16);
+        return [((n >> 16) & 255) / 255, ((n >> 8) & 255) / 255, (n & 255) / 255];
+      };
+      const sparkle = getSparklePoints();
+      const sparkleSpanX = sparkle.maxX - sparkle.minX;
+      const sparkleSpanY = sparkle.maxY - sparkle.minY;
+      const sparkleScale = (SPARKLE_SIZE * photoFitScale) / sparkleSpanX;
+      const sparkleCenterX = sparkle.minX + sparkleSpanX / 2;
+      const sparkleCenterY = sparkle.minY + sparkleSpanY / 2;
+      const sparkleZoneHalfH = rowStep * 0.26; // mismo tamaño de zona-hueco que antes
+      const sparkleZones = [
+        [-sideRefX, rowGapUpper], [-sideRefX, rowGapLower],
+        [sideRefX, rowGapUpper], [sideRefX, rowGapLower],
+      ];
+      const perZone = Math.max(1, Math.round(SPARKLE_TOTAL / sparkleZones.length));
+      const cellH = (sparkleZoneHalfH * 2) / perZone;
+      for (const [zx, zy] of sparkleZones) {
+        for (let c = 0; c < perZone; c++) {
+          // Centro de la franja del destello dentro de su zona + jitter
+          // acotado al 35% del alto de esa franja (deja aire garantizado
+          // entre destellos vecinos) — el ancho sí puede jitterear libre,
+          // como no comparten franja vertical no hay con qué chocar
+          const cellCenterY = zy - sparkleZoneHalfH + cellH * (c + 0.5);
+          const sx = zx + (Math.random() - 0.5) * logoW * 0.55;
+          const sy = cellCenterY + (Math.random() - 0.5) * cellH * 0.35;
+          const angle = Math.random() * Math.PI * 2;
+          const cos = Math.cos(angle), sin = Math.sin(angle);
+          const [r, g, b] = hexToRgb01(SPARKLE_COLORS[(Math.random() * SPARKLE_COLORS.length) | 0]);
+          const end = cursor + SPARKLE_COUNT;
+          for (let i = cursor; i < end; i++) {
+            const i3 = i * 3;
+            const idx = (Math.random() * sparkle.pts.length) | 0;
+            const p = sparkle.pts[idx];
+            const dx = (p[0] - sparkleCenterX) * sparkleScale;
+            const dy = -(p[1] - sparkleCenterY) * sparkleScale;
+            targets[i3] = sx + (dx * cos - dy * sin);
+            targets[i3 + 1] = sy + (dx * sin + dy * cos);
+            targets[i3 + 2] = (Math.random() - 0.5) * 0.02;
+            targetColors[i3] = r;
+            targetColors[i3 + 1] = g;
+            targetColors[i3 + 2] = b;
+          }
+          cursor = end;
         }
       }
     }
@@ -1433,7 +2466,6 @@
     let assembleStart = -1, assembleEnd = -1;
     let dissolveStart = -1, dissolveEnd = -1;
     let countdownStart = -1, countdownIdx = -1;
-    let photoStartT = -1;
     // Vitrina (attract)
     let lastInteraction = 0;
     let attractKey = -1, attractWordIdx = 0, attractTextActive = false;
@@ -1453,6 +2485,8 @@
       lastInteraction = clock.getElapsedTime();
       attractKey = -1;
       attractTextActive = false;
+      // El botón de acciones vuelve cerrado para la siguiente persona
+      document.getElementById('photo-actions').classList.remove('open');
     }
 
     // Obturador → cuenta regresiva en partículas sobre el espejo
@@ -1483,6 +2517,7 @@
 
       fillPhotoTargets();
       applyModeVisuals('photo');
+      logChasquidoEvent();
 
       // Coreografía del armado: el polvo llega desde arriba-derecha con
       // borde irregular, barriendo la foto de izquierda a derecha
@@ -1627,10 +2662,84 @@
 
     setShareState('idle');
 
+    // ========== CONTADOR EN VIVO (chasquidos de hoy) ==========
+    // Sincronización en tiempo real de verdad, no decorativa: mismo patrón
+    // que leaderboard.html (canal postgres_changes de Supabase). Requiere la
+    // tabla chasquido_events — ver supabase-setup.sql. Si no existe todavía
+    // (falta correr el SQL) o no hay internet, el chip se oculta solo y el
+    // resto de la experiencia sigue funcionando igual.
+    let visitsCount = null;
+    const visitsChip = document.getElementById('visits-chip');
+    const visitsCountEl = document.getElementById('visits-count');
+
+    function renderVisitsCount() {
+      if (visitsCount === null) return;
+      visitsCountEl.textContent = visitsCount.toLocaleString('es-CO');
+    }
+
+    async function initVisitsCounter() {
+      const sb = getSupabase();
+      if (!sb) { visitsChip.style.display = 'none'; return; }
+      try {
+        const { count, error } = await sb
+          .from('chasquido_events')
+          .select('*', { count: 'exact', head: true });
+        // Ojo: en consultas head:true, Supabase a veces no llena `error`
+        // aunque la tabla no exista (404) — hay que chequear `count` también,
+        // si no, se ve "0 CHASQUIDOS HOY" con la tabla rota, que es peor que
+        // ocultar el chip (parece que funciona cuando en realidad está caído)
+        if (error || count === null || count === undefined) {
+          throw error || new Error('conteo no disponible (¿existe la tabla chasquido_events?)');
+        }
+        visitsCount = count;
+        renderVisitsCount();
+      } catch (e) {
+        console.warn('Contador de chasquidos no disponible (¿falta correr supabase-setup.sql?):', e);
+        visitsChip.style.display = 'none';
+        return;
+      }
+
+      // Cada chasquido nuevo (de cualquier persona, en cualquier stand) suma
+      // 1 al instante — no se vuelve a consultar la tabla completa
+      sb.channel('public:chasquido_events')
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'chasquido_events' }, () => {
+          visitsCount++;
+          renderVisitsCount();
+        })
+        .subscribe();
+    }
+    initVisitsCounter();
+
+    // Registro best-effort de cada captura — no bloquea ni avisa si falla
+    // (mismo espíritu que el resto de la integración con Supabase)
+    function logChasquidoEvent() {
+      const sb = getSupabase();
+      if (!sb) return;
+      sb.from('chasquido_events').insert({}).then(({ error }) => {
+        if (error) console.warn('No se pudo registrar el chasquido:', error);
+      });
+    }
+
     document.getElementById('shutter-btn').addEventListener('click', startCountdown);
-    document.getElementById('snap-btn').addEventListener('click', doSnap);
-    document.getElementById('save-btn').addEventListener('click', savePhotoCard);
-    qrBtn.addEventListener('click', showQr);
+
+    // Botón circular de acciones (estado foto): un toque despliega las 3
+    // opciones (Descargar/Guardar/Chasquido); elegir una las vuelve a cerrar
+    const actionsEl = document.getElementById('photo-actions');
+    document.getElementById('actions-toggle').addEventListener('click', () => {
+      actionsEl.classList.toggle('open');
+    });
+    document.getElementById('snap-btn').addEventListener('click', () => {
+      actionsEl.classList.remove('open');
+      doSnap();
+    });
+    document.getElementById('save-btn').addEventListener('click', () => {
+      actionsEl.classList.remove('open');
+      savePhotoCard();
+    });
+    qrBtn.addEventListener('click', () => {
+      actionsEl.classList.remove('open');
+      showQr();
+    });
     document.getElementById('qr-close').addEventListener('click', hideQr);
     qrOverlay.addEventListener('click', (e) => { if (e.target === qrOverlay) hideQr(); });
 
@@ -1673,6 +2782,12 @@
 
     function animate() {
       requestAnimationFrame(animate);
+      // Todo el cuerpo va en try/catch: un solo frame roto (p.ej. photoData
+      // nulo en un estado inesperado) no debe congelar la instalación. Sin
+      // esto, la excepción se relanzaría en cada frame para siempre con la
+      // última posición ya renderizada — visualmente "atascada" aunque el
+      // loop de rAF nunca se detenga.
+      try {
       const dt = Math.min(clock.getDelta(), 0.05);
       const t = clock.elapsedTime;
 
@@ -1727,7 +2842,6 @@
         setState('photo');
         hideFreeze();
         mouseX = 0; mouseY = 0; // foto derecha, de frente
-        photoStartT = t;
         playChime();
         // Subir en segundo plano: cuando la persona pida el QR ya está listo.
         // El retraso deja que los colores terminen de asentarse
@@ -1738,12 +2852,11 @@
         const p = (t - assembleStart) / (ASSEMBLE_SWEEP + ASSEMBLE_JITTER + ASSEMBLE_DURATION * 0.5);
         if (p >= 0) eraseFreezeWave(Math.min(1, p));
       }
-      // La instalación nunca se queda atascada, pero no interrumpe a alguien
-      // que está escaneando el QR en ese momento
-      if (appState === 'photo' && photoStartT > 0 &&
-          t - photoStartT > AUTO_SNAP_AFTER && !qrOverlay.classList.contains('visible')) {
-        doSnap();
-      }
+      // La foto se queda en pantalla indefinidamente: solo se disuelve al
+      // tocar "💥 Chasquido" (doSnap, ver el listener del botón). Nada pasa
+      // por tiempo — antes se disolvía sola a los 60s (AUTO_SNAP_AFTER,
+      // eliminado: se sentía como que la instalación "volvía a tomar fotos
+      // sola" cada cierto tiempo, quitando control a quien maneja el stand).
       if (appState === 'dissolving' && t > dissolveEnd) {
         enterMirror();
       }
@@ -1889,6 +3002,13 @@
         composer.render();
       } else {
         renderer.render(scene, camera3D);
+      }
+      } catch (err) {
+        // Recuperación al estado seguro conocido: el espejo. Así la
+        // instalación se repone sola en el siguiente frame en vez de
+        // quedarse atascada esperando a que alguien reinicie la página.
+        console.error('Fallo en el loop de animación, recuperando al espejo:', err);
+        try { enterMirror(); } catch (e2) { /* nada más que hacer */ }
       }
     }
     animate();

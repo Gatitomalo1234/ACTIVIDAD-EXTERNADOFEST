@@ -80,7 +80,10 @@ Thanos. Al final puede llevarse su foto escaneando un QR.
 └── 2026-2/                   Segunda edición
     ├── photo_particles.html  CHASQUIDO — la experiencia
     ├── foto.html             Página de descarga del QR (desplegar aparte)
-    └── photo_particles.md    Documentación técnica de CHASQUIDO
+    ├── photo_particles.md    Documentación técnica de CHASQUIDO
+    └── vendor/               Three.js, supabase-js, qrcode y fuentes
+                               vendorizados (arranca sin depender del wifi
+                               del venue; ver vendor/README.md)
 ```
 
 Cada carpeta es autónoma: los HTML no dependen de rutas relativas, así que se

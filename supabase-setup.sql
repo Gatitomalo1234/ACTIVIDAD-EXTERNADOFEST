@@ -87,8 +87,41 @@ create policy "chasquido_insert_anon" on storage.objects
 
 
 -- ------------------------------------------------------------
+-- 5. TABLA DE EVENTOS DE CHASQUIDO (contador en vivo)
+-- Una fila por captura — sin datos personales, solo el timestamp.
+-- photo_particles.html la usa para el contador "X CHASQUIDOS HOY" que
+-- se ve en el espejo y se actualiza solo, en vivo, vía Realtime (mismo
+-- patrón que leaderboard.html usa para el tablero del laberinto).
+-- ------------------------------------------------------------
+create table if not exists public.chasquido_events (
+  id          bigint generated always as identity primary key,
+  created_at  timestamptz default now()
+);
+
+alter table public.chasquido_events enable row level security;
+
+drop policy if exists "chasquido_events_select_anon" on public.chasquido_events;
+create policy "chasquido_events_select_anon" on public.chasquido_events
+  for select to anon using (true);
+
+drop policy if exists "chasquido_events_insert_anon" on public.chasquido_events;
+create policy "chasquido_events_insert_anon" on public.chasquido_events
+  for insert to anon with check (true);
+
+do $$
+begin
+  if not exists (
+    select 1 from pg_publication_tables
+    where pubname = 'supabase_realtime' and tablename = 'chasquido_events'
+  ) then
+    alter publication supabase_realtime add table public.chasquido_events;
+  end if;
+end $$;
+
+
+-- ------------------------------------------------------------
 -- VERIFICACIÓN — se ejecuta sola al final.
--- Las tres columnas deben decir: true / true / true
+-- Las cinco columnas deben decir: true / true / true / true / true
 -- ------------------------------------------------------------
 select
   exists (select 1 from information_schema.tables
@@ -97,7 +130,13 @@ select
           where pubname = 'supabase_realtime'
             and tablename = 'leaderboard')                              as realtime_ok,
   exists (select 1 from storage.buckets
-          where id = 'chasquido' and public)                            as bucket_ok;
+          where id = 'chasquido' and public)                            as bucket_ok,
+  exists (select 1 from information_schema.tables
+          where table_schema = 'public'
+            and table_name = 'chasquido_events')                        as eventos_tabla_ok,
+  exists (select 1 from pg_publication_tables
+          where pubname = 'supabase_realtime'
+            and tablename = 'chasquido_events')                         as eventos_realtime_ok;
 
 
 -- ============================================================
@@ -106,6 +145,9 @@ select
 
 -- A) Vaciar el tablero del laberinto (equivale al botón "Borrar Todo").
 -- delete from public.leaderboard;
+
+-- A.1) Vaciar el contador de chasquidos (para arrancar en 0 el día del evento).
+-- delete from public.chasquido_events;
 
 
 -- B) BORRAR FOTOS DEL BUCKET  ← NO se puede por SQL.
