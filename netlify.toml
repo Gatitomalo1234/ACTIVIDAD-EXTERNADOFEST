@@ -1,0 +1,6 @@
+[build]
+  publish = "2026-2/prisma"
+
+# Proyecto Prisma: un solo index.html autocontenido, dependencias (Three.js,
+# MediaPipe Tasks Vision) cargadas por CDN vía import map — no hay build
+# step, Netlify solo necesita servir esta carpeta como raíz del sitio.

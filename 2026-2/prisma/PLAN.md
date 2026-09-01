@@ -1,4 +1,4 @@
-# Sukuna — Plan de trabajo
+# Prisma — Plan de trabajo
 
 > Documento vivo. Se actualiza a medida que avanza cada fase — marcar checkboxes,
 > anotar decisiones y resultados de las pruebas aquí mismo, para no perder el hilo
@@ -43,10 +43,16 @@ no depende de él. Vive en su propia carpeta para poder fallar o iterar sin ries
 ## Estructura de la carpeta
 
 ```
-2026-2/sukuna/
+2026-2/prisma/
 ├── PLAN.md      este archivo
 └── index.html   ★ el único entregable — se edita en el lugar en cada iteración
 ```
+
+*Nombre*: el proyecto se llamó "Sukuna" mientras era un experimento interno
+(referencia de Jujutsu Kaisen, por las técnicas de mano) — carpeta renombrada
+a **Prisma** una vez que se decidió el nombre real de cara al evento, después
+de cerrar la fase de mecanismo (encaja con la gema final y con el efecto de
+color que descompone el video, como un prisma real).
 
 Sin `node_modules`, sin carpetas de archivo, sin builds. Todo (Three.js,
 MediaPipe, el modelo de IA) se carga por CDN en tiempo real.
@@ -171,7 +177,7 @@ geometría cuando llegue la textura a rayas de las fotos de referencia.
 
 ## Cómo probar
 
-1. `cd 2026-2/sukuna && python3 -m http.server 8000` (servidor HTTP, no
+1. `cd 2026-2/prisma && python3 -m http.server 8000` (servidor HTTP, no
    `file://`, por los permisos de cámara).
 2. Abrir `http://localhost:8000/index.html`, aceptar el permiso de cámara.
 3. Mostrar **las dos manos** a la cámara, con pulgar e índice extendidos como
@@ -697,24 +703,88 @@ pinta negro en vez de video — el efecto visual es la cámara deslizándose
 hacia abajo hasta desaparecer del todo (~0.9s). De una sola vía, como el
 resto del Acto 2: no hay animación de vuelta.
 
+### Fase de diseño: menú desplegable, patrón del cuadrilátero, neón del triángulo
+
+Cerrada la mecánica, arrancó el trabajo puramente visual:
+
+- **UI limpia**: se sacaron los dos recuadros de métricas fijos en pantalla
+  (`#status`/`#shader-controls`, siempre visibles, se sentían "de prueba") y
+  se reemplazaron por un botón ⚙ fijo en la esquina inferior derecha que
+  despliega un panel (`#menu-panel`) con todos los controles agrupados por
+  sección (Estado, Efecto de color, Patrón, Neón) — mismo contenido de
+  antes, ya no estorba la vista mientras no se necesita.
+- **Nombre**: el proyecto se llamó "Sukuna" mientras era un experimento
+  interno de hand-tracking — a pedido del usuario ("no podemos usar ese tan
+  feo") se evaluaron varios nombres y se eligió **Prisma**. Carpeta
+  renombrada de `2026-2/sukuna/` a `2026-2/prisma/` (via `git mv`, conserva
+  historial), `<title>` actualizado.
+- **Patrón del cuadrilátero**: reemplaza el `MeshNormalMaterial` genérico por
+  un `ShaderMaterial` propio (`quadPatternMaterial`) que dibuja rayas
+  diagonales + una banda de acento dentro de la figura — inspirado en una
+  foto de referencia del usuario, que también traía overlays de
+  coordenadas/HUD de escaneo. **Se descartó explícitamente ese HUD** (mismo
+  criterio ya documentado antes en este archivo: "sin HUD de
+  coordenadas/cajas de escaneo") — el usuario lo confirmó: *"No quiero los
+  números y coordenadas solo quiero el diseño que se ve adentro de la
+  figura"*. 6 sliders en el panel (ángulo, frecuencia/grosor de rayas,
+  frecuencia/grosor de acento, frecuencia de guiones).
+- **Neón del triángulo**: `MeshBasicMaterial` de color sólido plano (sin
+  sombreado) + 3 copias más grandes y transparentes detrás en modo aditivo
+  (`triGlowLayers`) que simulan un halo/resplandor sin post-procesado real —
+  inspirado en 3 fotos de referencia de triángulos/rectángulos con bloom.
+  Cada capa recalcula sus vértices cada frame como centroide +
+  (vértice-centroide)×escala (mismo criterio que ya usa `shapeCentroid` para
+  el fijado por quietud), copiando además posición/escala de `triShape.mesh`
+  para seguir el pop-in y el disparo del arco sin retraso. 3 controles en el
+  panel (color, intensidad, radio del halo).
+  - **Colores al azar**: paleta fija de 3 (magenta/menta/azul, sacados de las
+    3 fotos de referencia) — se elige uno al azar cada vez que el triángulo
+    pasa de oculto a visible, no en cada frame.
+  - **Las copias fijadas conservan el halo**: `stampShape` clona también las
+    3 capas de halo (no solo el triángulo sólido) para que una figura
+    congelada no se vea "apagada" frente a la viva.
+  - **Halo con el shader de la flecha durante el arco**: mientras se tensa
+    el arco, el halo deja de usar el color sólido y pasa a usar el mismo
+    `gradingGLSL`/uniforms que ya tenía la "ventana" de la punta de la
+    flecha (`arrowMesh`) — a pedido explícito ("me gusta el halo pero no la
+    forma, que sea el mismo shader que tenemos adentro de la flecha"). Al
+    soltar el arco vuelve solo al color sólido normal.
+- **Fijado del cuadrilátero/triángulo, arreglado (varios intentos)**: el
+  primer cuadrilátero mostrado nunca se fijaba. Primer intento: calentamiento
+  por TIEMPO desde la primera mano vista — funcionaba pero era arbitrario, el
+  usuario pidió una condición conceptual en vez de tiempo: **no se puede
+  fijar nada hasta que se haya mostrado el triángulo** (`stampingUnlockedByTriangle`).
+  Con eso, apareció un bug nuevo: el cuadrilátero se fijaba solo, sin querer,
+  al levantar las dos manos — la causa real era que levantar una mano antes
+  que la otra pasa por un instante de "1 mano" (triángulo) que desbloqueaba
+  el fijado al instante, sin ninguna confirmación. Arreglado exigiendo
+  sostener el triángulo `TRIANGLE_UNLOCK_HOLD_MS` (500ms) seguidos antes de
+  contar como "mostrado" — mismo criterio de hold-confirmation que ya usa el
+  arco (`BOW_ARM_HOLD_MS`). Confirmado en vivo por el usuario: "Perfecto, ya
+  quedó arreglado".
+
 ## Estado actual (actualizado)
 
-- **Acto 1** (cuadrilátero, triángulo, arco+flecha, shader de color): ✅
-  validado en vivo, estable.
+- **Acto 1** (cuadrilátero, triángulo, arco+flecha, shader de color, panel
+  de menú, patrón del cuadrilátero, neón del triángulo): ✅ validado en vivo,
+  estable.
 - **Acto 2** (gema v4 + pantalla negra + comandos por dedos): ✅ validado en
   vivo con manos reales — gema estable, transición a negro fluida, los tres
-  comandos (giro/latido/salto) responden. **El usuario dio por cerrada esta
-  fase de desarrollo** ("quedo perfecto y exactamente como lo quería") —
-  próxima etapa: diseño visual, no mecanismo.
+  comandos (giro/latido/salto) responden.
+- **Despliegue**: pendiente de conectar el repo a Netlify (el usuario lo
+  conecta desde su cuenta) — se agregó `netlify.toml` en la raíz del repo
+  (`publish = "2026-2/prisma"`, sin build command: todo el proyecto es un
+  solo `index.html` con dependencias CDN, no hace falta compilar nada) para
+  que Netlify sirva esa carpeta como raíz del sitio.
 
 ## Próximos pasos
 
-- **Trabajo de diseño** (etapa actual, a partir de acá): look visual de la
-  gema y del resto de las figuras — la mecánica ya está cerrada.
 - **Fase B de la gema** (pendiente, pospuesta): decoración por cara — el
   shader térmico ya construido en una cara, un patrón propio (rayas
   diagonales, según las referencias) en otra.
-- Decoración del cuadrilátero/triángulo del Acto 1 (textura a rayas, UVs ya
-  preparadas desde el principio) — sigue pendiente desde antes del arco.
+- Extender el look neón (halo aditivo) al cuadrilátero, si el usuario lo
+  pide luego de ver el patrón de rayas en vivo.
 - Vendorizar Three.js/MediaPipe al disco si el lugar del evento no tiene
-  wifi confiable (mismo pendiente que CHASQUIDO, nunca resuelto).
+  wifi confiable (mismo pendiente que CHASQUIDO, nunca resuelto) — más
+  relevante ahora que se va a desplegar en Netlify, donde sí importa la
+  latencia de carga inicial de esos CDNs para quien lo pruebe en el evento.

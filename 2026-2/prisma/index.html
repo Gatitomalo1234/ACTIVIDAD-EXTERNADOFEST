@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Sukuna — figuras automáticas (1-2 manos)</title>
+  <title>Prisma — figuras automáticas (1-2 manos)</title>
 
   <!--
     Evolución del núcleo funcional de mano (mismo archivo, se sigue
@@ -127,37 +127,54 @@
       height: 100%;
     }
 
-    #shader-controls {
+    /* Botón flotante + panel desplegable: reemplaza a los dos recuadros
+       de métricas que estaban siempre visibles (uno de estado, otro de
+       controles de color) — ya cumplieron su función durante las
+       pruebas; ahora quedan a un clic de distancia en vez de encima de
+       la experiencia. */
+    #menu-toggle {
       position: fixed;
-      top: 10px;
-      right: 10px;
-      z-index: 10;
-      font-size: 11px;
-      line-height: 1.6;
+      bottom: 16px;
+      right: 16px;
+      z-index: 11;
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
       background: rgba(0, 0, 0, 0.6);
       border: 1px solid #444;
-      padding: 10px 14px;
-      width: 200px;
       color: #ddd;
+      font-size: 20px;
+      line-height: 1;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
-    #shader-controls .title { font-weight: bold; color: #fff; margin-bottom: 6px; }
-    #shader-controls label { display: flex; justify-content: space-between; gap: 8px; margin-top: 6px; }
-    #shader-controls input[type="range"] { width: 100%; margin-top: 2px; }
-    #shader-controls .row { display: flex; flex-direction: column; }
+    #menu-toggle:hover { background: rgba(0, 0, 0, 0.8); }
 
-    #status {
+    #menu-panel {
       position: fixed;
-      top: 10px;
-      left: 10px;
+      bottom: 70px;
+      right: 16px;
       z-index: 10;
       font-size: 12px;
       line-height: 1.7;
-      background: rgba(0, 0, 0, 0.6);
+      background: rgba(0, 0, 0, 0.75);
       border: 1px solid #444;
-      padding: 10px 14px;
-      max-width: 320px;
+      padding: 12px 16px;
+      width: 220px;
+      color: #ddd;
+      display: none;
     }
-    #status .title { font-weight: bold; color: #fff; margin-bottom: 4px; }
+    #menu-panel.open { display: block; }
+    #menu-panel .section + .section {
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid #333;
+    }
+    #menu-panel .title { font-weight: bold; color: #fff; margin-bottom: 4px; }
+    #menu-panel label.row { display: flex; flex-direction: column; justify-content: space-between; gap: 2px; margin-top: 6px; font-size: 11px; }
+    #menu-panel input[type="range"] { width: 100%; margin-top: 2px; }
     .ok { color: #8f8; }
     .bad { color: #f88; }
   </style>
@@ -176,43 +193,75 @@
   <video id="cam-video" autoplay muted playsinline></video>
   <canvas id="three-canvas"></canvas>
 
-  <div id="status">
-    <div class="title">SUKUNA · figuras automáticas</div>
-    <div>Núcleo funcional — sin decoración</div>
-    <div id="hand-status">Manos: <span class="bad">buscando…</span></div>
-    <div id="elbow-status">Codo: <span class="bad">buscando…</span></div>
-    <!-- "0/5" es solo el texto inicial antes de cargar — el JS lo sobreescribe
-         enseguida usando MAX_STAMPED_SHAPES, que es la fuente real del tope.
-         Si ese número cambia, no hace falta tocar esta línea. -->
-    <div id="stamped-status">Fijadas: 0/5</div>
-    <div id="fps">-- FPS</div>
-    <!-- Debug temporal para calibrar el gesto de arco en vivo — quitar
-         cuando los umbrales queden confirmados (mismo patrón que se usó
-         para calibrar STILL_TOLERANCE, REFERENCE_HAND_SPAN, etc). -->
-    <div id="bow-debug" style="opacity:0.65; font-size:10px;"></div>
-  </div>
+  <!-- Botón + panel desplegable: antes eran dos recuadros siempre
+       visibles (estado y controles de color) — quedaron así de la etapa
+       de pruebas. Ahora van juntos en un panel que abre/cierra este botón,
+       para que la experiencia se vea limpia — ver #menu-toggle en el
+       script (un simple toggle de la clase "open"). -->
+  <button id="menu-toggle" aria-label="Panel de diagnóstico y controles" title="Panel de diagnóstico y controles">⚙</button>
 
-  <!-- Panel permanente del efecto de color del arco (esquina opuesta al
-       panel de estado, mismo patrón que leaderboard.html separa sus
-       botones de admin). Cada slider mueve un uniform del shader en vivo,
-       sin recargar — ver EFECTO DE COLOR: SHADER en el script. -->
-  <div id="shader-controls">
-    <div class="title">Efecto de color (arco)</div>
-    <label class="row">Intensidad
-      <input type="range" id="ctrl-intensity" min="0" max="1" step="0.01" value="1">
-    </label>
-    <label class="row">Contraste
-      <input type="range" id="ctrl-contrast" min="0.5" max="2.5" step="0.01" value="1.4">
-    </label>
-    <label class="row">Saturación
-      <input type="range" id="ctrl-saturation" min="0" max="3" step="0.01" value="1.8">
-    </label>
-    <label class="row">Brillo
-      <input type="range" id="ctrl-brightness" min="-0.5" max="0.5" step="0.01" value="0">
-    </label>
-    <label class="row">Desplaz. paleta
-      <input type="range" id="ctrl-palette-shift" min="-0.5" max="0.5" step="0.01" value="0">
-    </label>
+  <div id="menu-panel">
+    <div class="section">
+      <div class="title">Estado</div>
+      <div id="hand-status">Manos: <span class="bad">buscando…</span></div>
+      <div id="elbow-status">Codo: <span class="bad">buscando…</span></div>
+      <!-- "0/5" es solo el texto inicial antes de cargar — el JS lo sobreescribe
+           enseguida usando MAX_STAMPED_SHAPES, que es la fuente real del tope.
+           Si ese número cambia, no hace falta tocar esta línea. -->
+      <div id="stamped-status">Fijadas: 0/5</div>
+      <div id="fps">-- FPS</div>
+    </div>
+    <div class="section">
+      <div class="title">Efecto de color (arco)</div>
+      <label class="row">Intensidad
+        <input type="range" id="ctrl-intensity" min="0" max="1" step="0.01" value="1">
+      </label>
+      <label class="row">Contraste
+        <input type="range" id="ctrl-contrast" min="0.5" max="2.5" step="0.01" value="1.4">
+      </label>
+      <label class="row">Saturación
+        <input type="range" id="ctrl-saturation" min="0" max="3" step="0.01" value="1.8">
+      </label>
+      <label class="row">Brillo
+        <input type="range" id="ctrl-brightness" min="-0.5" max="0.5" step="0.01" value="0">
+      </label>
+      <label class="row">Desplaz. paleta
+        <input type="range" id="ctrl-palette-shift" min="-0.5" max="0.5" step="0.01" value="0">
+      </label>
+    </div>
+    <div class="section">
+      <div class="title">Patrón (cuadrilátero)</div>
+      <label class="row">Ángulo
+        <input type="range" id="ctrl-pattern-angle" min="0" max="3.14" step="0.01" value="1.0">
+      </label>
+      <label class="row">Densidad rayas
+        <input type="range" id="ctrl-pattern-hatch-freq" min="5" max="100" step="1" value="45">
+      </label>
+      <label class="row">Grosor rayas
+        <input type="range" id="ctrl-pattern-hatch-thickness" min="0.02" max="0.5" step="0.01" value="0.15">
+      </label>
+      <label class="row">Densidad acento
+        <input type="range" id="ctrl-pattern-accent-freq" min="2" max="30" step="1" value="9">
+      </label>
+      <label class="row">Grosor acento
+        <input type="range" id="ctrl-pattern-accent-thickness" min="0.05" max="0.6" step="0.01" value="0.3">
+      </label>
+      <label class="row">Punteado acento
+        <input type="range" id="ctrl-pattern-dash-freq" min="1" max="30" step="1" value="12">
+      </label>
+    </div>
+    <div class="section">
+      <div class="title">Neón (triángulo)</div>
+      <label class="row">Color
+        <input type="color" id="ctrl-neon-color" value="#dd44ff">
+      </label>
+      <label class="row">Intensidad del halo
+        <input type="range" id="ctrl-neon-intensity" min="0" max="2" step="0.05" value="1">
+      </label>
+      <label class="row">Radio del halo
+        <input type="range" id="ctrl-neon-radius" min="0.5" max="2" step="0.05" value="1">
+      </label>
+    </div>
   </div>
 
   <script type="module">
@@ -325,12 +374,222 @@
       [0, 1, 1, 1, 0, 0, 1, 0]
     );
 
+    // ---- Decoración del cuadrilátero: patrón de rayas técnico ----
+    // Primera pieza de decoración real del proyecto (hasta acá todo era
+    // MeshNormalMaterial sin textura) — reemplaza el material del
+    // cuadrilátero por un shader propio en vez de una imagen: las UVs ya
+    // estaban preparadas desde el principio para esto. Rayas finas en
+    // diagonal (la "trama") + una banda gruesa de acento más espaciada y
+    // punteada (el "detalle"), ambas calculadas sobre las UV rotadas al
+    // ángulo elegido — mismo tipo de patrón por tramos que ya usa
+    // palette() en el shader de color, aplicado acá a líneas en vez de
+    // colores. Parámetros ajustables en vivo desde #menu-panel.
+    const quadPatternUniforms = {
+      uOpacity: { value: 0 },
+      uAngle: { value: 1.0 },          // radianes — inclinación de las rayas
+      uHatchFreq: { value: 45 },       // cuántas rayas finas caben en el ancho
+      uHatchThickness: { value: 0.15 },// 0..1 — qué tan gruesa es cada raya fina
+      uAccentFreq: { value: 9 },       // cuántas bandas de acento caben en el ancho
+      uAccentThickness: { value: 0.3 },// 0..1 — grosor de la banda de acento
+      uDashFreq: { value: 12 }         // cuántos cortes tiene cada banda de acento (el "punteado")
+    };
+    const quadPatternVertexShader = `
+      varying vec2 vUv;
+      void main() {
+        vUv = uv;
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+      }
+    `;
+    const quadPatternFragmentShader = `
+      precision mediump float;
+      varying vec2 vUv;
+      uniform float uOpacity;
+      uniform float uAngle;
+      uniform float uHatchFreq;
+      uniform float uHatchThickness;
+      uniform float uAccentFreq;
+      uniform float uAccentThickness;
+      uniform float uDashFreq;
+
+      void main() {
+        // Rota las UV al ángulo elegido — así "rayas horizontales" en este
+        // espacio rotado salen inclinadas en pantalla.
+        float s = sin(uAngle), c = cos(uAngle);
+        vec2 ruv = vec2(vUv.x * c - vUv.y * s, vUv.x * s + vUv.y * c);
+
+        // Rayas finas: un ciclo que se repite uHatchFreq veces.
+        float hatch = fract(ruv.x * uHatchFreq);
+        float hatchLine = 1.0 - smoothstep(uHatchThickness - 0.03, uHatchThickness, hatch);
+
+        // Banda de acento: mismo truco pero más espaciada y gruesa, y
+        // "cortada" en segmentos con una segunda modulación perpendicular
+        // (uDashFreq) para que se vea punteada, no una línea continua.
+        float accent = fract(ruv.x * uAccentFreq);
+        float accentLine = 1.0 - smoothstep(uAccentThickness - 0.05, uAccentThickness, accent);
+        float dash = step(0.5, fract(ruv.y * uDashFreq));
+        accentLine *= dash;
+
+        vec3 baseColor = vec3(0.97, 0.97, 0.98);
+        vec3 hatchColor = vec3(0.08, 0.08, 0.1);
+        vec3 accentColor = vec3(0.05, 0.25, 0.85);
+
+        vec3 color = mix(baseColor, hatchColor, hatchLine);
+        color = mix(color, accentColor, accentLine);
+        gl_FragColor = vec4(color, uOpacity);
+      }
+    `;
+    const quadPatternMaterial = new THREE.ShaderMaterial({
+      uniforms: quadPatternUniforms,
+      vertexShader: quadPatternVertexShader,
+      fragmentShader: quadPatternFragmentShader,
+      side: THREE.DoubleSide,
+      transparent: true
+    });
+    quadShape.material = quadPatternMaterial;
+    quadShape.mesh.material = quadPatternMaterial;
+
+    // Pop-in/ocultado (ver showShape/hideShape/updatePopAnimation) siguen
+    // tocando shape.material.opacity como con cualquier otra figura — esta
+    // función sincroniza ese valor con uOpacity para las que, como esta,
+    // usan un ShaderMaterial propio en vez de MeshNormalMaterial (que sí
+    // respeta `.opacity` de forma nativa).
+    function setShapeOpacity(shape, value) {
+      shape.material.opacity = value;
+      if (shape.material.uniforms && shape.material.uniforms.uOpacity) {
+        shape.material.uniforms.uOpacity.value = value;
+      }
+    }
+
     // Triángulo: 3 vértices, 1 triángulo. Layout: 0=muñeca, 1=índice, 2=meñique.
     const triShape = createDeformableShape(
       3,
       [0, 1, 2],
       [0, 0, 1, 0, 0.5, 1]
     );
+
+    // ---- Decoración del triángulo: neón sólido + halo hacia afuera ----
+    // Segunda pieza de decoración (después del patrón del cuadrilátero) —
+    // reemplaza el MeshNormalMaterial por un color sólido plano (sin
+    // sombreado, como un neón encendido) más 3 copias más grandes y
+    // transparentes DETRÁS, en modo aditivo, que se van desvaneciendo hacia
+    // afuera — así se simula el halo/resplandor de las fotos de referencia
+    // sin post-procesado (este proyecto no usa un pipeline de bloom real,
+    // así que este es el camino barato y sin dependencias nuevas).
+    //
+    // Las copias de halo NO pueden ser el mesh escalado directo (mesh.scale
+    // escala alrededor del origen del mundo, no del centro real de la
+    // figura en pantalla — mismo problema ya identificado con la viga y la
+    // gema) — en cambio, cada capa recalcula sus propios vértices cada
+    // frame como centroide + (vértice - centroide) * escala, reusando
+    // shapeCentroid() que ya existe para el fijado por quietud.
+    // Paleta chica (3 colores, a propósito — "fácil de manejar" según el
+    // usuario en vez de un color aleatorio sin límite) tomada de las 3 fotos
+    // de referencia: magenta, menta/turquesa y azul eléctrico. Se elige uno
+    // al azar cada vez que el triángulo pasa de oculto a visible (ver
+    // showShape) — no en cada frame, si no cambiaría de color en pleno
+    // dibujo.
+    const TRI_NEON_COLORS = [0xdd44ff, 0x33ffb0, 0x3388ff];
+    let triNeonColor = TRI_NEON_COLORS[0];
+    const TRI_GLOW_LAYERS = [
+      { scale: 1.25, opacity: 0.35 },
+      { scale: 1.55, opacity: 0.18 },
+      { scale: 1.9, opacity: 0.08 }
+    ];
+    // Multiplicadores en vivo desde #menu-panel (sección "Neón") — 1 = los
+    // valores de arriba tal cual, sin tocar la forma base de cada capa.
+    let triGlowIntensity = 1;
+    let triGlowRadius = 1;
+
+    triShape.material = new THREE.MeshBasicMaterial({
+      color: triNeonColor,
+      side: THREE.DoubleSide,
+      transparent: true,
+      opacity: 0
+    });
+    triShape.mesh.material = triShape.material;
+
+    // Elige un color al azar de TRI_NEON_COLORS y lo aplica al triángulo
+    // sólido + las 3 capas de halo — un único lugar para no olvidar
+    // sincronizar alguna de las 4 mallas.
+    function randomizeTriNeonColor() {
+      triNeonColor = TRI_NEON_COLORS[Math.floor(Math.random() * TRI_NEON_COLORS.length)];
+      triShape.material.color.set(triNeonColor);
+      for (const layer of triGlowLayers) layer.material.color.set(triNeonColor);
+    }
+
+    const triGlowLayers = TRI_GLOW_LAYERS.map((cfg) => {
+      const geometry = new THREE.BufferGeometry();
+      geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(9), 3));
+      geometry.setIndex([0, 1, 2]);
+      const material = new THREE.MeshBasicMaterial({
+        color: triNeonColor,
+        transparent: true,
+        opacity: 0,
+        blending: THREE.AdditiveBlending,
+        depthTest: false,
+        depthWrite: false,
+        side: THREE.DoubleSide
+      });
+      const mesh = new THREE.Mesh(geometry, material);
+      mesh.renderOrder = -1; // siempre detrás del triángulo sólido (renderOrder 0 por defecto)
+      mesh.visible = false;
+      scene.add(mesh);
+      return { mesh, geometry, material, baseOpacity: cfg.opacity, scale: cfg.scale };
+    });
+
+    // Se llama cada frame de render (no cada detección) para que el halo
+    // siga a la deformación en vivo sin retraso — mismo criterio que
+    // syncArrowMesh(). Copia además escala/posición de triShape.mesh (el
+    // pop-in y el disparo del arco animan esas dos propiedades del
+    // TRANSFORM, no del buffer de vértices — sin esto el halo se quedaría
+    // con el tamaño viejo mientras el triángulo sólido crece/sale volando).
+    // baseOpacity de cada capa se multiplica por la opacidad actual del
+    // triángulo, para que el halo aparezca/desaparezca junto con el
+    // pop-in/ocultado en vez de quedar prendido de golpe.
+    // Mientras se tensa el arco (arrowMesh.visible, ver ARCO Y FLECHA más
+    // abajo) el halo cambia de material: en vez del color sólido neón, usa
+    // triGlowArrowMaterials (mismo gradingGLSL/uniforms que arrowMesh, ver
+    // más abajo dónde se arman) — a pedido explícito: "me gusta el halo
+    // pero no la forma [del color sólido], que sea el mismo shader que
+    // tenemos adentro de la flecha". triGlowArrowMaterials se define DESPUÉS
+    // de arrowFragmentShader (más abajo en el archivo) pero para cuando esta
+    // función corre por primera vez (dentro de tick(), no durante la carga
+    // inicial del script) ya está armado.
+    function updateTriGlow() {
+      const visible = triShape.mesh.visible;
+      for (const layer of triGlowLayers) layer.mesh.visible = visible;
+      if (!visible) return;
+
+      const usingArrowShader = arrowMesh.visible;
+      const centroid = shapeCentroid(triShape);
+      const srcAttr = triShape.geometry.attributes.position;
+      const opacityScale = triShape.material.opacity;
+      for (const layer of triGlowLayers) {
+        // triGlowRadius escala qué tanto se ESTIRA cada capa más allá del
+        // triángulo (1 = como está calibrado arriba, 0 = pegada al
+        // triángulo, sin halo) — no el radio absoluto, así 0 siempre
+        // colapsa al mismo tamaño del triángulo sin importar la capa.
+        const effectiveScale = 1 + (layer.scale - 1) * triGlowRadius;
+        const dstAttr = layer.geometry.attributes.position;
+        for (let i = 0; i < srcAttr.count; i++) {
+          const dx = (srcAttr.getX(i) - centroid.x) * effectiveScale + centroid.x;
+          const dy = (srcAttr.getY(i) - centroid.y) * effectiveScale + centroid.y;
+          const dz = (srcAttr.getZ(i) - centroid.z) * effectiveScale + centroid.z;
+          dstAttr.setXYZ(i, dx, dy, dz);
+        }
+        dstAttr.needsUpdate = true;
+        layer.mesh.scale.copy(triShape.mesh.scale);
+        layer.mesh.position.copy(triShape.mesh.position);
+        const opacity = layer.baseOpacity * triGlowIntensity * opacityScale;
+        if (usingArrowShader) {
+          layer.mesh.material = layer.arrowMaterial;
+          layer.arrowMaterial.uniforms.uOpacity.value = opacity;
+        } else {
+          layer.mesh.material = layer.material;
+          layer.material.opacity = opacity;
+        }
+      }
+    }
 
     // Gema: primera figura con volumen real (las demás son planos), del
     // ACTO 2 (ver más abajo, sección ACTO 2). Rediseño (v4) — se probaron
@@ -432,8 +691,8 @@
     videoTexture.minFilter = THREE.LinearFilter;
     videoTexture.magFilter = THREE.LinearFilter;
 
-    // Uniforms expuestos en el panel #shader-controls (permanente, se puede
-    // ajustar en vivo sin recargar) + los que maneja el propio código
+    // Uniforms expuestos en #menu-panel (sección "Efecto de color", se
+    // puede ajustar en vivo sin recargar) + los que maneja el propio código
     // (uMix, tamaños). Los valores iniciales de contraste/saturación son
     // altos a propósito — la referencia pide "colores muy saturados,
     // contraste bastante fuerte".
@@ -670,6 +929,40 @@
     arrowMesh.renderOrder = 999;
     scene.add(arrowMesh);
 
+    // Variante del halo del triángulo (ver triGlowLayers más arriba) para
+    // mientras se tensa el arco: mismo gradingGLSL/uniforms que arrowMesh
+    // (comparten los sliders del panel, no son una copia independiente) en
+    // vez del color sólido neón — así el halo "sangra" hacia afuera el
+    // mismo efecto de video gradado que se ve dentro de la punta de la
+    // flecha, en vez de un blob de color plano detrás. Aditivo igual que la
+    // versión sólida, para que siga funcionando como halo (se suma, no tapa).
+    // Un material por capa (no uno compartido) porque cada capa necesita su
+    // propia opacidad (uOpacity) — pero SÍ comparten los uniforms de video/
+    // gradación con arrowUniforms (mismas referencias, no clones) para que
+    // mover un slider del panel afecte al halo igual que a la flecha.
+    for (const layer of triGlowLayers) {
+      layer.arrowMaterial = new THREE.ShaderMaterial({
+        uniforms: {
+          uVideoTexture: arrowUniforms.uVideoTexture,
+          uVideoSize: arrowUniforms.uVideoSize,
+          uCanvasSize: arrowUniforms.uCanvasSize,
+          uEffectIntensity: arrowUniforms.uEffectIntensity,
+          uContrast: arrowUniforms.uContrast,
+          uSaturation: arrowUniforms.uSaturation,
+          uBrightness: arrowUniforms.uBrightness,
+          uPaletteShift: arrowUniforms.uPaletteShift,
+          uOpacity: { value: 0 }
+        },
+        vertexShader: arrowVertexShader,
+        fragmentShader: arrowFragmentShader,
+        transparent: true,
+        blending: THREE.AdditiveBlending,
+        depthTest: false,
+        depthWrite: false,
+        side: THREE.DoubleSide
+      });
+    }
+
     // El renderer ya no puede auto-limpiar entre pasadas (fondo + figuras)
     // o la segunda pasada borraría la primera — se limpia a mano una vez
     // por tick, ver renderBoth() más abajo.
@@ -743,6 +1036,43 @@
     });
     document.getElementById('ctrl-palette-shift').addEventListener('input', (e) => {
       bgUniforms.uPaletteShift.value = parseFloat(e.target.value);
+    });
+    document.getElementById('ctrl-pattern-angle').addEventListener('input', (e) => {
+      quadPatternUniforms.uAngle.value = parseFloat(e.target.value);
+    });
+    document.getElementById('ctrl-pattern-hatch-freq').addEventListener('input', (e) => {
+      quadPatternUniforms.uHatchFreq.value = parseFloat(e.target.value);
+    });
+    document.getElementById('ctrl-pattern-hatch-thickness').addEventListener('input', (e) => {
+      quadPatternUniforms.uHatchThickness.value = parseFloat(e.target.value);
+    });
+    document.getElementById('ctrl-pattern-accent-freq').addEventListener('input', (e) => {
+      quadPatternUniforms.uAccentFreq.value = parseFloat(e.target.value);
+    });
+    document.getElementById('ctrl-pattern-accent-thickness').addEventListener('input', (e) => {
+      quadPatternUniforms.uAccentThickness.value = parseFloat(e.target.value);
+    });
+    document.getElementById('ctrl-pattern-dash-freq').addEventListener('input', (e) => {
+      quadPatternUniforms.uDashFreq.value = parseFloat(e.target.value);
+    });
+    document.getElementById('ctrl-neon-color').addEventListener('input', (e) => {
+      // El color se aplica al triángulo sólido Y a las 3 capas de halo —
+      // todas comparten el mismo color base (ver TRI_NEON_COLOR).
+      triShape.material.color.set(e.target.value);
+      for (const layer of triGlowLayers) layer.material.color.set(e.target.value);
+    });
+    document.getElementById('ctrl-neon-intensity').addEventListener('input', (e) => {
+      triGlowIntensity = parseFloat(e.target.value);
+    });
+    document.getElementById('ctrl-neon-radius').addEventListener('input', (e) => {
+      triGlowRadius = parseFloat(e.target.value);
+    });
+
+    // Botón flotante: simple toggle de la clase "open" — el panel entero
+    // (estado + controles de color) empieza cerrado, ya no hace falta
+    // tenerlo siempre encima de la experiencia como en la etapa de pruebas.
+    document.getElementById('menu-toggle').addEventListener('click', () => {
+      document.getElementById('menu-panel').classList.toggle('open');
     });
 
     // ========== MEDIAPIPE: MANOS + POSE (comparten el mismo runtime WASM) ==========
@@ -1231,15 +1561,29 @@
     const MAX_STAMPED_SHAPES = 5;
     const stampedShapes = [];
 
-    // Al arrancar (o justo después de un borrado completo) hay un ratito de
-    // "calentamiento" sin poder fijar nada — fiel al video de referencia,
-    // que empieza jugando con la figura antes de dejar la primera. A
-    // diferencia del sistema de fases (que se sacó por sentirse demasiado
-    // restrictivo), esto NO bloquea qué figuras se reconocen — cuadrilátero,
-    // triángulo y arco siguen disponibles todo el tiempo — solo retrasa el
-    // FIJADO un momento al principio de cada ronda.
-    const STAMPING_LOCKED_MS = 4000;
-    let sessionStartAt = performance.now();
+    // Al arrancar (o justo después de un borrado completo) el fijado queda
+    // bloqueado hasta que se muestre el TRIÁNGULO al menos una vez en la
+    // ronda actual — fiel al video de referencia, que empieza jugando con
+    // el triángulo antes de dejar la primera figura. Primer intento: un
+    // calentamiento por TIEMPO (4s desde la primera mano vista) — funcionaba,
+    // pero era arbitrario (¿por qué 4s y no 3 o 6?) y el usuario pidió
+    // reemplazarlo por esta condición, más fiel a la idea original y sin
+    // número mágico que calibrar. A diferencia del sistema de fases (que se
+    // sacó por sentirse demasiado restrictivo), esto NO bloquea qué figuras
+    // se reconocen — cuadrilátero, triángulo y arco siguen disponibles todo
+    // el tiempo — solo retrasa el FIJADO hasta ese momento.
+    //
+    // Bug real encontrado tras la primera versión: contar CUALQUIER frame
+    // con 1 mano usable como "se mostró el triángulo" desbloqueaba solo con
+    // levantar las dos manos para el cuadrilátero — al alzar una mano antes
+    // que la otra, se pasa por un instante de "1 mano" sin querer, y eso ya
+    // contaba. Se corrige exigiendo sostener el triángulo
+    // TRIANGLE_UNLOCK_HOLD_MS seguidos (mismo criterio que ya usa el arco
+    // con BOW_ARM_HOLD_MS) antes de desbloquear — un roce de transición no
+    // llega a ese tiempo, un triángulo mostrado a propósito sí.
+    const TRIANGLE_UNLOCK_HOLD_MS = 500;
+    let triangleHoldStartedAt = null;
+    let stampingUnlockedByTriangle = false;
 
     function shapeCentroid(shape) {
       const posAttr = shape.geometry.attributes.position;
@@ -1257,19 +1601,58 @@
       const material = shape.material.clone();
       material.opacity = 1;      // ya estaba totalmente visible: esto es un
       material.transparent = false; // congelamiento instantáneo, no una aparición nueva
+      // Para las figuras con ShaderMaterial propio (ver quadPatternMaterial)
+      // el `.opacity`/`.transparent` de arriba no alcanza — el shader lee
+      // uOpacity directamente. clone() ya copió los uniforms del material
+      // original con sus valores actuales, así que esto solo fuerza el
+      // último tramo a "totalmente visible", igual que las líneas de arriba.
+      if (material.uniforms && material.uniforms.uOpacity) material.uniforms.uOpacity.value = 1;
       // (la escala queda en (1,1,1), el default de un Mesh recién creado —
       // no hereda la escala de pop-in de la malla viva, que es lo que
       // importa: el tamaño final no depende de en qué punto del pop-in
       // estaba cuando se fijó)
       const mesh = new THREE.Mesh(geometry, material);
       scene.add(mesh);
-      stampedShapes.push(mesh);
+
+      // El triángulo fijado se queda con su halo — a pedido explícito, para
+      // que una figura congelada no se vea "apagada" comparada con la viva.
+      // triGlowLayers[*].geometry ya tiene, ESTE mismo frame, los vértices
+      // recalculados a partir de triShape (ver updateTriGlow, que corre en
+      // cada tick antes de que llegue acá) — clonarlos alcanza, no hace
+      // falta rehacer el cálculo centroide+escala.
+      const extras = [];
+      if (shape === triShape) {
+        for (const layer of triGlowLayers) {
+          const glowGeometry = layer.geometry.clone();
+          const glowMaterial = layer.material.clone();
+          glowMaterial.opacity = layer.baseOpacity * triGlowIntensity; // sin el fade de opacidad de la malla viva
+          const glowMesh = new THREE.Mesh(glowGeometry, glowMaterial);
+          glowMesh.renderOrder = -1;
+          scene.add(glowMesh);
+          extras.push(glowMesh);
+        }
+      }
+
+      stampedShapes.push({ mesh, extras });
 
       if (stampedShapes.length > MAX_STAMPED_SHAPES) {
         const old = stampedShapes.shift();
-        scene.remove(old);
-        old.geometry.dispose();
-        old.material.dispose();
+        disposeStampedEntry(old);
+      }
+    }
+
+    // Saca de escena y libera geometry/material del mesh principal Y de
+    // cualquier extra (halo del triángulo, ver stampShape) de una entrada de
+    // stampedShapes — un solo lugar para que el desalojo por MAX_STAMPED_SHAPES
+    // y el borrado completo (clearAllStamped) no puedan desincronizarse.
+    function disposeStampedEntry(entry) {
+      scene.remove(entry.mesh);
+      entry.mesh.geometry.dispose();
+      entry.mesh.material.dispose();
+      for (const extra of entry.extras) {
+        scene.remove(extra);
+        extra.geometry.dispose();
+        extra.material.dispose();
       }
     }
 
@@ -1286,7 +1669,7 @@
       if (
         !shape.hasStamped &&
         now - shape.stillSince >= STILL_DURATION_MS &&
-        now - sessionStartAt >= STAMPING_LOCKED_MS // todavía en el "calentamiento" inicial — ver declaración
+        stampingUnlockedByTriangle // ver declaración más arriba
       ) {
         stampShape(shape);
         shape.hasStamped = true; // no fijar de nuevo en el mismo sitio hasta que se mueva
@@ -1335,15 +1718,12 @@
     }
 
     function clearAllStamped() {
-      for (const mesh of stampedShapes) {
-        scene.remove(mesh);
-        mesh.geometry.dispose();
-        mesh.material.dispose();
-      }
+      for (const entry of stampedShapes) disposeStampedEntry(entry);
       stampedShapes.length = 0;
-      // Cada borrado da un nuevo "calentamiento" antes de poder volver a
-      // fijar algo — ver STAMPING_LOCKED_MS.
-      sessionStartAt = performance.now();
+      // Cada borrado exige mostrar el triángulo de nuevo antes de poder
+      // volver a fijar algo — ver stampingUnlockedByTriangle.
+      stampingUnlockedByTriangle = false;
+      triangleHoldStartedAt = null;
       // Confirmación clara del momento exacto del borrado (antes no había
       // ninguna señal de "esto fue lo que lo disparó") — vuelve al contador
       // normal después de un momento.
@@ -1435,12 +1815,15 @@
       if (!shape.mesh.visible) {
         shape.mesh.visible = true;
         shape.appearAt = now;
+        // Nuevo color al azar cada vez que el triángulo aparece desde
+        // oculto (ver TRI_NEON_COLORS) — no en cada frame que sigue visible.
+        if (shape === triShape) randomizeTriNeonColor();
       }
     }
     function hideShape(shape) {
       shape.mesh.visible = false;
       shape.mesh.position.set(0, 0, 0); // por si quedó desplazada de una animación de disparo (ver ARCO Y FLECHA)
-      shape.material.opacity = 0;
+      setShapeOpacity(shape, 0);
       // Se resetea el reloj de quietud: al reaparecer puede estar en
       // cualquier otro lugar, no debe arrastrar la posición/tiempo viejos.
       shape.stillCenter = null;
@@ -1455,7 +1838,7 @@
       const t = Math.min(1, (now - shape.appearAt) / POP_DURATION_MS);
       const eased = t * (2 - t); // ease-out cuadrático
       shape.mesh.scale.setScalar(0.6 + 0.4 * eased);
-      shape.material.opacity = eased;
+      setShapeOpacity(shape, eased);
     }
 
     // ========== ARCO Y FLECHA ==========
@@ -1483,9 +1866,9 @@
     // Los umbrales (PINCH_*, MIN_DRAW_RATIO, SNAP_CLOSED_RATIO, los tiempos
     // de armado) son un primer intento razonable, no medidos con datos
     // reales — a diferencia de otras constantes de este archivo
-    // (STILL_TOLERANCE, DETECT_EVERY_N) que sí se calibraron en vivo. Hay un
-    // debug temporal en pantalla (#bow-debug) para leer valores reales
-    // mientras se prueba y ajustar con datos, no a ciegas.
+    // (STILL_TOLERANCE, DETECT_EVERY_N) que sí se calibraron en vivo. Ya se
+    // probaron en persona y quedaron confirmados (ver PLAN.md) — el debug
+    // en pantalla que se usó para ajustarlos ya se quitó.
     // PINCH_CLOSED_RATIO / PINCH_OPEN_RATIO viven arriba, junto a
     // pinchRatio() — se reutilizan tal cual (isGunHand también las usa,
     // para descartar que una mano pellizcando cuente como pistola).
@@ -1517,8 +1900,6 @@
     // manos abiertas, que arma la gema. Ver resetColorEffect() y el
     // chequeo al inicio de processHandDetection.
     let actTwoActive = false;
-    let lastPinchRatio = null; // solo para #bow-debug — se arma UNA vez por tick en el loop, no acá
-    let lastDrawRatio = null;
 
     // Posición (muñeca) de la última mano identificada como "pistola" — ver
     // pickGunHand() más abajo. Null significa "no hay identidad establecida
@@ -1547,8 +1928,6 @@
       gunHandLostAt = null;
       gunHandRefPos = null;
       bowPinchWasClosed = false;
-      lastPinchRatio = null;
-      lastDrawRatio = null;
     }
 
     function pickGunHand(allHands) {
@@ -1663,8 +2042,6 @@
         // se muestra la flecha ya para que se sienta responsivo, pero no se
         // evalúa pellizco/disparo todavía.
         bowPinchWasClosed = false;
-        lastPinchRatio = null;
-        lastDrawRatio = null;
         setHandStatus('arco (armando…)', 'ok');
         return;
       }
@@ -1673,8 +2050,6 @@
         // Ya armado, pero solo se ve la mano pistola — esperando la otra
         // mano para poder tensar. No hay pellizco que evaluar aún.
         bowPinchWasClosed = false;
-        lastPinchRatio = null;
-        lastDrawRatio = null;
         setHandStatus('arco (armado, falta la otra mano)', 'ok');
         return;
       }
@@ -1691,8 +2066,6 @@
         y: (pinchHandLm[4].y + pinchHandLm[8].y) / 2
       };
       const drawRatio = Math.hypot(gunAnchor.x - pinchPoint.x, gunAnchor.y - pinchPoint.y) / scale;
-      lastPinchRatio = pRatio; // ver comentario junto a la declaración — el debug se arma en el loop, no acá
-      lastDrawRatio = drawRatio;
 
       if (bowPinchWasClosed && !pinchClosed && drawRatio >= MIN_DRAW_RATIO) {
         launchTriangle(now);
@@ -1750,8 +2123,6 @@
     const elbowStatusEl = document.getElementById('elbow-status');
     const fpsEl = document.getElementById('fps');
     const stampedStatusEl = document.getElementById('stamped-status');
-    const bowDebugEl = document.getElementById('bow-debug');
-    const DEBUG_BOW = true; // ver comentario en el HTML de #bow-debug — quitar cuando los umbrales queden confirmados
 
     // Fábrica de setters de estado: evita reescribir el DOM cuando el texto
     // no cambió. Importa sobre todo para el codo — `checkElbowClearGesture`
@@ -1826,20 +2197,6 @@
         // después de disparar, el triángulo se volvía a armar solo.
         setHandStatus('esperando chasquido…', 'ok');
         return;
-      }
-
-      if (DEBUG_BOW) {
-        // Detalle por mano (¿cada una clasifica como pistola? ¿qué
-        // tan pellizcada está?) — más útil para diagnosticar que solo
-        // el resumen, si hace falta seguir ajustando umbrales.
-        const perHand = allHands
-          .map((lm) => (isGunHand(lm) ? 'PISTOLA' : 'no') + '/p' + pinchRatio(lm, 4, 8).toFixed(2))
-          .join('  ');
-        let txt = 'estado:' + bowState + ' [' + perHand + ']';
-        if (lastPinchRatio !== null) {
-          txt += ' tensado:' + lastDrawRatio.toFixed(2) + '(min ' + MIN_DRAW_RATIO + ')';
-        }
-        bowDebugEl.textContent = txt;
       }
 
       // Compuerta del arco: tras un chasquido queda cerrada hasta que se
@@ -1929,15 +2286,27 @@
         updateQuad(leftHandLm, rightHandLm, now);
         showShape(quadShape, now);
         hideShape(triShape);
+        triangleHoldStartedAt = null; // se salió del triángulo — ver TRIANGLE_UNLOCK_HOLD_MS
         setHandStatus('cuadrilátero (2 manos)', 'ok');
       } else if (count === 1) {
         showShape(triShape, now);
+        // El triángulo "de verdad" (1 mano) desbloquea el fijado, pero
+        // solo si se sostiene — ver TRIANGLE_UNLOCK_HOLD_MS (sin esto, el
+        // instante de "1 mano" al levantar la segunda para el cuadrilátero
+        // ya desbloqueaba sin querer). A propósito NO se usa la flecha del
+        // arco (que también reutiliza triShape.mesh, ver updateBowAndArrow)
+        // para esto: son gestos distintos aunque compartan la malla.
+        if (triangleHoldStartedAt === null) triangleHoldStartedAt = now;
+        if (!stampingUnlockedByTriangle && now - triangleHoldStartedAt >= TRIANGLE_UNLOCK_HOLD_MS) {
+          stampingUnlockedByTriangle = true;
+        }
         updateTriangle(usableHands[0], now);
         hideShape(quadShape);
         setHandStatus('triángulo (1 mano)', 'ok');
       } else {
         hideShape(quadShape);
         hideShape(triShape);
+        triangleHoldStartedAt = null; // ver TRIANGLE_UNLOCK_HOLD_MS
         setHandStatus(allHands.length > 0 ? 'pausado (puño)' : 'buscando…', 'bad');
       }
     }
@@ -2005,6 +2374,7 @@
           updatePopAnimation(triShape, now);
         }
         syncArrowMesh(); // copia posición/escala/opacidad de triShape.mesh YA actualizadas este frame
+        updateTriGlow(); // recalcula el halo detrás del triángulo con sus vértices YA actualizados
         updateColorMixAnimation(now);
         updateCameraSlideAnimation(now);
         renderBoth();
