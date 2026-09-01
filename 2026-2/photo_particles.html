@@ -57,9 +57,11 @@
       width: 100%;
       height: 100%;
       object-fit: cover;
-      transform: scaleX(-1); /* espejo */
+      transform: scaleX(-1);
+      /* espejo */
       z-index: 0;
-      opacity: 0; /* la intro lo revela cuando el stream arranca */
+      opacity: 0;
+      /* la intro lo revela cuando el stream arranca */
       transition: opacity 1.4s ease, filter 0.6s ease;
       /* Espejo: limpio y brillante, la gente debe verse bien para posar */
       filter: saturate(1.12) contrast(1.03) brightness(1.04);
@@ -107,11 +109,25 @@
     }
 
     @keyframes grainJitter {
-      0% { transform: translate(0, 0); }
-      25% { transform: translate(-1.5%, 1%); }
-      50% { transform: translate(1%, -1.5%); }
-      75% { transform: translate(-1%, 1.5%); }
-      100% { transform: translate(1.5%, -1%); }
+      0% {
+        transform: translate(0, 0);
+      }
+
+      25% {
+        transform: translate(-1.5%, 1%);
+      }
+
+      50% {
+        transform: translate(1%, -1.5%);
+      }
+
+      75% {
+        transform: translate(-1%, 1.5%);
+      }
+
+      100% {
+        transform: translate(1.5%, -1%);
+      }
     }
 
     /* Tinte frío/morado en los bordes (grade) */
@@ -126,7 +142,8 @@
     }
 
     body[data-state="mirror"] #tint {
-      opacity: 0.3; /* insinuado, para no oscurecer a quien se está mirando */
+      opacity: 0.3;
+      /* insinuado, para no oscurecer a quien se está mirando */
     }
 
     body[data-state="countdown"] #tint {
@@ -135,7 +152,8 @@
 
     #cam-video.ready {
       opacity: 1;
-      transition-delay: 1.1s; /* primero el título, luego el espejo */
+      transition-delay: 1.1s;
+      /* primero el título, luego el espejo */
     }
 
     #cam-video.hidden {
@@ -244,6 +262,7 @@
         transform: translateY(-60px) scale(1.4);
         filter: blur(12px) drop-shadow(0 3px 22px rgba(168, 85, 247, 0));
       }
+
       100% {
         opacity: 1;
         transform: translateY(0) scale(1);
@@ -253,14 +272,29 @@
 
     /* Destello que recorre las letras cada ciclo */
     @keyframes shineSweep {
-      0% { background-position: 160% 0, 0 0; }
-      16% { background-position: -60% 0, 0 0; }
-      100% { background-position: -60% 0, 0 0; }
+      0% {
+        background-position: 160% 0, 0 0;
+      }
+
+      16% {
+        background-position: -60% 0, 0 0;
+      }
+
+      100% {
+        background-position: -60% 0, 0 0;
+      }
     }
 
     @keyframes letterWave {
-      0%, 100% { transform: translateY(0); }
-      50% { transform: translateY(-4px); }
+
+      0%,
+      100% {
+        transform: translateY(0);
+      }
+
+      50% {
+        transform: translateY(-4px);
+      }
     }
 
     #brand .tagline {
@@ -298,18 +332,41 @@
     }
 
     @keyframes gemIn {
-      0% { opacity: 0; transform: scale(0); }
-      100% { opacity: 1; transform: scale(1); }
+      0% {
+        opacity: 0;
+        transform: scale(0);
+      }
+
+      100% {
+        opacity: 1;
+        transform: scale(1);
+      }
     }
 
     @keyframes gemPulse {
-      0%, 100% { transform: scale(1); opacity: 0.85; }
-      50% { transform: scale(1.35); opacity: 1; }
+
+      0%,
+      100% {
+        transform: scale(1);
+        opacity: 0.85;
+      }
+
+      50% {
+        transform: scale(1.35);
+        opacity: 1;
+      }
     }
 
     @keyframes fadeSlideIn {
-      0% { opacity: 0; transform: translateY(14px); }
-      100% { opacity: 1; transform: translateY(0); }
+      0% {
+        opacity: 0;
+        transform: translateY(14px);
+      }
+
+      100% {
+        opacity: 1;
+        transform: translateY(0);
+      }
     }
 
     /* ---- Encuadre de visor (estado espejo) ---- */
@@ -332,14 +389,50 @@
     }
 
     @keyframes cornerBreathe {
-      0%, 100% { transform: scale(1); opacity: 0.9; }
-      50% { transform: scale(1.06); opacity: 0.5; }
+
+      0%,
+      100% {
+        transform: scale(1);
+        opacity: 0.9;
+      }
+
+      50% {
+        transform: scale(1.06);
+        opacity: 0.5;
+      }
     }
 
-    #corner-tl { top: 130px; left: 40px; border-top-width: 2px; border-left-width: 2px; border-top-left-radius: 10px; }
-    #corner-tr { top: 130px; right: 40px; border-top-width: 2px; border-right-width: 2px; border-top-right-radius: 10px; }
-    #corner-bl { bottom: 40px; left: 40px; border-bottom-width: 2px; border-left-width: 2px; border-bottom-left-radius: 10px; }
-    #corner-br { bottom: 40px; right: 40px; border-bottom-width: 2px; border-right-width: 2px; border-bottom-right-radius: 10px; }
+    #corner-tl {
+      top: 130px;
+      left: 40px;
+      border-top-width: 2px;
+      border-left-width: 2px;
+      border-top-left-radius: 10px;
+    }
+
+    #corner-tr {
+      top: 130px;
+      right: 40px;
+      border-top-width: 2px;
+      border-right-width: 2px;
+      border-top-right-radius: 10px;
+    }
+
+    #corner-bl {
+      bottom: 40px;
+      left: 40px;
+      border-bottom-width: 2px;
+      border-left-width: 2px;
+      border-bottom-left-radius: 10px;
+    }
+
+    #corner-br {
+      bottom: 40px;
+      right: 40px;
+      border-bottom-width: 2px;
+      border-right-width: 2px;
+      border-bottom-right-radius: 10px;
+    }
 
     /* ---- Chip EN VIVO (estado espejo) ---- */
     #live-chip {
@@ -378,42 +471,41 @@
     }
 
     @keyframes livePulse {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.35; }
+
+      0%,
+      100% {
+        opacity: 1;
+      }
+
+      50% {
+        opacity: 0.35;
+      }
     }
 
-    /* ---- Chip contador en vivo (estado espejo): sincronización en tiempo
-       real de verdad, no decorativa — mismo patrón que leaderboard.html ---- */
-    #visits-chip {
-      position: fixed;
-      top: 66px;
-      left: 24px;
-      z-index: 20;
-      display: none;
-      align-items: center;
-      gap: 7px;
-      font-size: 10px;
-      font-weight: 700;
-      letter-spacing: 1.5px;
-      color: rgba(255, 255, 255, 0.8);
-      background: rgba(8, 8, 18, 0.5);
-      backdrop-filter: blur(12px);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      padding: 7px 12px;
-      border-radius: 30px;
-      animation: fadeSlideIn 0.6s ease both;
-      animation-delay: 1.95s;
-    }
-
-    body[data-state="mirror"] #visits-chip,
-    body[data-state="countdown"] #visits-chip {
-      display: flex;
-    }
-
-    #visits-chip .count {
-      color: #c084fc;
+    /* ---- HTML Countdown (Robusto) ---- */
+    #html-countdown {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 50;
+      font-size: 35vh;
       font-weight: 900;
+      color: #fff;
+      text-shadow: 0 0 40px rgba(234, 179, 8, 0.6), 0 0 100px rgba(234, 179, 8, 0.4);
+      pointer-events: none;
+      display: none;
+      animation: popInOut 0.9s ease-in-out infinite;
     }
+
+    @keyframes popInOut {
+      0% { transform: translate(-50%, -50%) scale(0.5); opacity: 0; }
+      20% { transform: translate(-50%, -50%) scale(1.1); opacity: 1; }
+      40% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+      80% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+      100% { transform: translate(-50%, -50%) scale(1.5); opacity: 0; }
+    }
+
 
 
     /* ---- Obturador (estado espejo) ---- */
@@ -436,8 +528,15 @@
     }
 
     @keyframes riseIn {
-      0% { opacity: 0; transform: translateY(50px); }
-      100% { opacity: 1; transform: translateY(0); }
+      0% {
+        opacity: 0;
+        transform: translateY(50px);
+      }
+
+      100% {
+        opacity: 1;
+        transform: translateY(0);
+      }
     }
 
     /* Obturador: botón + anillo orbital que gira + emoji del chasquido */
@@ -485,7 +584,9 @@
     }
 
     @keyframes ringSpin {
-      to { transform: rotate(360deg); }
+      to {
+        transform: rotate(360deg);
+      }
     }
 
     #shutter-btn:hover {
@@ -501,8 +602,15 @@
     }
 
     @keyframes shutterPulse {
-      0%, 100% { box-shadow: 0 0 0 6px rgba(255, 255, 255, 0.08), 0 0 40px rgba(192, 132, 252, 0.45), 0 10px 40px rgba(0, 0, 0, 0.5); }
-      50% { box-shadow: 0 0 0 10px rgba(255, 255, 255, 0.05), 0 0 65px rgba(56, 189, 248, 0.6), 0 10px 40px rgba(0, 0, 0, 0.5); }
+
+      0%,
+      100% {
+        box-shadow: 0 0 0 6px rgba(255, 255, 255, 0.08), 0 0 40px rgba(192, 132, 252, 0.45), 0 10px 40px rgba(0, 0, 0, 0.5);
+      }
+
+      50% {
+        box-shadow: 0 0 0 10px rgba(255, 255, 255, 0.05), 0 0 65px rgba(56, 189, 248, 0.6), 0 10px 40px rgba(0, 0, 0, 0.5);
+      }
     }
 
     #shutter-hint {
@@ -517,8 +625,17 @@
     }
 
     @keyframes hintFloat {
-      0%, 100% { opacity: 0.7; letter-spacing: 3px; }
-      50% { opacity: 1; letter-spacing: 4px; }
+
+      0%,
+      100% {
+        opacity: 0.7;
+        letter-spacing: 3px;
+      }
+
+      50% {
+        opacity: 1;
+        letter-spacing: 4px;
+      }
     }
 
     /* ---- Acciones (estado foto): botón circular en la esquina inferior
@@ -560,7 +677,7 @@
       justify-content: center;
       box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
       transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1),
-                  background 0.25s ease, border-color 0.25s ease;
+        background 0.25s ease, border-color 0.25s ease;
     }
 
     #actions-toggle:hover {
@@ -622,9 +739,19 @@
     }
 
     @keyframes snapShake {
-      0%, 100% { transform: translateY(-2px) rotate(0deg); }
-      25% { transform: translateY(-2px) rotate(-1.2deg); }
-      75% { transform: translateY(-2px) rotate(1.2deg); }
+
+      0%,
+      100% {
+        transform: translateY(-2px) rotate(0deg);
+      }
+
+      25% {
+        transform: translateY(-2px) rotate(-1.2deg);
+      }
+
+      75% {
+        transform: translateY(-2px) rotate(1.2deg);
+      }
     }
 
     /* ---- Overlay del QR ---- */
@@ -659,8 +786,15 @@
     }
 
     @keyframes popIn {
-      0% { opacity: 0; transform: scale(0.88) translateY(20px); }
-      100% { opacity: 1; transform: scale(1) translateY(0); }
+      0% {
+        opacity: 0;
+        transform: scale(0.88) translateY(20px);
+      }
+
+      100% {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+      }
     }
 
     #qr-title {
@@ -775,7 +909,9 @@
   <div id="flash"></div>
 
   <div id="brand">
-    <h1 aria-label="CHASQUIDO"><span style="--i:0">C</span><span style="--i:1">H</span><span style="--i:2">A</span><span style="--i:3">S</span><span style="--i:4">Q</span><span style="--i:5">U</span><span style="--i:6">I</span><span style="--i:7">D</span><span style="--i:8">O</span></h1>
+    <h1 aria-label="CHASQUIDO"><span style="--i:0">C</span><span style="--i:1">H</span><span style="--i:2">A</span><span
+        style="--i:3">S</span><span style="--i:4">Q</span><span style="--i:5">U</span><span style="--i:6">I</span><span
+        style="--i:7">D</span><span style="--i:8">O</span></h1>
     <div class="tagline">Conviértete en <span id="tagline-count">40.000</span> partículas de datos</div>
     <div id="gems">
       <div class="gem" style="--i:0; --c:#a855f7"></div>
@@ -792,8 +928,10 @@
   <div class="corner" id="corner-bl"></div>
   <div class="corner" id="corner-br"></div>
 
+  <!-- DOM Countdown Seguro -->
+  <div id="html-countdown"></div>
+
   <div id="live-chip"><span class="dot"></span> EN VIVO</div>
-  <div id="visits-chip">✦ <span id="visits-count" class="count">—</span> CHASQUIDOS HOY</div>
 
   <div id="shutter-wrap">
     <button id="shutter-btn" aria-label="Tomar foto">🫰</button>
@@ -805,6 +943,7 @@
       <button class="mini-btn" id="qr-btn">📱 Descargar</button>
       <button class="mini-btn" id="save-btn">⬇ Guardar</button>
       <button class="mini-btn" id="snap-btn">💥 Chasquido</button>
+      <button class="mini-btn" id="clear-db-btn" style="color: #ef4444; border-color: rgba(239, 68, 68, 0.3); background: rgba(239, 68, 68, 0.1);">🗑 Borrar DB</button>
     </div>
     <button id="actions-toggle" aria-label="Más opciones">⋯</button>
   </div>
@@ -1208,7 +1347,7 @@
       let minX = W, maxX = 0, minY = H, maxY = 0;
       for (let y = 0; y < H; y++) {
         for (let x = 0; x < W; x++) {
-          if (img[(y * W + x) * 4] > 128) {
+          if (img[(y * W + x) * 4] > 50) {
             pts.push([x, y]);
             if (x < minX) minX = x;
             if (x > maxX) maxX = x;
@@ -1220,14 +1359,27 @@
       return { pts, minX, maxX, minY, maxY };
     }
 
-    // Dígitos del countdown y palabras de la vitrina (cacheados)
     const digitCache = {};
     function getDigitPoints(ch) {
       if (!digitCache[ch]) {
-        digitCache[ch] = rasterizeToPoints(360, 360, (ctx) => {
-          ctx.font = '900 240px Unbounded, Inter, Arial, sans-serif';
-          ctx.fillText(ch, 180, 190);
+        let tp = rasterizeToPoints(600, 600, (ctx) => {
+          ctx.font = '900 320px Unbounded, Inter, Arial, sans-serif';
+          ctx.fillText(ch, 300, 320);
         });
+        if (tp.pts.length === 0) {
+          // Fallback ultra-seguro por si Unbounded hace clip o sufre FOIT extremo
+          tp = rasterizeToPoints(600, 600, (ctx) => {
+            ctx.font = 'bold 320px Arial, sans-serif';
+            ctx.fillText(ch, 300, 320);
+          });
+        }
+        if (tp.pts.length > 0) {
+          digitCache[ch] = tp;
+        } else {
+          // Último recurso: si absolutamente todo falla, dibujar un cuadrado para que se vea ALGO
+          tp.pts = [[250,250],[350,250],[250,350],[350,350]];
+          tp.minX=250; tp.maxX=350; tp.minY=250; tp.maxY=350;
+        }
       }
       return digitCache[ch];
     }
@@ -1235,10 +1387,18 @@
     const attractCache = {};
     function getAttractPoints(word) {
       if (!attractCache[word]) {
-        attractCache[word] = rasterizeToPoints(1500, 260, (ctx) => {
+        const tp = rasterizeToPoints(1500, 260, (ctx) => {
           ctx.font = '900 120px Unbounded, Inter, Arial, sans-serif';
           ctx.fillText(word, 750, 135);
         });
+        if (tp.pts.length > 0) {
+          attractCache[word] = tp;
+        } else {
+          return rasterizeToPoints(1500, 260, (ctx) => {
+            ctx.font = '900 120px Arial, sans-serif';
+            ctx.fillText(word, 750, 135);
+          });
+        }
       }
       return attractCache[word];
     }
@@ -1246,22 +1406,44 @@
     // Overlay de texto: N partículas forman el texto (gradiente de marca),
     // el resto se queda donde está y se apaga (negro = invisible en aditivo)
     function setOverlayTextTargets(tp, useCount, worldW) {
-      const scale = worldW / (tp.maxX - tp.minX);
-      const cx = (tp.minX + tp.maxX) / 2;
-      const cy = (tp.minY + tp.maxY) / 2;
+      // DEBUG SEVERO: Si no hay puntos válidos, vamos a forzar un CÍRCULO matemático
+      // para ver si el problema es de la fuente o del motor 3D.
+      let validPts = (tp && tp.pts && tp.pts.length > 0);
+      let cx = 0, cy = 0, scale = 1, w = 1;
+      
+      if (validPts) {
+        w = Math.max(1, tp.maxX - tp.minX);
+        scale = worldW / w;
+        cx = (tp.minX + tp.maxX) / 2;
+        cy = (tp.minY + tp.maxY) / 2;
+      }
+
       const pos = geometry.attributes.position.array;
       for (let i = 0; i < PARTICLE_COUNT; i++) {
         const i3 = i * 3;
         if (i < useCount) {
-          const [px, py] = tp.pts[(Math.random() * tp.pts.length) | 0];
-          targets[i3] = (px - cx) * scale;
-          targets[i3 + 1] = -(py - cy) * scale;
-          targets[i3 + 2] = (Math.random() - 0.5) * 0.3;
-          // Oro del guantelete: luz → oro profundo, de izquierda a derecha
-          const nx = (px - tp.minX) / (tp.maxX - tp.minX);
-          targetColors[i3] = 0.99 - nx * 0.20;
-          targetColors[i3 + 1] = 0.93 - nx * 0.38;
-          targetColors[i3 + 2] = 0.66 - nx * 0.58;
+          if (validPts) {
+            const [px, py] = tp.pts[(Math.random() * tp.pts.length) | 0];
+            targets[i3] = (px - cx) * scale;
+            targets[i3 + 1] = -(py - cy) * scale;
+            targets[i3 + 2] = (Math.random() - 0.5) * 0.3;
+            
+            const nx = w > 1 ? (px - tp.minX) / w : 0.5;
+            targetColors[i3] = 2.0; // Súper brillante
+            targetColors[i3 + 1] = 1.0;
+            targetColors[i3 + 2] = 0.0;
+          } else {
+            // Círculo matemático gigante de emergencia (radio 1.5)
+            const angle = Math.random() * Math.PI * 2;
+            const r = Math.random() * 1.5;
+            targets[i3] = Math.cos(angle) * r;
+            targets[i3 + 1] = Math.sin(angle) * r;
+            targets[i3 + 2] = (Math.random() - 0.5) * 0.5;
+            targetColors[i3] = 2.0; // Rojo brillante para indicar error de fuente
+            targetColors[i3 + 1] = 0.0;
+            targetColors[i3 + 2] = 0.0;
+          }
+
         } else {
           targets[i3] = pos[i3];
           targets[i3 + 1] = pos[i3 + 1];
@@ -1776,42 +1958,85 @@
       cvs.width = W; cvs.height = H;
       const ctx = cvs.getContext('2d');
       const darkBorder = '#140a28';
-      const baseY = 235, barW = 46, gap = 16;
+      const baseY = 245, barW = 42, gap = 18;
+
+      // Fondo/Grid (Líneas finas)
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.12)';
+      ctx.lineWidth = 3;
+      for (let i = 1; i <= 4; i++) {
+        ctx.beginPath();
+        ctx.moveTo(30, baseY - i * 45);
+        ctx.lineTo(W - 30, baseY - i * 45);
+        ctx.stroke();
+      }
+
       const bars = [
-        { h: 90, color: '#a855f7' },
-        { h: 150, color: '#38bdf8' },
-        { h: 115, color: '#34d399' },
-        { h: 175, color: '#f59e0b' },
+        { h: 70, color: '#a855f7' },
+        { h: 125, color: '#38bdf8' },
+        { h: 100, color: '#34d399' },
+        { h: 185, color: '#f59e0b' },
       ];
       const totalW = bars.length * barW + (bars.length - 1) * gap;
       let x = (W - totalW) / 2;
+
+      // Eje base
+      ctx.strokeStyle = darkBorder;
+      ctx.lineWidth = 10;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(x - 20, baseY);
+      ctx.lineTo(x + totalW + 20, baseY);
+      ctx.stroke();
+
       ctx.lineJoin = 'round';
+      let barCenters = [];
+
+      // Barras
       for (const bar of bars) {
         const y = baseY - bar.h;
-        const r = 10;
+        const r = 12;
         ctx.beginPath();
-        ctx.moveTo(x, baseY);
+        ctx.moveTo(x, baseY - 5);
         ctx.lineTo(x, y + r);
         ctx.arcTo(x, y, x + r, y, r);
         ctx.lineTo(x + barW - r, y);
         ctx.arcTo(x + barW, y, x + barW, y + r, r);
-        ctx.lineTo(x + barW, baseY);
+        ctx.lineTo(x + barW, baseY - 5);
         ctx.closePath();
+
         ctx.fillStyle = bar.color;
         ctx.fill();
         ctx.strokeStyle = darkBorder;
         ctx.lineWidth = 6;
         ctx.stroke();
+
+        barCenters.push({ cx: x + barW / 2, cy: y - 10 });
         x += barW + gap;
       }
-      // Línea base (eje)
-      ctx.strokeStyle = darkBorder;
+
+      // Trendline cruzando
+      ctx.strokeStyle = '#ef4444';
       ctx.lineWidth = 8;
       ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
       ctx.beginPath();
-      ctx.moveTo((W - totalW) / 2 - 14, baseY);
-      ctx.lineTo((W - totalW) / 2 + totalW + 14, baseY);
+      ctx.moveTo(barCenters[0].cx - 35, barCenters[0].cy + 25);
+      for (let i = 0; i < barCenters.length; i++) {
+        ctx.lineTo(barCenters[i].cx, barCenters[i].cy);
+      }
+      ctx.lineTo(barCenters[barCenters.length - 1].cx + 35, barCenters[barCenters.length - 1].cy - 25);
       ctx.stroke();
+
+      // Puntos en la trendline
+      ctx.lineWidth = 4;
+      ctx.strokeStyle = darkBorder;
+      ctx.fillStyle = '#ffffff';
+      for (let i = 0; i < barCenters.length; i++) {
+        ctx.beginPath();
+        ctx.arc(barCenters[i].cx, barCenters[i].cy, 8, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+      }
 
       barChartPoints = rasterizeColorPoints(ctx, W, H);
       return barChartPoints;
@@ -1826,115 +2051,145 @@
       const ctx = cvs.getContext('2d');
       const cx = W / 2;
       const darkBorder = '#0a2540';
-      const rx = 88, ry = 32;      // radios de las elipses (tapa del cilindro)
-      const topY = 70, bodyH = 150; // alto del cuerpo del cilindro
-      const bottomY = topY + bodyH;
-      const fill = '#38bdf8';
-      const fillDark = '#0ea5e9';
+      const rx = 95, ry = 35;
 
-      // Cuerpo (rectángulo redondeado entre las dos tapas)
-      ctx.beginPath();
-      ctx.moveTo(cx - rx, topY);
-      ctx.lineTo(cx - rx, bottomY);
-      ctx.arc(cx, bottomY, rx, Math.PI, 0);
-      ctx.lineTo(cx + rx, topY);
-      ctx.closePath();
-      ctx.fillStyle = fill;
-      ctx.fill();
+      const diskH = 45;
+      const gap = 16;
+      const startY = 65;
 
-      // Bandas divisorias (sugieren las 3 capas clásicas del ícono)
-      ctx.strokeStyle = fillDark;
-      ctx.lineWidth = 5;
-      for (const f of [0.34, 0.67]) {
-        const y = topY + bodyH * f;
+      const colors = ['#38bdf8', '#34d399', '#a855f7'];
+      const lidColors = ['#7dd3fc', '#6ee7b7', '#c084fc'];
+
+      for (let i = 2; i >= 0; i--) {
+        const topY = startY + i * (diskH + gap);
+        const bottomY = topY + diskH;
+
+        // Cuerpo
         ctx.beginPath();
-        ctx.ellipse(cx, y, rx, ry * 0.62, 0, 0.06 * Math.PI, 0.94 * Math.PI);
+        ctx.moveTo(cx - rx, topY);
+        ctx.lineTo(cx - rx, bottomY);
+        ctx.ellipse(cx, bottomY, rx, ry, 0, Math.PI, 0, true);
+        ctx.lineTo(cx + rx, topY);
+        ctx.closePath();
+
+        ctx.fillStyle = colors[i];
+        ctx.fill();
+        ctx.strokeStyle = darkBorder;
+        ctx.lineWidth = 7;
+        ctx.lineJoin = 'round';
+        ctx.stroke();
+
+        // Luces de servidor
+        ctx.lineWidth = 3;
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.arc(cx - rx + 35, topY + diskH / 2 + 2, 6, 0, Math.PI * 2);
+        ctx.fill(); ctx.stroke();
+
+        ctx.fillStyle = i === 1 ? '#ef4444' : '#fde047';
+        ctx.beginPath();
+        ctx.arc(cx - rx + 60, topY + diskH / 2 + 2, 6, 0, Math.PI * 2);
+        ctx.fill(); ctx.stroke();
+
+        // Tapa
+        ctx.beginPath();
+        ctx.ellipse(cx, topY, rx, ry, 0, 0, Math.PI * 2);
+        ctx.fillStyle = lidColors[i];
+        ctx.fill();
+        ctx.lineWidth = 7;
         ctx.stroke();
       }
-
-      // Contorno grueso de todo el cilindro (tapa superior, laterales, tapa inferior)
-      ctx.strokeStyle = darkBorder;
-      ctx.lineWidth = 7;
-      ctx.lineJoin = 'round';
-      ctx.beginPath();
-      ctx.moveTo(cx - rx, topY);
-      ctx.lineTo(cx - rx, bottomY);
-      ctx.arc(cx, bottomY, rx, Math.PI, 0);
-      ctx.lineTo(cx + rx, topY);
-      ctx.stroke();
-
-      // Tapa superior (elipse completa, encima del cuerpo — cierra el ícono)
-      ctx.beginPath();
-      ctx.ellipse(cx, topY, rx, ry, 0, 0, Math.PI * 2);
-      ctx.fillStyle = '#7dd3fc';
-      ctx.fill();
-      ctx.strokeStyle = darkBorder;
-      ctx.lineWidth = 7;
-      ctx.stroke();
 
       databasePoints = rasterizeColorPoints(ctx, W, H);
       return databasePoints;
     }
 
-    let magnifierPoints = null;
-    function getMagnifierPoints() {
-      if (magnifierPoints) return magnifierPoints;
+    let processorPoints = null;
+    function getProcessorPoints() {
+      if (processorPoints) return processorPoints;
       const W = 300, H = 300;
       const cvs = document.createElement('canvas');
       cvs.width = W; cvs.height = H;
       const ctx = cvs.getContext('2d');
-      const cx = 120, cy = 120, r = 78;
+      const cx = W / 2, cy = H / 2;
       const darkBorder = '#140a28';
 
-      // Mango (detrás del lente)
-      ctx.strokeStyle = '#f59e0b';
-      ctx.lineWidth = 26;
-      ctx.lineCap = 'round';
-      ctx.beginPath();
-      ctx.moveTo(cx + r * 0.72, cy + r * 0.72);
-      ctx.lineTo(cx + r * 1.62, cy + r * 1.62);
-      ctx.stroke();
+      const boardSize = 160;
+      const pinLength = 32;
+      const pinWidth = 24;
+
+      // Colores
+      const boardColor = '#a855f7';
+      const coreColor = '#38bdf8';
+      const pinColor = '#f59e0b';
+
+      ctx.fillStyle = pinColor;
       ctx.strokeStyle = darkBorder;
-      ctx.lineWidth = 34;
-      ctx.beginPath();
-      ctx.moveTo(cx + r * 0.72, cy + r * 0.72);
-      ctx.lineTo(cx + r * 1.62, cy + r * 1.62);
-      ctx.stroke();
-      ctx.strokeStyle = '#f59e0b';
-      ctx.lineWidth = 26;
-      ctx.beginPath();
-      ctx.moveTo(cx + r * 0.72, cy + r * 0.72);
-      ctx.lineTo(cx + r * 1.62, cy + r * 1.62);
-      ctx.stroke();
+      ctx.lineWidth = 8;
 
-      // Cristal del lente (fondo claro, para que los puntos de dispersión se lean)
-      ctx.beginPath();
-      ctx.arc(cx, cy, r, 0, Math.PI * 2);
-      ctx.fillStyle = '#eef2ff';
-      ctx.fill();
+      // 3 pines por lado, masivos y legibles
+      const offsets = [-44, 0, 44];
 
-      // Puntos de dispersión (scatter plot) dentro del lente
-      const dots = [
-        [-38, -30, '#a855f7'], [-10, 10, '#38bdf8'], [22, -22, '#34d399'],
-        [8, 34, '#f59e0b'], [-28, 28, '#ef4444'], [40, 12, '#a855f7'],
-        [-2, -42, '#38bdf8'], [34, -40, '#34d399'],
-      ];
-      for (const [dx, dy, color] of dots) {
-        ctx.beginPath();
-        ctx.arc(cx + dx, cy + dy, 9, 0, Math.PI * 2);
-        ctx.fillStyle = color;
-        ctx.fill();
+      for (const off of offsets) {
+        // Arriba
+        ctx.fillRect(cx + off - pinWidth / 2, cy - boardSize / 2 - pinLength, pinWidth, pinLength);
+        ctx.strokeRect(cx + off - pinWidth / 2, cy - boardSize / 2 - pinLength, pinWidth, pinLength);
+        // Abajo
+        ctx.fillRect(cx + off - pinWidth / 2, cy + boardSize / 2, pinWidth, pinLength);
+        ctx.strokeRect(cx + off - pinWidth / 2, cy + boardSize / 2, pinWidth, pinLength);
+        // Izquierda
+        ctx.fillRect(cx - boardSize / 2 - pinLength, cy + off - pinWidth / 2, pinLength, pinWidth);
+        ctx.strokeRect(cx - boardSize / 2 - pinLength, cy + off - pinWidth / 2, pinLength, pinWidth);
+        // Derecha
+        ctx.fillRect(cx + boardSize / 2, cy + off - pinWidth / 2, pinLength, pinWidth);
+        ctx.strokeRect(cx + boardSize / 2, cy + off - pinWidth / 2, pinLength, pinWidth);
       }
 
-      // Aro grueso del lente, encima de mango y puntos
+      // Placa principal (Board) con chaflanes en las esquinas
+      ctx.fillStyle = boardColor;
       ctx.beginPath();
-      ctx.arc(cx, cy, r, 0, Math.PI * 2);
-      ctx.strokeStyle = darkBorder;
-      ctx.lineWidth = 16;
+      const chamfer = 24;
+      ctx.moveTo(cx - boardSize / 2 + chamfer, cy - boardSize / 2);
+      ctx.lineTo(cx + boardSize / 2 - chamfer, cy - boardSize / 2);
+      ctx.lineTo(cx + boardSize / 2, cy - boardSize / 2 + chamfer);
+      ctx.lineTo(cx + boardSize / 2, cy + boardSize / 2 - chamfer);
+      ctx.lineTo(cx + boardSize / 2 - chamfer, cy + boardSize / 2);
+      ctx.lineTo(cx - boardSize / 2 + chamfer, cy + boardSize / 2);
+      ctx.lineTo(cx - boardSize / 2, cy + boardSize / 2 - chamfer);
+      ctx.lineTo(cx - boardSize / 2, cy - boardSize / 2 + chamfer);
+      ctx.closePath();
+
+      ctx.fill();
+      ctx.lineWidth = 14;
+      ctx.lineJoin = 'round';
       ctx.stroke();
 
-      magnifierPoints = rasterizeColorPoints(ctx, W, H);
-      return magnifierPoints;
+      // 4 nodos de montaje en las esquinas
+      ctx.fillStyle = '#ef4444';
+      ctx.lineWidth = 5;
+      const corner = boardSize / 2 - 22;
+      for (const [dx, dy] of [[-1, -1], [1, -1], [1, 1], [-1, 1]]) {
+        ctx.beginPath();
+        ctx.arc(cx + dx * corner, cy + dy * corner, 9, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+      }
+
+      // Núcleo central gigante
+      const coreSize = 74;
+      ctx.fillStyle = coreColor;
+      ctx.fillRect(cx - coreSize / 2, cy - coreSize / 2, coreSize, coreSize);
+      ctx.lineWidth = 10;
+      ctx.strokeRect(cx - coreSize / 2, cy - coreSize / 2, coreSize, coreSize);
+
+      // Detalle interior del núcleo
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(cx - 16, cy - 16, 32, 32);
+      ctx.lineWidth = 6;
+      ctx.strokeRect(cx - 16, cy - 16, 32, 32);
+
+      processorPoints = rasterizeColorPoints(ctx, W, H);
+      return processorPoints;
     }
 
     // Destello de relleno: una estrella de 4 puntas, blanca — se retiñe al
@@ -2152,7 +2407,7 @@
       const rowGapLower = logoBaseCY - rowStep;
       const rowBottom = logoBaseCY - rowStep * 2;
 
-      const stickerPool = [getDiamondPoints, getRocketPoints, getPlanetPoints, getHeartPoints, getLightningPoints, getCameraPoints, getBarChartPoints, getDatabasePoints, getMagnifierPoints];
+      const stickerPool = [getDiamondPoints, getRocketPoints, getPlanetPoints, getHeartPoints, getLightningPoints, getCameraPoints, getBarChartPoints, getDatabasePoints, getProcessorPoints];
       const chosenStickers = DEBUG_SHOW_ALL_STICKERS ? stickerPool : pickRandomDistinct(stickerPool, STICKER_SLOTS);
       // Catálogo de prueba: 2 filas, pegadas a los bordes superior/inferior
       // de la pantalla (nunca en el medio, ahí está la foto), repartidas en
@@ -2389,8 +2644,7 @@
           video: {
             width: { ideal: 1920 },
             height: { ideal: 1080 },
-            aspectRatio: { ideal: 16 / 9 },
-            facingMode: 'user'
+            aspectRatio: { ideal: 16 / 9 }
           }
         });
         videoEl.srcObject = stream;
@@ -2500,6 +2754,9 @@
     }
 
     function performCapture() {
+      // Ocultar contador HTML
+      document.getElementById('html-countdown').style.display = 'none';
+
       if (!capturePhoto()) { enterMirror(); return; }
 
       playSnapSound();
@@ -2517,8 +2774,7 @@
 
       fillPhotoTargets();
       applyModeVisuals('photo');
-      logChasquidoEvent();
-
+      setState('assembling');
       // Coreografía del armado: el polvo llega desde arriba-derecha con
       // borde irregular, barriendo la foto de izquierda a derecha
       const posArr = geometry.attributes.position.array;
@@ -2563,6 +2819,23 @@
     // frames, así que hay que renderizar y copiar en el mismo tick.
     // El branding ya viene dentro: el caption de partículas es parte de la escena
     function grabArtwork() {
+      // 1) Forzar el asentamiento de las partículas a su posición final
+      // para que la foto capturada sea 100% nítida y no se vea desfasada.
+      const pos = geometry.attributes.position.array;
+      const col = geometry.attributes.color.array;
+      for (let i = 0; i < PARTICLE_COUNT; i++) {
+        const i3 = i * 3;
+        pos[i3] = targets[i3];
+        pos[i3 + 1] = targets[i3 + 1];
+        pos[i3 + 2] = targets[i3 + 2];
+        col[i3] = targetColors[i3];
+        col[i3 + 1] = targetColors[i3 + 1];
+        col[i3 + 2] = targetColors[i3 + 2];
+      }
+      geometry.attributes.position.needsUpdate = true;
+      geometry.attributes.color.needsUpdate = true;
+
+      // 2) Renderizar la escena con las partículas perfectas
       if (composer) composer.render(); else renderer.render(scene, camera3D);
       const src = renderer.domElement;
       const out = document.createElement('canvas');
@@ -2662,64 +2935,6 @@
 
     setShareState('idle');
 
-    // ========== CONTADOR EN VIVO (chasquidos de hoy) ==========
-    // Sincronización en tiempo real de verdad, no decorativa: mismo patrón
-    // que leaderboard.html (canal postgres_changes de Supabase). Requiere la
-    // tabla chasquido_events — ver supabase-setup.sql. Si no existe todavía
-    // (falta correr el SQL) o no hay internet, el chip se oculta solo y el
-    // resto de la experiencia sigue funcionando igual.
-    let visitsCount = null;
-    const visitsChip = document.getElementById('visits-chip');
-    const visitsCountEl = document.getElementById('visits-count');
-
-    function renderVisitsCount() {
-      if (visitsCount === null) return;
-      visitsCountEl.textContent = visitsCount.toLocaleString('es-CO');
-    }
-
-    async function initVisitsCounter() {
-      const sb = getSupabase();
-      if (!sb) { visitsChip.style.display = 'none'; return; }
-      try {
-        const { count, error } = await sb
-          .from('chasquido_events')
-          .select('*', { count: 'exact', head: true });
-        // Ojo: en consultas head:true, Supabase a veces no llena `error`
-        // aunque la tabla no exista (404) — hay que chequear `count` también,
-        // si no, se ve "0 CHASQUIDOS HOY" con la tabla rota, que es peor que
-        // ocultar el chip (parece que funciona cuando en realidad está caído)
-        if (error || count === null || count === undefined) {
-          throw error || new Error('conteo no disponible (¿existe la tabla chasquido_events?)');
-        }
-        visitsCount = count;
-        renderVisitsCount();
-      } catch (e) {
-        console.warn('Contador de chasquidos no disponible (¿falta correr supabase-setup.sql?):', e);
-        visitsChip.style.display = 'none';
-        return;
-      }
-
-      // Cada chasquido nuevo (de cualquier persona, en cualquier stand) suma
-      // 1 al instante — no se vuelve a consultar la tabla completa
-      sb.channel('public:chasquido_events')
-        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'chasquido_events' }, () => {
-          visitsCount++;
-          renderVisitsCount();
-        })
-        .subscribe();
-    }
-    initVisitsCounter();
-
-    // Registro best-effort de cada captura — no bloquea ni avisa si falla
-    // (mismo espíritu que el resto de la integración con Supabase)
-    function logChasquidoEvent() {
-      const sb = getSupabase();
-      if (!sb) return;
-      sb.from('chasquido_events').insert({}).then(({ error }) => {
-        if (error) console.warn('No se pudo registrar el chasquido:', error);
-      });
-    }
-
     document.getElementById('shutter-btn').addEventListener('click', startCountdown);
 
     // Botón circular de acciones (estado foto): un toque despliega las 3
@@ -2735,6 +2950,28 @@
     document.getElementById('save-btn').addEventListener('click', () => {
       actionsEl.classList.remove('open');
       savePhotoCard();
+    });
+    document.getElementById('clear-db-btn').addEventListener('click', async () => {
+      actionsEl.classList.remove('open');
+      if (confirm('¿Seguro que quieres borrar TODAS las fotos de Supabase? Esta acción no se puede deshacer.')) {
+        const sb = getSupabase();
+        if (sb) {
+          document.getElementById('clear-db-btn').textContent = '⏳ Borrando...';
+          try {
+            // Listar y borrar manualmente (más seguro con llaves anon si emptyBucket está bloqueado)
+            const store = sb.storage.from(SHARE_BUCKET);
+            const { data: files } = await store.list();
+            if (files && files.length > 0) {
+              const paths = files.map(f => f.name);
+              await store.remove(paths);
+            }
+            alert('¡Base de datos limpiada con éxito!');
+          } catch (e) {
+            alert('Error al borrar: ' + e.message);
+          }
+          document.getElementById('clear-db-btn').textContent = '🗑 Borrar DB';
+        }
+      }
     });
     qrBtn.addEventListener('click', () => {
       actionsEl.classList.remove('open');
@@ -2777,7 +3014,7 @@
 
     // Precargar Unbounded para que el rasterizador de dígitos/vitrina la tenga lista
     if (document.fonts && document.fonts.load) {
-      document.fonts.load('900 100px Unbounded').catch(() => {});
+      document.fonts.load('900 100px Unbounded').catch(() => { });
     }
 
     function animate() {
@@ -2788,221 +3025,232 @@
       // última posición ya renderizada — visualmente "atascada" aunque el
       // loop de rAF nunca se detenga.
       try {
-      const dt = Math.min(clock.getDelta(), 0.05);
-      const t = clock.elapsedTime;
+        const dt = Math.min(clock.getDelta(), 0.05);
+        const t = clock.elapsedTime;
 
-      fpsFrames++;
-      if (performance.now() - fpsTime > 1000) {
-        fpsBadge.textContent = fpsFrames + ' FPS';
-        fpsFrames = 0;
-        fpsTime = performance.now();
-      }
+        fpsFrames++;
+        if (performance.now() - fpsTime > 1000) {
+          fpsBadge.textContent = fpsFrames + ' FPS';
+          fpsFrames = 0;
+          fpsTime = performance.now();
+        }
 
-      // --- Cuenta regresiva 3-2-1 ---
-      if (appState === 'countdown') {
-        const idx = Math.floor((t - countdownStart) / COUNTDOWN_STEP);
+        // --- Cuenta regresiva 3-2-1 ---
+        if (appState === 'countdown') {
+          const idx = Math.floor((t - countdownStart) / COUNTDOWN_STEP);
         if (idx > 2) {
           performCapture();
         } else if (idx !== countdownIdx) {
           countdownIdx = idx;
           playTick(600 + idx * 160); // sube de tono: 3→2→1
-          setOverlayTextTargets(getDigitPoints(['3', '2', '1'][idx]), DIGIT_PARTICLES, 2.4);
+          
+          // Actualizar el DOM en lugar de WebGL
+          const countdownEl = document.getElementById('html-countdown');
+          countdownEl.style.display = 'block';
+          countdownEl.textContent = ['3', '2', '1'][idx];
+          // Reiniciar la animación forzando un reflow
+          countdownEl.style.animation = 'none';
+          void countdownEl.offsetWidth;
+          countdownEl.style.animation = 'popInOut 0.9s ease-in-out forwards';
         }
-      }
+        }
 
-      // --- Modo vitrina: el polvo escribe cuando nadie interactúa ---
-      if (appState === 'mirror') {
-        const idleFor = t - lastInteraction;
-        if (idleFor > ATTRACT_IDLE) {
-          const cycle = Math.floor((idleFor - ATTRACT_IDLE) / ATTRACT_PHASE);
-          if (cycle !== attractKey) {
-            attractKey = cycle;
-            if (cycle % 2 === 0) {
-              // Fase texto
-              const word = ATTRACT_TEXTS[attractWordIdx % ATTRACT_TEXTS.length];
-              setOverlayTextTargets(getAttractPoints(word), ATTRACT_PARTICLES, 9.5);
-              attractTextActive = true;
-            } else {
-              // Fase polvo
-              fillDustTargets();
-              attractTextActive = false;
-              attractWordIdx++;
+        // --- Modo vitrina: el polvo escribe cuando nadie interactúa ---
+        if (appState === 'mirror') {
+          const idleFor = t - lastInteraction;
+          if (idleFor > ATTRACT_IDLE) {
+            const cycle = Math.floor((idleFor - ATTRACT_IDLE) / ATTRACT_PHASE);
+            if (cycle !== attractKey) {
+              attractKey = cycle;
+              if (cycle % 2 === 0) {
+                // Fase texto
+                const word = ATTRACT_TEXTS[attractWordIdx % ATTRACT_TEXTS.length];
+                setOverlayTextTargets(getAttractPoints(word), ATTRACT_PARTICLES, 9.5);
+                attractTextActive = true;
+              } else {
+                // Fase polvo
+                fillDustTargets();
+                attractTextActive = false;
+                attractWordIdx++;
+              }
+            }
+          } else if (attractKey !== -1) {
+            // Alguien volvió: dispersar el texto de inmediato
+            attractKey = -1;
+            attractTextActive = false;
+            fillDustTargets();
+          }
+        }
+
+        // Transiciones automáticas
+        if (appState === 'assembling' && t > assembleEnd) {
+          setState('photo');
+          hideFreeze();
+          mouseX = 0; mouseY = 0; // foto derecha, de frente
+          playChime();
+          // Subir en segundo plano: cuando la persona pida el QR ya está listo.
+          // El retraso deja que los colores terminen de asentarse
+          shareTimer = setTimeout(uploadArtwork, SHARE_DELAY * 1000);
+        }
+        if (appState === 'assembling') {
+          // El reflejo congelado se desintegra siguiendo la onda de armado
+          const p = (t - assembleStart) / (ASSEMBLE_SWEEP + ASSEMBLE_JITTER + ASSEMBLE_DURATION * 0.5);
+          if (p >= 0) eraseFreezeWave(Math.min(1, p));
+        }
+        // La foto se queda en pantalla indefinidamente: solo se disuelve al
+        // tocar "💥 Chasquido" (doSnap, ver el listener del botón). Nada pasa
+        // por tiempo — antes se disolvía sola a los 60s (AUTO_SNAP_AFTER,
+        // eliminado: se sentía como que la instalación "volvía a tomar fotos
+        // sola" cada cierto tiempo, quitando control a quien maneja el stand).
+        if (appState === 'dissolving' && t > dissolveEnd) {
+          enterMirror();
+        }
+
+        // Repulsión 2D: proyección del cursor al plano de la foto
+        let repelActive = false, repelX = 0, repelY = 0;
+        if (appState === 'photo' && pointerActive) {
+          const fovTan = Math.tan(THREE.MathUtils.degToRad(camera3D.fov / 2));
+          repelX = pointerNdcX * fovTan * camera3D.position.z * camera3D.aspect;
+          repelY = pointerNdcY * fovTan * camera3D.position.z;
+          repelActive = true;
+        }
+        const repelR2 = REPEL_RADIUS * REPEL_RADIUS;
+
+        // --- LOOP DE PARTÍCULAS ---
+        const pos = geometry.attributes.position.array;
+        const col = geometry.attributes.color.array;
+        // Estado resuelto una vez: comparar strings 40.000 veces por frame es caro
+        const stMirror = appState === 'mirror';
+        const stCountdown = appState === 'countdown';
+        const stAssembling = appState === 'assembling';
+        const stPhoto = appState === 'photo';
+        const stDissolving = appState === 'dissolving';
+        const swayA = attractTextActive ? 0.06 : 0.5; // vaivén del polvo ambiente
+
+        for (let i = 0; i < PARTICLE_COUNT; i++) {
+          const i3 = i * 3;
+          let tx = targets[i3];
+          let ty = targets[i3 + 1];
+          let tz = targets[i3 + 2];
+          let tr = targetColors[i3];
+          let tg = targetColors[i3 + 1];
+          let tb = targetColors[i3 + 2];
+
+          if (stMirror) {
+            // Polvo ambiente: vaivén lento sobre el video
+            // (con texto de vitrina activo el vaivén baja para que se lea)
+            tx += Math.sin(t * 0.3 + phases[i]) * swayA;
+            ty += Math.cos(t * 0.23 + phases[i] * 1.7) * swayA * 0.7;
+
+            pos[i3] += (tx - pos[i3]) * LERP_SPEED;
+            pos[i3 + 1] += (ty - pos[i3 + 1]) * LERP_SPEED;
+            pos[i3 + 2] += (tz - pos[i3 + 2]) * LERP_SPEED;
+            col[i3] += (tr - col[i3]) * LERP_SPEED;
+            col[i3 + 1] += (tg - col[i3 + 1]) * LERP_SPEED;
+            col[i3 + 2] += (tb - col[i3 + 2]) * LERP_SPEED;
+
+          } else if (stCountdown) {
+            // Durante el countdown DOM, las partículas WebGL simplemente
+            // siguen flotando pacíficamente como en el modo espejo.
+            pos[i3] += (tx - pos[i3]) * 0.08;
+            pos[i3 + 1] += (ty - pos[i3 + 1]) * 0.08;
+            pos[i3 + 2] += (tz - pos[i3 + 2]) * 0.08;
+            pos[i3] += Math.sin(t * 0.5 + phases[i]) * swayA * dt;
+            pos[i3 + 1] += Math.cos(t * 0.4 + phases[i]) * swayA * dt;
+            col[i3] += (tr - col[i3]) * 0.1;
+            col[i3 + 1] += (tg - col[i3 + 1]) * 0.1;
+            col[i3 + 2] += (tb - col[i3 + 2]) * 0.1;
+
+          } else if (stAssembling) {
+            // Chasquido inverso: el polvo se condensa en la foto
+            const p = (t - assembleStart - delays[i]) / ASSEMBLE_DURATION;
+            const e = p <= 0 ? 0 : p >= 1 ? 1 : p * p * (3 - 2 * p); // smoothstep
+            const wob = (1 - e) * 0.3; // turbulencia mientras vuela
+            pos[i3] = startPositions[i3] + (tx - startPositions[i3]) * e + Math.sin(t * 2.7 + phases[i]) * wob;
+            pos[i3 + 1] = startPositions[i3 + 1] + (ty - startPositions[i3 + 1]) * e + Math.cos(t * 3.1 + phases[i] * 1.3) * wob;
+            pos[i3 + 2] = startPositions[i3 + 2] + (tz - startPositions[i3 + 2]) * e;
+
+            // El color se enciende a medida que la partícula llega
+            const cLerp = e * 0.25;
+            col[i3] += (tr - col[i3]) * cLerp;
+            col[i3 + 1] += (tg - col[i3 + 1]) * cLerp;
+            col[i3 + 2] += (tb - col[i3 + 2]) * cLerp;
+
+          } else if (stPhoto) {
+            // Respiración sutil
+            tz += Math.sin(t * BREATH_SPEED + tx * 0.6 + ty * 0.4) * BREATH_AMP;
+
+            // Repulsión 2D del mouse
+            if (repelActive) {
+              const dx = tx - repelX;
+              const dy = ty - repelY;
+              const d2 = dx * dx + dy * dy;
+              if (d2 < repelR2 && d2 > 0.0001) {
+                const d = Math.sqrt(d2);
+                const f = (1 - d / REPEL_RADIUS) * REPEL_STRENGTH;
+                tx += (dx / d) * f;
+                ty += (dy / d) * f;
+              }
+            }
+
+            // Shimmer: destellos breves al azar
+            const s = Math.sin(t * 2.5 + phases[i]);
+            if (s > 0.999) {
+              const boost = ((s - 0.999) / 0.001) * 0.5;
+              tr = Math.min(1, tr + boost);
+              tg = Math.min(1, tg + boost);
+              tb = Math.min(1, tb + boost);
+            }
+
+            pos[i3] += (tx - pos[i3]) * LERP_SPEED;
+            pos[i3 + 1] += (ty - pos[i3 + 1]) * LERP_SPEED;
+            pos[i3 + 2] += (tz - pos[i3 + 2]) * LERP_SPEED;
+            col[i3] += (tr - col[i3]) * LERP_SPEED;
+            col[i3 + 1] += (tg - col[i3 + 1]) * LERP_SPEED;
+            col[i3 + 2] += (tb - col[i3 + 2]) * LERP_SPEED;
+
+          } else if (stDissolving) {
+            // El chasquido: polvo llevado por la brisa que se desvanece
+            const age = t - dissolveStart - delays[i];
+            if (age > 0) {
+              const speed = Math.min(age * 1.6, 2.8);
+              pos[i3] += drift[i3] * speed * dt + Math.sin(t * 3.3 + phases[i]) * 0.012;
+              pos[i3 + 1] += drift[i3 + 1] * speed * dt + Math.cos(t * 2.9 + phases[i] * 1.4) * 0.012;
+              pos[i3 + 2] += drift[i3 + 2] * speed * dt;
+
+              const fade = Math.max(0, 1 - age / DISSOLVE_FADE);
+              col[i3] += (tr * fade - col[i3]) * 0.15;
+              col[i3 + 1] += (tg * fade - col[i3 + 1]) * 0.15;
+              col[i3 + 2] += (tb * fade - col[i3 + 2]) * 0.15;
             }
           }
-        } else if (attractKey !== -1) {
-          // Alguien volvió: dispersar el texto de inmediato
-          attractKey = -1;
-          attractTextActive = false;
-          fillDustTargets();
         }
-      }
+        geometry.attributes.position.needsUpdate = true;
+        geometry.attributes.color.needsUpdate = true;
 
-      // Transiciones automáticas
-      if (appState === 'assembling' && t > assembleEnd) {
-        setState('photo');
-        hideFreeze();
-        mouseX = 0; mouseY = 0; // foto derecha, de frente
-        playChime();
-        // Subir en segundo plano: cuando la persona pida el QR ya está listo.
-        // El retraso deja que los colores terminen de asentarse
-        shareTimer = setTimeout(uploadArtwork, SHARE_DELAY * 1000);
-      }
-      if (appState === 'assembling') {
-        // El reflejo congelado se desintegra siguiendo la onda de armado
-        const p = (t - assembleStart) / (ASSEMBLE_SWEEP + ASSEMBLE_JITTER + ASSEMBLE_DURATION * 0.5);
-        if (p >= 0) eraseFreezeWave(Math.min(1, p));
-      }
-      // La foto se queda en pantalla indefinidamente: solo se disuelve al
-      // tocar "💥 Chasquido" (doSnap, ver el listener del botón). Nada pasa
-      // por tiempo — antes se disolvía sola a los 60s (AUTO_SNAP_AFTER,
-      // eliminado: se sentía como que la instalación "volvía a tomar fotos
-      // sola" cada cierto tiempo, quitando control a quien maneja el stand).
-      if (appState === 'dissolving' && t > dissolveEnd) {
-        enterMirror();
-      }
+        // --- Rotación ---
+        rotX += (mouseX - rotX) * 0.05;
+        rotY += (mouseY - rotY) * 0.05;
 
-      // Repulsión 2D: proyección del cursor al plano de la foto
-      let repelActive = false, repelX = 0, repelY = 0;
-      if (appState === 'photo' && pointerActive) {
-        const fovTan = Math.tan(THREE.MathUtils.degToRad(camera3D.fov / 2));
-        repelX = pointerNdcX * fovTan * camera3D.position.z * camera3D.aspect;
-        repelY = pointerNdcY * fovTan * camera3D.position.z;
-        repelActive = true;
-      }
-      const repelR2 = REPEL_RADIUS * REPEL_RADIUS;
-
-      // --- LOOP DE PARTÍCULAS ---
-      const pos = geometry.attributes.position.array;
-      const col = geometry.attributes.color.array;
-      // Estado resuelto una vez: comparar strings 40.000 veces por frame es caro
-      const stMirror = appState === 'mirror';
-      const stCountdown = appState === 'countdown';
-      const stAssembling = appState === 'assembling';
-      const stPhoto = appState === 'photo';
-      const stDissolving = appState === 'dissolving';
-      const swayA = attractTextActive ? 0.06 : 0.5; // vaivén del polvo ambiente
-
-      for (let i = 0; i < PARTICLE_COUNT; i++) {
-        const i3 = i * 3;
-        let tx = targets[i3];
-        let ty = targets[i3 + 1];
-        let tz = targets[i3 + 2];
-        let tr = targetColors[i3];
-        let tg = targetColors[i3 + 1];
-        let tb = targetColors[i3 + 2];
-
-        if (stMirror) {
-          // Polvo ambiente: vaivén lento sobre el video
-          // (con texto de vitrina activo el vaivén baja para que se lea)
-          tx += Math.sin(t * 0.3 + phases[i]) * swayA;
-          ty += Math.cos(t * 0.23 + phases[i] * 1.7) * swayA * 0.7;
-
-          pos[i3] += (tx - pos[i3]) * LERP_SPEED;
-          pos[i3 + 1] += (ty - pos[i3 + 1]) * LERP_SPEED;
-          pos[i3 + 2] += (tz - pos[i3 + 2]) * LERP_SPEED;
-          col[i3] += (tr - col[i3]) * LERP_SPEED;
-          col[i3 + 1] += (tg - col[i3 + 1]) * LERP_SPEED;
-          col[i3 + 2] += (tb - col[i3 + 2]) * LERP_SPEED;
-
-        } else if (stCountdown) {
-          // Morph rápido entre dígitos, sin vaivén (el número debe leerse)
-          pos[i3] += (tx - pos[i3]) * COUNTDOWN_LERP;
-          pos[i3 + 1] += (ty - pos[i3 + 1]) * COUNTDOWN_LERP;
-          pos[i3 + 2] += (tz - pos[i3 + 2]) * COUNTDOWN_LERP;
-          col[i3] += (tr - col[i3]) * COUNTDOWN_LERP;
-          col[i3 + 1] += (tg - col[i3 + 1]) * COUNTDOWN_LERP;
-          col[i3 + 2] += (tb - col[i3 + 2]) * COUNTDOWN_LERP;
-
-        } else if (stAssembling) {
-          // Chasquido inverso: el polvo se condensa en la foto
-          const p = (t - assembleStart - delays[i]) / ASSEMBLE_DURATION;
-          const e = p <= 0 ? 0 : p >= 1 ? 1 : p * p * (3 - 2 * p); // smoothstep
-          const wob = (1 - e) * 0.3; // turbulencia mientras vuela
-          pos[i3] = startPositions[i3] + (tx - startPositions[i3]) * e + Math.sin(t * 2.7 + phases[i]) * wob;
-          pos[i3 + 1] = startPositions[i3 + 1] + (ty - startPositions[i3 + 1]) * e + Math.cos(t * 3.1 + phases[i] * 1.3) * wob;
-          pos[i3 + 2] = startPositions[i3 + 2] + (tz - startPositions[i3 + 2]) * e;
-
-          // El color se enciende a medida que la partícula llega
-          const cLerp = e * 0.25;
-          col[i3] += (tr - col[i3]) * cLerp;
-          col[i3 + 1] += (tg - col[i3 + 1]) * cLerp;
-          col[i3 + 2] += (tb - col[i3 + 2]) * cLerp;
-
-        } else if (stPhoto) {
-          // Respiración sutil
-          tz += Math.sin(t * BREATH_SPEED + tx * 0.6 + ty * 0.4) * BREATH_AMP;
-
-          // Repulsión 2D del mouse
-          if (repelActive) {
-            const dx = tx - repelX;
-            const dy = ty - repelY;
-            const d2 = dx * dx + dy * dy;
-            if (d2 < repelR2 && d2 > 0.0001) {
-              const d = Math.sqrt(d2);
-              const f = (1 - d / REPEL_RADIUS) * REPEL_STRENGTH;
-              tx += (dx / d) * f;
-              ty += (dy / d) * f;
-            }
-          }
-
-          // Shimmer: destellos breves al azar
-          const s = Math.sin(t * 2.5 + phases[i]);
-          if (s > 0.999) {
-            const boost = ((s - 0.999) / 0.001) * 0.5;
-            tr = Math.min(1, tr + boost);
-            tg = Math.min(1, tg + boost);
-            tb = Math.min(1, tb + boost);
-          }
-
-          pos[i3] += (tx - pos[i3]) * LERP_SPEED;
-          pos[i3 + 1] += (ty - pos[i3 + 1]) * LERP_SPEED;
-          pos[i3 + 2] += (tz - pos[i3 + 2]) * LERP_SPEED;
-          col[i3] += (tr - col[i3]) * LERP_SPEED;
-          col[i3 + 1] += (tg - col[i3 + 1]) * LERP_SPEED;
-          col[i3 + 2] += (tb - col[i3 + 2]) * LERP_SPEED;
-
-        } else if (stDissolving) {
-          // El chasquido: polvo llevado por la brisa que se desvanece
-          const age = t - dissolveStart - delays[i];
-          if (age > 0) {
-            const speed = Math.min(age * 1.6, 2.8);
-            pos[i3] += drift[i3] * speed * dt + Math.sin(t * 3.3 + phases[i]) * 0.012;
-            pos[i3 + 1] += drift[i3 + 1] * speed * dt + Math.cos(t * 2.9 + phases[i] * 1.4) * 0.012;
-            pos[i3 + 2] += drift[i3 + 2] * speed * dt;
-
-            const fade = Math.max(0, 1 - age / DISSOLVE_FADE);
-            col[i3] += (tr * fade - col[i3]) * 0.15;
-            col[i3 + 1] += (tg * fade - col[i3 + 1]) * 0.15;
-            col[i3 + 2] += (tb * fade - col[i3 + 2]) * 0.15;
-          }
+        if (appState === 'mirror') {
+          points.rotation.y = 0;
+          points.rotation.x = 0;
+          points.rotation.z = 0;
+        } else {
+          // Foto y transiciones: planas de frente, rotación suave del mouse
+          points.rotation.y = rotX * 0.2;
+          points.rotation.x = rotY * 0.2;
+          points.rotation.z = 0;
         }
-      }
-      geometry.attributes.position.needsUpdate = true;
-      geometry.attributes.color.needsUpdate = true;
 
-      // --- Rotación ---
-      rotX += (mouseX - rotX) * 0.05;
-      rotY += (mouseY - rotY) * 0.05;
-
-      if (appState === 'mirror') {
-        points.rotation.y = 0;
-        points.rotation.x = 0;
-        points.rotation.z = 0;
-      } else {
-        // Foto y transiciones: planas de frente, rotación suave del mouse
-        points.rotation.y = rotX * 0.2;
-        points.rotation.x = rotY * 0.2;
-        points.rotation.z = 0;
-      }
-
-      // --- Render ---
-      // El composer pinta fondo opaco: usarlo solo cuando el video está oculto.
-      // En espejo y countdown se renderiza directo (fondo transparente → cámara).
-      if (composer && appState !== 'mirror' && appState !== 'countdown') {
-        composer.render();
-      } else {
-        renderer.render(scene, camera3D);
-      }
+        // --- Render ---
+        // El composer pinta fondo opaco: usarlo solo cuando el video está oculto.
+        // En espejo y countdown se renderiza directo (fondo transparente → cámara).
+        if (composer && appState !== 'mirror' && appState !== 'countdown') {
+          composer.render();
+        } else {
+          renderer.render(scene, camera3D);
+        }
       } catch (err) {
         // Recuperación al estado seguro conocido: el espejo. Así la
         // instalación se repone sola en el siguiente frame en vez de
