@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='88'>🔷</text></svg>">
   <title>Prisma — figuras automáticas (1-2 manos)</title>
 
   <!--
@@ -177,6 +178,105 @@
     #menu-panel input[type="range"] { width: 100%; margin-top: 2px; }
     .ok { color: #8f8; }
     .bad { color: #f88; }
+
+    /* Portada / Umbral de Prisma */
+    #intro-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 30;
+      overflow: hidden;
+      display: grid;
+      place-items: center;
+      background:
+        radial-gradient(ellipse at 50% 40%, rgba(58, 211, 235, 0.32), transparent 31%),
+        radial-gradient(ellipse at 84% 18%, rgba(20, 124, 211, 0.25), transparent 36%),
+        radial-gradient(ellipse at 12% 86%, rgba(239, 25, 159, 0.24), transparent 40%),
+        linear-gradient(135deg, #071226 0%, #02050f 45%, #16051b 100%);
+      color: #f5f8ff;
+      transition: opacity 1850ms cubic-bezier(.22, .8, .2, 1), visibility 1850ms;
+    }
+    #intro-overlay::before,
+    #intro-overlay::after {
+      content: "";
+      position: absolute;
+      width: 42vw;
+      height: 42vw;
+      border: 1px solid rgba(95, 233, 255, 0.075);
+      transform: rotate(45deg);
+      animation: introOrbit 28s linear infinite;
+    }
+    #intro-overlay::after { width: 68vw; height: 68vw; border-color: rgba(242, 55, 195, 0.05); animation-direction: reverse; animation-duration: 42s; }
+    #intro-overlay.exploding { opacity: 0; visibility: hidden; pointer-events: none; }
+    #intro-content {
+      position: relative;
+      z-index: 2;
+      width: min(680px, 88vw);
+      text-align: center;
+      transform: translateY(12vh);
+      transition: transform 900ms cubic-bezier(.22, .8, .2, 1);
+    }
+    #intro-overlay.exploding #intro-content { transform: translateY(4vh) scale(1.08); }
+    .intro-kicker { display: none; }
+    .intro-title {
+      margin: 0;
+      font-family: Georgia, 'Times New Roman', serif;
+      font-size: clamp(58px, 13vw, 132px);
+      font-weight: 400;
+      letter-spacing: .14em;
+      line-height: .82;
+      text-indent: .12em;
+      background: linear-gradient(110deg, #52efff, #f5f7ff 40%, #ff54d5 75%, #ffdf57);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      filter: drop-shadow(0 0 25px rgba(70, 224, 255, .2));
+      animation: introTitleRefraction 8s ease-in-out infinite;
+    }
+    .intro-subtitle { margin: 26px auto 0; max-width: 420px; color: rgba(230, 240, 255, .7); font-size: 14px; line-height: 1.7; opacity: 0; max-height: 0; overflow: hidden; transition: opacity 600ms, max-height 600ms, margin 600ms; }
+    #intro-seed { position: relative; width: 74px; height: 18px; margin: 28px auto 0; opacity: .72; transition: opacity 500ms, transform 500ms; }
+    #intro-seed::before { content: ""; position: absolute; left: 50%; top: 8px; width: 54px; height: 1px; transform: translateX(-50%); background: linear-gradient(90deg, transparent, rgba(91, 239, 255, .7), transparent); box-shadow: 0 0 10px rgba(91, 239, 255, .42); }
+    #intro-seed::after { content: ""; position: absolute; left: 50%; top: 5px; width: 7px; height: 7px; transform: translateX(-50%); border-radius: 50%; background: #6bf1ff; box-shadow: 0 0 8px #6bf1ff, 0 0 22px rgba(255, 75, 210, .75); animation: introSeedPulse 3.4s ease-in-out infinite; }
+    #intro-stage { position: relative; width: 220px; height: 220px; margin: 28px auto 30px; }
+    #intro-3d-canvas { position: fixed; inset: 0; z-index: 1; width: 100%; height: 100%; pointer-events: none; opacity: 0; transition: opacity 450ms ease; }
+    #intro-explosion-flash { position: fixed; inset: 0; z-index: 3; pointer-events: none; opacity: 0; background: radial-gradient(circle at var(--blast-x, 50%) var(--blast-y, 50%), rgba(255,255,255,1) 0%, rgba(111,244,255,.9) 8%, rgba(255,57,197,.42) 24%, transparent 68%); mix-blend-mode: screen; }
+    #intro-explosion-flash::before, #intro-explosion-flash::after { content: ""; position: absolute; left: var(--blast-x, 50%); top: var(--blast-y, 50%); width: 10vw; height: 10vw; border: 1px solid rgba(139, 247, 255, .95); border-radius: 50%; transform: translate(-50%, -50%) scale(.1); box-shadow: 0 0 35px rgba(111, 244, 255, .8); }
+    #intro-explosion-flash::after { border-color: rgba(255, 83, 207, .85); box-shadow: 0 0 50px rgba(255, 83, 207, .7); }
+    #intro-overlay.exploding #intro-explosion-flash { animation: introFlash 1800ms cubic-bezier(.16, .75, .2, 1) forwards; }
+    .intro-particle { position: absolute; left: 50%; top: 50%; width: 4px; height: 4px; border-radius: 50%; background: #72f5ff; box-shadow: 0 0 12px #72f5ff; transform: rotate(var(--angle)) translateX(var(--particle-distance, 52px)); opacity: var(--particle-opacity, .3); transition: transform 160ms ease-out; }
+    .intro-particle:nth-of-type(3) { --angle: 20deg; background: #ff5bd7; }
+    .intro-particle:nth-of-type(4) { --angle: 140deg; background: #ffe15c; }
+    .intro-particle:nth-of-type(5) { --angle: 250deg; background: #55a6ff; }
+    #intro-meter { position: fixed; right: clamp(22px, 5vw, 72px); top: 50%; z-index: 4; width: 5px; height: min(300px, 42vh); margin: 0; overflow: visible; border: 1px solid rgba(133, 235, 255, .28); background: rgba(5, 15, 30, .68); opacity: 0; transform: translateY(-50%); transition: opacity 600ms, height 600ms; box-shadow: 0 0 18px rgba(69, 217, 255, .12); }
+    #intro-meter::before { content: ""; position: absolute; inset: 0 -7px; background: repeating-linear-gradient(to top, transparent 0 19px, rgba(128, 230, 255, .34) 19px 20px); opacity: .75; }
+    #intro-meter::after { content: ""; position: absolute; left: 50%; bottom: -5px; width: 11px; height: 11px; transform: translateX(-50%); border-radius: 50%; background: #5cefff; box-shadow: 0 0 8px #5cefff, 0 0 22px rgba(255, 68, 202, .75); }
+    #intro-meter-fill { position: absolute; left: 0; bottom: 0; width: 100%; height: 100%; transform-origin: bottom; transform: scaleY(var(--charge, 0)); background: linear-gradient(to top, #4df1ff 0%, #4d9dff 42%, #ff52d2 76%, #ffe05a 100%); box-shadow: 0 0 16px #55e9ff, 0 0 28px rgba(255, 73, 207, .5); }
+    #intro-instruction { min-height: 36px; color: rgba(238, 245, 255, .88); font-size: 12px; letter-spacing: .12em; text-transform: uppercase; opacity: 0; transition: opacity 600ms; }
+    #intro-start { position: relative; margin-top: 22px; padding: 14px 24px 14px 21px; border: 1px solid rgba(103, 236, 255, .64); border-radius: 999px; background: rgba(10, 24, 42, .62); color: #eafcff; font: inherit; font-size: 11px; letter-spacing: .18em; text-transform: uppercase; cursor: pointer; box-shadow: 0 0 25px rgba(72, 229, 255, .13); transition: background 180ms, transform 180ms, box-shadow 180ms, border-color 180ms; }
+    #intro-start::before { content: ""; position: absolute; inset: -7px; border: 1px solid rgba(103, 236, 255, .16); border-radius: inherit; transform: scale(.9); opacity: 0; transition: transform 260ms, opacity 260ms; }
+    #intro-start:hover { background: rgba(34, 105, 128, .42); border-color: #8df4ff; transform: translateY(-2px); box-shadow: 0 0 35px rgba(72, 229, 255, .32); }
+    #intro-start:hover::before { transform: scale(1); opacity: 1; }
+    #intro-start span:last-child { transition: opacity 160ms; }
+    #intro-start .intro-start-hover { display: none; }
+    #intro-start:hover .intro-start-default { display: none; }
+    #intro-start:hover .intro-start-hover { display: inline; }
+    #intro-note { margin-top: 16px; color: rgba(210, 220, 240, .4); font-size: 10px; opacity: 0; transition: opacity 600ms; }
+    #intro-overlay.revealing #intro-subtitle { opacity: 0; max-height: 0; margin-top: 0; }
+    #intro-overlay.revealing #intro-3d-canvas { opacity: 1; }
+    #intro-overlay.revealing #intro-meter { opacity: 1; }
+    #intro-overlay.revealing #intro-seed { opacity: 0; transform: scale(.3); }
+    #intro-overlay.revealing .intro-title,
+    #intro-overlay.revealing #intro-subtitle,
+    #intro-overlay.revealing #intro-instruction,
+    #intro-overlay.revealing #intro-note,
+    #intro-overlay.revealing #intro-start { opacity: 0; pointer-events: none; }
+    @keyframes introSeedPulse { 0%, 100% { transform: translateX(-50%) scale(.75); opacity: .55; } 50% { transform: translateX(-50%) scale(1.25); opacity: 1; } }
+    @keyframes introTitleRefraction { 0%, 72%, 100% { filter: drop-shadow(0 0 25px rgba(70, 224, 255, .2)); } 80% { filter: drop-shadow(10px 0 18px rgba(255, 80, 205, .32)) drop-shadow(-10px 0 18px rgba(70, 235, 255, .32)); } 88% { filter: drop-shadow(0 0 25px rgba(70, 224, 255, .2)); } }
+    @keyframes introFlash { 0% { opacity: 0; } 13% { opacity: 1; } 22% { opacity: .16; } 39% { opacity: .72; } 100% { opacity: 0; } }
+    #intro-overlay.exploding #intro-explosion-flash::before { animation: introShockwave 1420ms cubic-bezier(.1, .7, .2, 1) forwards; }
+    #intro-overlay.exploding #intro-explosion-flash::after { animation: introShockwave 1650ms 100ms cubic-bezier(.1, .7, .2, 1) forwards; }
+    @keyframes introShockwave { 0% { transform: translate(-50%, -50%) scale(.1); opacity: 1; } 100% { transform: translate(-50%, -50%) scale(28); opacity: 0; } }
+    @keyframes introOrbit { to { transform: rotate(405deg); } }
+    @media (prefers-reduced-motion: reduce) { #intro-overlay::before, #intro-overlay::after, #intro-3d-canvas { animation: none; } }
   </style>
 
   <!-- Import map: sin restricción de versión de Three.js (no dependemos de
@@ -190,6 +290,21 @@
   </script>
 </head>
 <body>
+  <div id="intro-overlay" aria-label="Portada interactiva de Prisma">
+    <div id="intro-explosion-flash" aria-hidden="true"></div>
+    <div id="intro-content">
+      <h1 class="intro-title">PRISMA</h1>
+      <div id="intro-seed" aria-hidden="true"></div>
+      <p id="intro-subtitle" class="intro-subtitle">Una experiencia de luz, movimiento y percepción. Dale forma a la luz con tus manos.</p>
+      <div id="intro-stage" aria-hidden="true">
+        <canvas id="intro-3d-canvas"></canvas>
+      </div>
+      <div id="intro-instruction">Activa el prisma y prepara tu voz</div>
+      <button id="intro-start" type="button"><span aria-hidden="true">▶</span> <span class="intro-start-default">Iniciar experiencia</span><span class="intro-start-hover">Despertar prisma</span></button>
+      <div id="intro-note">Necesitamos el micrófono para despertar la luz</div>
+    </div>
+    <div id="intro-meter" aria-label="Nivel de energía del sonido"><div id="intro-meter-fill"></div></div>
+  </div>
   <video id="cam-video" autoplay muted playsinline></video>
   <canvas id="three-canvas"></canvas>
 
@@ -262,6 +377,18 @@
         <input type="range" id="ctrl-neon-radius" min="0.5" max="2" step="0.05" value="1">
       </label>
     </div>
+    <div class="section">
+      <div class="title">Acto 2 (gema)</div>
+      <label class="row">Chispas
+        <input type="range" id="ctrl-gem-sparks" min="0" max="2" step="0.05" value="1">
+      </label>
+      <label class="row">Halo interior
+        <input type="range" id="ctrl-gem-energy" min="0" max="2" step="0.05" value="1">
+      </label>
+      <label class="row">Campo negro
+        <input type="range" id="ctrl-gem-stars" min="0" max="1.5" step="0.05" value="0.85">
+      </label>
+    </div>
   </div>
 
   <script type="module">
@@ -321,6 +448,305 @@
     const scene = new THREE.Scene();
     const camera3D = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
     camera3D.position.z = 5;
+
+    // Icosaedro real de la portada. Se mantiene en un canvas pequeño y
+    // dedicado para que pueda vivir encima del fondo de la portada sin
+    // interferir con el renderer de la experiencia principal.
+    const intro3dCanvas = document.getElementById('intro-3d-canvas');
+    const intro3dRenderer = new THREE.WebGLRenderer({ canvas: intro3dCanvas, alpha: true, antialias: true });
+    intro3dRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    intro3dRenderer.setClearColor(0x000000, 0);
+    const intro3dScene = new THREE.Scene();
+    const intro3dCamera = new THREE.PerspectiveCamera(36, window.innerWidth / window.innerHeight, 0.1, 100);
+    intro3dCamera.position.z = 4.6;
+    const introIcoGroup = new THREE.Group();
+    const introIcoGeometry = new THREE.IcosahedronGeometry(0.62, 0);
+    const introIcoEdgesGeometry = new THREE.EdgesGeometry(introIcoGeometry, 1);
+    const introIcoSurfaceGeometry = introIcoGeometry.toNonIndexed();
+    introIcoGeometry.dispose();
+    introIcoSurfaceGeometry.computeVertexNormals();
+    const introIcoUniforms = {
+      uTime: { value: 0 },
+      uAudio: { value: 0 },
+      uBurst: { value: 0 }
+    };
+    const introIcoMaterial = new THREE.ShaderMaterial({
+      uniforms: introIcoUniforms,
+      vertexShader: `
+        uniform float uTime;
+        uniform float uAudio;
+        uniform float uBurst;
+        varying vec3 vNormal;
+        varying vec3 vPosition;
+        void main() {
+          vNormal = normalize(normalMatrix * normal);
+          vec3 p = position;
+          float wave = sin(position.x * 8.0 + uTime * 2.2) * sin(position.y * 7.0 - uTime * 1.7);
+          p += normal * wave * (0.018 + uAudio * 0.055 + uBurst * 0.12);
+          vPosition = p;
+          vec4 mvPosition = modelViewMatrix * vec4(p, 1.0);
+          gl_Position = projectionMatrix * mvPosition;
+        }
+      `,
+      fragmentShader: `
+        precision mediump float;
+        uniform float uTime;
+        uniform float uAudio;
+        uniform float uBurst;
+        varying vec3 vNormal;
+        varying vec3 vPosition;
+        void main() {
+          vec3 n = normalize(vNormal);
+          float facet = 0.5 + 0.5 * dot(n, normalize(vec3(0.35, 0.8, 0.55)));
+          float flow = 0.5 + 0.5 * sin(vPosition.y * 10.0 + uTime * 2.8 + vPosition.x * 4.0);
+          vec3 cyan = vec3(0.05, 0.92, 1.0);
+          vec3 blue = vec3(0.18, 0.28, 1.0);
+          vec3 pink = vec3(1.0, 0.1, 0.68);
+          vec3 gold = vec3(1.0, 0.78, 0.2);
+          vec3 color = mix(cyan, blue, smoothstep(0.2, 0.7, facet));
+          color = mix(color, pink, smoothstep(0.52, 0.92, flow));
+          color = mix(color, gold, clamp(uBurst * 0.75 + facet * 0.18, 0.0, 1.0));
+          float edge = pow(1.0 - abs(dot(n, vec3(0.0, 0.0, 1.0))), 1.8);
+          float glow = 0.42 + facet * 0.5 + edge * 0.5 + uAudio * 0.35 + uBurst * 1.2;
+          gl_FragColor = vec4(color * glow, 0.92);
+        }
+      `,
+      side: THREE.DoubleSide,
+      flatShading: true,
+      transparent: true,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false
+    });
+    const introIcoMesh = new THREE.Mesh(introIcoSurfaceGeometry, introIcoMaterial);
+    const introIcoAuraMaterial = new THREE.ShaderMaterial({
+      uniforms: introIcoUniforms,
+      vertexShader: `
+        varying vec3 vNormal;
+        void main() { vNormal = normalize(normalMatrix * normal); gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }
+      `,
+      fragmentShader: `
+        precision mediump float;
+        uniform float uAudio;
+        uniform float uBurst;
+        varying vec3 vNormal;
+        void main() {
+          float rim = pow(1.0 - abs(dot(normalize(vNormal), vec3(0.0, 0.0, 1.0))), 1.7);
+          gl_FragColor = vec4(vec3(0.1, 0.8, 1.0), (0.08 + rim * 0.34 + uAudio * 0.16 + uBurst * 0.32));
+        }
+      `,
+      side: THREE.BackSide,
+      transparent: true,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false
+    });
+    const introIcoAura = new THREE.Mesh(introIcoSurfaceGeometry, introIcoAuraMaterial);
+    introIcoAura.scale.setScalar(1.22);
+    const introIcoWire = new THREE.LineSegments(introIcoEdgesGeometry, new THREE.LineBasicMaterial({ color: 0x86f6ff, transparent: true, opacity: 0.72, blending: THREE.AdditiveBlending }));
+    introIcoGroup.add(introIcoAura, introIcoMesh, introIcoWire);
+    introIcoGroup.visible = false;
+    intro3dScene.add(introIcoGroup);
+
+    // Fragmentos de la detonación: pool fijo de partículas radiales para que
+    // el impacto se sienta como una explosión real y no solo como una escala.
+    const INTRO_BLAST_COUNT = 260;
+    const introBlastPositions = new Float32Array(INTRO_BLAST_COUNT * 3);
+    const introBlastColors = new Float32Array(INTRO_BLAST_COUNT * 3);
+    const introBlastSizes = new Float32Array(INTRO_BLAST_COUNT);
+    const introBlastAlphas = new Float32Array(INTRO_BLAST_COUNT);
+    const introBlastVelocities = Array.from({ length: INTRO_BLAST_COUNT }, () => new THREE.Vector3());
+    const introBlastPalette = [0x55edff, 0x4d7dff, 0xff4bcf, 0xffdd54, 0xffffff];
+    const introBlastGeometry = new THREE.BufferGeometry();
+    introBlastGeometry.setAttribute('position', new THREE.BufferAttribute(introBlastPositions, 3));
+    introBlastGeometry.setAttribute('color', new THREE.BufferAttribute(introBlastColors, 3));
+    introBlastGeometry.setAttribute('size', new THREE.BufferAttribute(introBlastSizes, 1));
+    introBlastGeometry.setAttribute('alpha', new THREE.BufferAttribute(introBlastAlphas, 1));
+    const introBlastMaterial = new THREE.ShaderMaterial({
+      vertexShader: `
+        attribute float size;
+        attribute float alpha;
+        varying vec3 vColor;
+        varying float vAlpha;
+        void main() {
+          vColor = color;
+          vAlpha = alpha;
+          vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+          gl_PointSize = size * (360.0 / max(1.0, -mvPosition.z));
+          gl_Position = projectionMatrix * mvPosition;
+        }
+      `,
+      fragmentShader: `
+        precision mediump float;
+        varying vec3 vColor;
+        varying float vAlpha;
+        void main() {
+          vec2 p = gl_PointCoord - vec2(.5);
+          float d = length(p);
+          float glow = smoothstep(.5, 0.0, d);
+          float core = smoothstep(.16, 0.0, d);
+          gl_FragColor = vec4(vColor * (0.55 + core * 2.4), vAlpha * glow);
+        }
+      `,
+      transparent: true,
+      vertexColors: true,
+      blending: THREE.AdditiveBlending,
+      depthTest: false,
+      depthWrite: false
+    });
+    const introBlastMesh = new THREE.Points(introBlastGeometry, introBlastMaterial);
+    introBlastMesh.visible = false;
+    introBlastMesh.frustumCulled = false;
+    intro3dScene.add(introBlastMesh);
+
+    const introBlastRingGeometry = new THREE.RingGeometry(0.54, 0.56, 64);
+    const introBlastRings = [
+      { mesh: new THREE.Mesh(introBlastRingGeometry, new THREE.MeshBasicMaterial({ color: 0x6cf5ff, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false })), delay: 0, duration: 1040, strength: 1 },
+      { mesh: new THREE.Mesh(introBlastRingGeometry, new THREE.MeshBasicMaterial({ color: 0xff4ed0, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false })), delay: 110, duration: 1320, strength: .82 },
+      { mesh: new THREE.Mesh(introBlastRingGeometry, new THREE.MeshBasicMaterial({ color: 0xffe36a, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false })), delay: 230, duration: 1540, strength: .58 }
+    ];
+    for (const ring of introBlastRings) {
+      ring.mesh.visible = false;
+      ring.mesh.frustumCulled = false;
+      ring.mesh.renderOrder = 5;
+      intro3dScene.add(ring.mesh);
+    }
+    const introBlastCoreUniforms = { uAlpha: { value: 0 }, uProgress: { value: 0 } };
+    const introBlastCore = new THREE.Mesh(
+      new THREE.PlaneGeometry(2, 2),
+      new THREE.ShaderMaterial({
+        uniforms: introBlastCoreUniforms,
+        vertexShader: `varying vec2 vUv; void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
+        fragmentShader: `
+          precision mediump float;
+          uniform float uAlpha;
+          uniform float uProgress;
+          varying vec2 vUv;
+          void main() {
+            float d = length(vUv - 0.5) * 2.0;
+            float core = 1.0 - smoothstep(0.0, 0.72, d);
+            float ring = 1.0 - smoothstep(0.0, 0.08, abs(d - uProgress * 1.1));
+            vec3 color = mix(vec3(1.0), vec3(0.1, 0.85, 1.0), smoothstep(0.08, 0.6, d));
+            gl_FragColor = vec4(color, (core * 0.72 + ring * 0.8) * uAlpha);
+          }
+        `,
+        transparent: true,
+        blending: THREE.AdditiveBlending,
+        depthTest: false,
+        depthWrite: false
+      })
+    );
+    introBlastCore.visible = false;
+    introBlastCore.frustumCulled = false;
+    introBlastCore.renderOrder = 6;
+    intro3dScene.add(introBlastCore);
+
+    const INTRO_SHARD_COUNT = 64;
+    const introShardPositions = new Float32Array(INTRO_SHARD_COUNT * 2 * 3);
+    const introShardColors = new Float32Array(INTRO_SHARD_COUNT * 2 * 3);
+    const introShardAlphas = new Float32Array(INTRO_SHARD_COUNT * 2);
+    const introShardVelocities = Array.from({ length: INTRO_SHARD_COUNT }, () => new THREE.Vector3());
+    const introShardLengths = new Float32Array(INTRO_SHARD_COUNT);
+    const introShardGeometry = new THREE.BufferGeometry();
+    introShardGeometry.setAttribute('position', new THREE.BufferAttribute(introShardPositions, 3));
+    introShardGeometry.setAttribute('color', new THREE.BufferAttribute(introShardColors, 3));
+    introShardGeometry.setAttribute('alpha', new THREE.BufferAttribute(introShardAlphas, 1));
+    const introShardMaterial = new THREE.ShaderMaterial({
+      vertexShader: `
+        attribute float alpha;
+        varying vec3 vColor;
+        varying float vAlpha;
+        void main() { vColor = color; vAlpha = alpha; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }
+      `,
+      fragmentShader: `precision mediump float; varying vec3 vColor; varying float vAlpha; void main() { gl_FragColor = vec4(vColor * 1.8, vAlpha); }`,
+      transparent: true,
+      vertexColors: true,
+      blending: THREE.AdditiveBlending,
+      depthTest: false,
+      depthWrite: false
+    });
+    const introShardMesh = new THREE.LineSegments(introShardGeometry, introShardMaterial);
+    introShardMesh.visible = false;
+    introShardMesh.frustumCulled = false;
+    introShardMesh.renderOrder = 4;
+    intro3dScene.add(introShardMesh);
+    let introBlastStarted = false;
+    const introBlastOrigin = new THREE.Vector3();
+    const introBlastDirection = new THREE.Vector3();
+
+    function spawnIntroBlast() {
+      introBlastOrigin.copy(introIcoGroup.position);
+      introBlastStarted = true;
+      introBlastMesh.visible = true;
+      introBlastCore.position.copy(introBlastOrigin);
+      introBlastCore.scale.setScalar(0.08);
+      introBlastCore.visible = true;
+      introBlastCoreUniforms.uAlpha.value = 0;
+      introBlastCoreUniforms.uProgress.value = 0;
+      for (const ring of introBlastRings) {
+        ring.mesh.position.copy(introBlastOrigin);
+        ring.mesh.scale.setScalar(0.08);
+        ring.mesh.visible = true;
+        ring.mesh.material.opacity = 0;
+      }
+      introShardMesh.visible = true;
+      for (let i = 0; i < INTRO_BLAST_COUNT; i++) {
+        const i3 = i * 3;
+        introBlastPositions[i3] = introBlastOrigin.x;
+        introBlastPositions[i3 + 1] = introBlastOrigin.y;
+        introBlastPositions[i3 + 2] = introBlastOrigin.z;
+        introBlastDirection.set(Math.random() * 2 - 1, Math.random() * 2 - 1, Math.random() * 2 - 1).normalize();
+        introBlastVelocities[i].copy(introBlastDirection).multiplyScalar(0.65 + Math.random() * 2.45);
+        const color = new THREE.Color(introBlastPalette[i % introBlastPalette.length]);
+        introBlastColors[i3] = color.r;
+        introBlastColors[i3 + 1] = color.g;
+        introBlastColors[i3 + 2] = color.b;
+        introBlastSizes[i] = 0.018 + Math.random() * 0.045;
+        introBlastAlphas[i] = 0.9 + Math.random() * 0.1;
+      }
+      for (let i = 0; i < INTRO_SHARD_COUNT; i++) {
+        const base = i * 2;
+        const base3 = base * 3;
+        introShardPositions[base3] = introBlastOrigin.x;
+        introShardPositions[base3 + 1] = introBlastOrigin.y;
+        introShardPositions[base3 + 2] = introBlastOrigin.z;
+        introShardPositions[base3 + 3] = introBlastOrigin.x;
+        introShardPositions[base3 + 4] = introBlastOrigin.y;
+        introShardPositions[base3 + 5] = introBlastOrigin.z;
+        introBlastDirection.set(Math.random() * 2 - 1, Math.random() * 2 - 1, Math.random() * 2 - 1).normalize();
+        introShardVelocities[i].copy(introBlastDirection).multiplyScalar(0.8 + Math.random() * 2.7);
+        introShardLengths[i] = 0.1 + Math.random() * 0.34;
+        const color = new THREE.Color(introBlastPalette[(i + 2) % introBlastPalette.length]);
+        introShardColors[base3] = color.r;
+        introShardColors[base3 + 1] = color.g;
+        introShardColors[base3 + 2] = color.b;
+        introShardColors[base3 + 3] = color.r;
+        introShardColors[base3 + 4] = color.g;
+        introShardColors[base3 + 5] = color.b;
+        introShardAlphas[base] = 0.9;
+        introShardAlphas[base + 1] = 0.05;
+      }
+      introBlastGeometry.attributes.position.needsUpdate = true;
+      introBlastGeometry.attributes.color.needsUpdate = true;
+      introBlastGeometry.attributes.size.needsUpdate = true;
+      introBlastGeometry.attributes.alpha.needsUpdate = true;
+      introShardGeometry.attributes.position.needsUpdate = true;
+      introShardGeometry.attributes.color.needsUpdate = true;
+      introShardGeometry.attributes.alpha.needsUpdate = true;
+    }
+    function resizeIntro3d() {
+      intro3dCamera.aspect = window.innerWidth / window.innerHeight;
+      intro3dCamera.updateProjectionMatrix();
+      intro3dRenderer.setSize(window.innerWidth, window.innerHeight, false);
+    }
+    resizeIntro3d();
+    window.addEventListener('resize', resizeIntro3d);
+    function renderIntro3d() { intro3dRenderer.render(intro3dScene, intro3dCamera); }
+    function syncIntroBlastOrigin() {
+      const halfHeight = intro3dCamera.position.z * Math.tan(THREE.MathUtils.degToRad(18));
+      const xPercent = 50 + (introIcoGroup.position.x / (halfHeight * intro3dCamera.aspect)) * 50;
+      const yPercent = 50 - (introIcoGroup.position.y / halfHeight) * 50;
+      introOverlay.style.setProperty('--blast-x', THREE.MathUtils.clamp(xPercent, 12, 88).toFixed(2) + '%');
+      introOverlay.style.setProperty('--blast-y', THREE.MathUtils.clamp(yPercent, 14, 86).toFixed(2) + '%');
+    }
 
     window.addEventListener('resize', () => {
       camera3D.aspect = window.innerWidth / window.innerHeight;
@@ -651,6 +1077,906 @@
     const gemGeo = buildGemGeometry(GEM_RING_SIDES);
     const gemShape = createDeformableShape(gemGeo.vertexCount, gemGeo.indices, gemGeo.uvs);
 
+    // ---- VFX Acto 2: gema viva + chispas + campo reactivo ----
+    // La pantalla negra del Acto 2 pide que la gema no sea solo una malla:
+    // este bloque agrega una piel energética, un campo de puntos en
+    // profundidad y un sistema de chispas barato (un solo THREE.Points con
+    // buffers reutilizados). Todo se controla desde el panel "Acto 2".
+    const gemMaterialUniforms = {
+      uOpacity: { value: 0 },
+      uTime: { value: 0 },
+      uEnergy: { value: 1 },
+      uPulse: { value: 0 },
+      uFacetFlash: { value: 0 }
+    };
+    const gemMaterial = new THREE.ShaderMaterial({
+      uniforms: gemMaterialUniforms,
+      vertexShader: `
+        varying vec3 vNormal;
+        varying vec3 vViewPosition;
+        varying vec2 vUv;
+        void main() {
+          vUv = uv;
+          vNormal = normalize(normalMatrix * normal);
+          vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+          vViewPosition = -mvPosition.xyz;
+          gl_Position = projectionMatrix * mvPosition;
+        }
+      `,
+      fragmentShader: `
+        precision mediump float;
+        uniform float uOpacity;
+        uniform float uTime;
+        uniform float uEnergy;
+        uniform float uPulse;
+        uniform float uFacetFlash;
+        varying vec3 vNormal;
+        varying vec3 vViewPosition;
+        varying vec2 vUv;
+
+        void main() {
+          vec3 viewDir = normalize(vViewPosition);
+          float rim = pow(1.0 - abs(dot(normalize(vNormal), viewDir)), 2.2);
+          float flow = 0.5 + 0.5 * sin((vUv.y * 9.0) + uTime * 2.4);
+          float facetBand = 0.5 + 0.5 * sin(vUv.x * 25.13 + vUv.y * 13.0 + uTime * 1.8);
+          float facetGlint = pow(facetBand, 7.0) * (0.25 + uFacetFlash * 2.2);
+          vec3 cold = vec3(0.05, 0.95, 0.95);
+          vec3 hot = vec3(1.0, 0.18, 0.72);
+          vec3 acid = vec3(0.95, 0.92, 0.18);
+          vec3 color = mix(cold, hot, flow);
+          color = mix(color, acid, rim * (0.35 + uPulse * 0.65));
+          color += vec3(0.3, 0.95, 1.0) * facetGlint;
+          float core = 0.18 + rim * 0.95 + flow * 0.18 + facetGlint;
+          gl_FragColor = vec4(color * core * uEnergy, uOpacity * (0.38 + rim * 0.62));
+        }
+      `,
+      side: THREE.DoubleSide,
+      transparent: true,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false
+    });
+    gemShape.material = gemMaterial;
+    gemShape.mesh.material = gemMaterial;
+
+    let gemSparkIntensity = 1;
+    let gemEnergyIntensity = 1;
+    let gemStarIntensity = 0.85;
+    let gemVfxEnergy = 0;
+    let gemVfxBurst = 0;
+    let gemVfxSpinBoost = 0;
+    let gemLastVfxAt = null;
+    let gemSpectaclePhase = 0;
+    const gemEmitterLeft = new THREE.Vector3();
+    const gemEmitterRight = new THREE.Vector3();
+    const gemEmitterCenter = new THREE.Vector3();
+    const gemEmitterAxis = new THREE.Vector3(1, 0, 0);
+    const gemEmitterPerp = new THREE.Vector3(0, 1, 0);
+    const gemEmitterDepth = new THREE.Vector3(0, 0, 1);
+    let gemEmittersReady = false;
+
+    const GEM_SPARK_COUNT = 720;
+    const GEM_SPARK_PALETTE = [
+      new THREE.Color(0xdd44ff),
+      new THREE.Color(0x33ffb0),
+      new THREE.Color(0x3388ff),
+      new THREE.Color(0xffe84a),
+      new THREE.Color(0xff4c7d)
+    ];
+    const gemColorTemp = new THREE.Color();
+    const gemSparkPositions = new Float32Array(GEM_SPARK_COUNT * 3);
+    const gemSparkColors = new Float32Array(GEM_SPARK_COUNT * 3);
+    const gemSparkSizes = new Float32Array(GEM_SPARK_COUNT);
+    const gemSparkAlphas = new Float32Array(GEM_SPARK_COUNT);
+    const gemSparkModes = new Uint8Array(GEM_SPARK_COUNT); // 0=chorro, 1=orbita, 2=ascenso
+    const gemSparkOrbitPhases = new Float32Array(GEM_SPARK_COUNT);
+    const gemSparkOrbitRadii = new Float32Array(GEM_SPARK_COUNT);
+    const gemSparkVelocities = Array.from({ length: GEM_SPARK_COUNT }, () => new THREE.Vector3());
+    const gemSparkAges = new Float32Array(GEM_SPARK_COUNT);
+    const gemSparkLifetimes = new Float32Array(GEM_SPARK_COUNT);
+    let gemSparkCursor = 0;
+
+    const gemSparkGeometry = new THREE.BufferGeometry();
+    gemSparkGeometry.setAttribute('position', new THREE.BufferAttribute(gemSparkPositions, 3));
+    gemSparkGeometry.setAttribute('color', new THREE.BufferAttribute(gemSparkColors, 3));
+    gemSparkGeometry.setAttribute('size', new THREE.BufferAttribute(gemSparkSizes, 1));
+    gemSparkGeometry.setAttribute('alpha', new THREE.BufferAttribute(gemSparkAlphas, 1));
+    const gemSparkMaterial = new THREE.ShaderMaterial({
+      vertexShader: `
+        attribute float size;
+        attribute float alpha;
+        varying vec3 vColor;
+        varying float vAlpha;
+        void main() {
+          vColor = color;
+          vAlpha = alpha;
+          vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+          gl_PointSize = size * (300.0 / max(1.0, -mvPosition.z));
+          gl_Position = projectionMatrix * mvPosition;
+        }
+      `,
+      fragmentShader: `
+        precision mediump float;
+        varying vec3 vColor;
+        varying float vAlpha;
+        void main() {
+          vec2 p = gl_PointCoord - vec2(0.5);
+          float d = length(p);
+          float glow = smoothstep(0.5, 0.0, d);
+          float core = smoothstep(0.16, 0.0, d);
+          gl_FragColor = vec4(vColor * (0.45 + core * 1.8), vAlpha * glow);
+        }
+      `,
+      transparent: true,
+      vertexColors: true,
+      blending: THREE.AdditiveBlending,
+      depthTest: false,
+      depthWrite: false
+    });
+    const gemSparkMesh = new THREE.Points(gemSparkGeometry, gemSparkMaterial);
+    gemSparkMesh.visible = false;
+    gemSparkMesh.frustumCulled = false;
+    scene.add(gemSparkMesh);
+
+    const GEM_STAR_COUNT = 260;
+    const gemStarPositions = new Float32Array(GEM_STAR_COUNT * 3);
+    const gemStarColors = new Float32Array(GEM_STAR_COUNT * 3);
+    const gemStarBaseSizes = new Float32Array(GEM_STAR_COUNT);
+    const gemStarSizes = new Float32Array(GEM_STAR_COUNT);
+    const starFrustum = getVisibleFrustum();
+    for (let i = 0; i < GEM_STAR_COUNT; i++) {
+      const i3 = i * 3;
+      gemStarPositions[i3] = (Math.random() - 0.5) * starFrustum.width * 1.4;
+      gemStarPositions[i3 + 1] = (Math.random() - 0.5) * starFrustum.height * 1.4;
+      gemStarPositions[i3 + 2] = -2 - Math.random() * 10;
+      const color = GEM_SPARK_PALETTE[i % GEM_SPARK_PALETTE.length];
+      gemStarColors[i3] = color.r * 0.75;
+      gemStarColors[i3 + 1] = color.g * 0.75;
+      gemStarColors[i3 + 2] = color.b * 0.75;
+      gemStarBaseSizes[i] = 0.012 + Math.random() * 0.026;
+      gemStarSizes[i] = 0;
+    }
+    const gemStarGeometry = new THREE.BufferGeometry();
+    gemStarGeometry.setAttribute('position', new THREE.BufferAttribute(gemStarPositions, 3));
+    gemStarGeometry.setAttribute('color', new THREE.BufferAttribute(gemStarColors, 3));
+    gemStarGeometry.setAttribute('size', new THREE.BufferAttribute(gemStarSizes, 1));
+    const gemStarMaterial = new THREE.ShaderMaterial({
+      vertexShader: `
+        attribute float size;
+        varying vec3 vColor;
+        void main() {
+          vColor = color;
+          vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+          gl_PointSize = size * (300.0 / max(1.0, -mvPosition.z));
+          gl_Position = projectionMatrix * mvPosition;
+        }
+      `,
+      fragmentShader: `
+        precision mediump float;
+        varying vec3 vColor;
+        void main() {
+          vec2 p = gl_PointCoord - vec2(0.5);
+          float d = length(p);
+          float glow = smoothstep(0.5, 0.0, d);
+          gl_FragColor = vec4(vColor, glow * 0.42);
+        }
+      `,
+      transparent: true,
+      vertexColors: true,
+      blending: THREE.AdditiveBlending,
+      depthTest: false,
+      depthWrite: false
+    });
+    const gemStarMesh = new THREE.Points(gemStarGeometry, gemStarMaterial);
+    gemStarMesh.visible = false;
+    gemStarMesh.frustumCulled = false;
+    scene.add(gemStarMesh);
+
+    const gemAuraUniforms = {
+      uTime: { value: 0 },
+      uOpacity: { value: 0 },
+      uEnergy: { value: 0 },
+      uPulse: { value: 0 }
+    };
+    const gemAuraMaterial = new THREE.ShaderMaterial({
+      uniforms: gemAuraUniforms,
+      vertexShader: `
+        varying vec3 vNormal;
+        varying vec3 vViewPosition;
+        varying vec2 vUv;
+        void main() {
+          vUv = uv;
+          vNormal = normalize(normalMatrix * normal);
+          vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+          vViewPosition = -mvPosition.xyz;
+          gl_Position = projectionMatrix * mvPosition;
+        }
+      `,
+      fragmentShader: `
+        precision mediump float;
+        uniform float uTime;
+        uniform float uOpacity;
+        uniform float uEnergy;
+        uniform float uPulse;
+        varying vec3 vNormal;
+        varying vec3 vViewPosition;
+        varying vec2 vUv;
+        void main() {
+          vec3 viewDir = normalize(vViewPosition);
+          float rim = pow(1.0 - abs(dot(normalize(vNormal), viewDir)), 1.7);
+          float spine = smoothstep(0.08, 0.58, vUv.y) * smoothstep(0.98, 0.42, vUv.y);
+          float pulseBand = 0.5 + 0.5 * sin(vUv.y * 18.0 - uTime * 4.2);
+          float facet = 0.5 + 0.5 * sin(vUv.x * 50.0 + uTime * 1.7);
+          vec3 cyan = vec3(0.0, 0.95, 1.0);
+          vec3 magenta = vec3(1.0, 0.12, 0.72);
+          vec3 yellow = vec3(1.0, 0.9, 0.18);
+          vec3 color = mix(cyan, magenta, pulseBand);
+          color = mix(color, yellow, (rim + facet * 0.35) * (0.2 + uPulse));
+          float alpha = (spine * 0.22 + rim * 0.34 + pulseBand * facet * 0.12) * uOpacity * (0.7 + uEnergy * 0.65);
+          gl_FragColor = vec4(color, alpha);
+        }
+      `,
+      transparent: true,
+      blending: THREE.AdditiveBlending,
+      depthTest: false,
+      depthWrite: false,
+      side: THREE.DoubleSide
+    });
+    const gemAuraMesh = new THREE.Mesh(gemShape.geometry, gemAuraMaterial);
+    gemAuraMesh.visible = false;
+    gemAuraMesh.renderOrder = 2;
+    scene.add(gemAuraMesh);
+
+    // Estelas fantasma: snapshots baratos de la geometría viva que dejan una
+    // memoria visual de los últimos movimientos de la gema.
+    const GEM_GHOST_COUNT = 5;
+    const gemGhosts = [];
+    const gemGhostMaterial = new THREE.ShaderMaterial({
+      uniforms: { uTime: { value: 0 }, uOpacity: { value: 0 }, uTint: { value: new THREE.Color(0x45eaff) } },
+      vertexShader: `
+        varying vec3 vNormal;
+        varying vec3 vViewPosition;
+        void main() {
+          vNormal = normalize(normalMatrix * normal);
+          vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+          vViewPosition = -mvPosition.xyz;
+          gl_Position = projectionMatrix * mvPosition;
+        }
+      `,
+      fragmentShader: `
+        precision mediump float;
+        uniform float uOpacity;
+        uniform vec3 uTint;
+        varying vec3 vNormal;
+        varying vec3 vViewPosition;
+        void main() {
+          float rim = pow(1.0 - abs(dot(normalize(vNormal), normalize(vViewPosition))), 2.0);
+          gl_FragColor = vec4(uTint * (0.35 + rim * 1.7), uOpacity * (0.18 + rim * 0.72));
+        }
+      `,
+      transparent: true,
+      blending: THREE.AdditiveBlending,
+      depthTest: false,
+      depthWrite: false,
+      side: THREE.DoubleSide
+    });
+    for (let i = 0; i < GEM_GHOST_COUNT; i++) {
+      const geometry = new THREE.BufferGeometry();
+      geometry.setIndex(gemShape.geometry.index.clone());
+      geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(gemShape.geometry.attributes.position.array.length), 3));
+      geometry.setAttribute('normal', new THREE.BufferAttribute(new Float32Array(gemShape.geometry.attributes.normal.array.length), 3));
+      geometry.setAttribute('uv', gemShape.geometry.attributes.uv.clone());
+      const mesh = new THREE.Mesh(geometry, gemGhostMaterial.clone());
+      mesh.visible = false;
+      mesh.renderOrder = 1;
+      scene.add(mesh);
+      gemGhosts.push({ mesh, age: 9999, life: 560 + i * 90 });
+    }
+    let gemGhostCursor = 0;
+    let gemGhostCaptureAt = -Infinity;
+
+    // Filamento vivo entre las dos puntas: una línea ondulante que revela la
+    // tensión de la gema incluso cuando las manos permanecen quietas.
+    const GEM_FILAMENT_POINTS = 28;
+    const gemFilamentPositions = new Float32Array(GEM_FILAMENT_POINTS * 3);
+    const gemFilamentColors = new Float32Array(GEM_FILAMENT_POINTS * 3);
+    const gemFilamentAlphas = new Float32Array(GEM_FILAMENT_POINTS);
+    const gemFilamentGeometry = new THREE.BufferGeometry();
+    gemFilamentGeometry.setAttribute('position', new THREE.BufferAttribute(gemFilamentPositions, 3));
+    gemFilamentGeometry.setAttribute('color', new THREE.BufferAttribute(gemFilamentColors, 3));
+    gemFilamentGeometry.setAttribute('alpha', new THREE.BufferAttribute(gemFilamentAlphas, 1));
+    const gemFilamentMaterial = new THREE.ShaderMaterial({
+      vertexShader: `
+        attribute float alpha;
+        varying vec3 vColor;
+        varying float vAlpha;
+        void main() {
+          vColor = color;
+          vAlpha = alpha;
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+      `,
+      fragmentShader: `
+        precision mediump float;
+        varying vec3 vColor;
+        varying float vAlpha;
+        void main() { gl_FragColor = vec4(vColor * 1.6, vAlpha); }
+      `,
+      transparent: true,
+      vertexColors: true,
+      blending: THREE.AdditiveBlending,
+      depthTest: false,
+      depthWrite: false
+    });
+    const gemFilamentMesh = new THREE.Line(gemFilamentGeometry, gemFilamentMaterial);
+    gemFilamentMesh.visible = false;
+    gemFilamentMesh.frustumCulled = false;
+    gemFilamentMesh.renderOrder = 3;
+    scene.add(gemFilamentMesh);
+
+    // Constelación: segmentos reutilizados que se activan al detectar quietud.
+    const GEM_CONSTELLATION_POINTS = 18;
+    const GEM_CONSTELLATION_SEGMENTS = 28;
+    const gemConstellationPositions = new Float32Array(GEM_CONSTELLATION_SEGMENTS * 2 * 3);
+    const gemConstellationColors = new Float32Array(GEM_CONSTELLATION_SEGMENTS * 2 * 3);
+    const gemConstellationAlphas = new Float32Array(GEM_CONSTELLATION_SEGMENTS * 2);
+    const gemConstellationGeometry = new THREE.BufferGeometry();
+    gemConstellationGeometry.setAttribute('position', new THREE.BufferAttribute(gemConstellationPositions, 3));
+    gemConstellationGeometry.setAttribute('color', new THREE.BufferAttribute(gemConstellationColors, 3));
+    gemConstellationGeometry.setAttribute('alpha', new THREE.BufferAttribute(gemConstellationAlphas, 1));
+    const gemConstellationMaterial = new THREE.ShaderMaterial({
+      vertexShader: `
+        attribute float alpha;
+        varying vec3 vColor;
+        varying float vAlpha;
+        void main() {
+          vColor = color;
+          vAlpha = alpha;
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+      `,
+      fragmentShader: `precision mediump float; varying vec3 vColor; varying float vAlpha; void main() { gl_FragColor = vec4(vColor, vAlpha); }`,
+      transparent: true,
+      vertexColors: true,
+      blending: THREE.AdditiveBlending,
+      depthTest: false,
+      depthWrite: false
+    });
+    const gemConstellationMesh = new THREE.LineSegments(gemConstellationGeometry, gemConstellationMaterial);
+    gemConstellationMesh.visible = false;
+    gemConstellationMesh.frustumCulled = false;
+    gemConstellationMesh.renderOrder = 4;
+    scene.add(gemConstellationMesh);
+    const gemConstellationNodes = Array.from({ length: GEM_CONSTELLATION_POINTS }, () => new THREE.Vector3());
+    let gemConstellationStrength = 0;
+    let gemConstellationSeeded = false;
+    let gemConstellationLastCenter = new THREE.Vector3();
+    let gemConstellationStillSince = null;
+
+    let gemScreenPulseStartAt = -Infinity;
+    let gemScreenPulsePower = 0;
+    function triggerGemScreenPulse(now, power = 1) {
+      gemScreenPulseStartAt = now;
+      gemScreenPulsePower = Math.max(gemScreenPulsePower, power);
+    }
+
+    function captureGemGhost(now) {
+      if (!gemEmittersReady || now - gemGhostCaptureAt < 72) return;
+      gemGhostCaptureAt = now;
+      const ghost = gemGhosts[gemGhostCursor];
+      gemGhostCursor = (gemGhostCursor + 1) % GEM_GHOST_COUNT;
+      const source = gemShape.geometry.attributes.position.array;
+      const target = ghost.mesh.geometry.attributes.position.array;
+      target.set(source);
+      ghost.mesh.geometry.attributes.position.needsUpdate = true;
+      ghost.mesh.geometry.computeVertexNormals();
+      ghost.mesh.geometry.attributes.normal.needsUpdate = true;
+      ghost.mesh.position.copy(gemShape.mesh.position);
+      ghost.mesh.scale.copy(gemShape.mesh.scale);
+      ghost.age = 0;
+      ghost.mesh.visible = true;
+    }
+
+    function updateGemConstellation(dt, now, active) {
+      if (!active || !gemEmittersReady) {
+        gemConstellationStrength = Math.max(0, gemConstellationStrength - dt * 2.4);
+        gemConstellationMesh.visible = gemConstellationStrength > 0.01;
+        return;
+      }
+      const movement = gemConstellationLastCenter.distanceTo(gemEmitterCenter);
+      if (movement < 0.035) {
+        if (gemConstellationStillSince === null) gemConstellationStillSince = now;
+      } else {
+        gemConstellationStillSince = now;
+      }
+      gemConstellationLastCenter.copy(gemEmitterCenter);
+      const isStill = gemConstellationStillSince !== null && now - gemConstellationStillSince > 820;
+      gemConstellationStrength = THREE.MathUtils.lerp(gemConstellationStrength, isStill ? 1 : 0, Math.min(1, dt * 5));
+      if (isStill && !gemConstellationSeeded) {
+        for (let i = 0; i < GEM_CONSTELLATION_POINTS; i++) {
+          const a = (i / GEM_CONSTELLATION_POINTS) * Math.PI * 2;
+          gemConstellationNodes[i].set(Math.cos(a) * (1.0 + (i % 3) * 0.25), Math.sin(a) * (0.7 + (i % 4) * 0.18), (i % 5 - 2) * 0.12);
+        }
+        gemConstellationSeeded = true;
+      }
+      if (!gemConstellationSeeded) return;
+      for (let i = 0; i < GEM_CONSTELLATION_SEGMENTS; i++) {
+        const a = i % GEM_CONSTELLATION_POINTS;
+        const b = (a + (i % 3 === 0 ? 5 : 1 + (i % 4))) % GEM_CONSTELLATION_POINTS;
+        const base = i * 2;
+        const pA = gemConstellationNodes[a];
+        const pB = gemConstellationNodes[b];
+        const t = now / 1000;
+        sparkTemp.copy(pA).applyAxisAngle(gemEmitterAxis, t * 0.16).add(gemEmitterCenter);
+        gemConstellationPositions[base * 3] = sparkTemp.x;
+        gemConstellationPositions[base * 3 + 1] = sparkTemp.y;
+        gemConstellationPositions[base * 3 + 2] = sparkTemp.z;
+        sparkTemp.copy(pB).applyAxisAngle(gemEmitterAxis, t * 0.16).add(gemEmitterCenter);
+        gemConstellationPositions[base * 3 + 3] = sparkTemp.x;
+        gemConstellationPositions[base * 3 + 4] = sparkTemp.y;
+        gemConstellationPositions[base * 3 + 5] = sparkTemp.z;
+        const color = GEM_SPARK_PALETTE[i % GEM_SPARK_PALETTE.length];
+        gemConstellationColors[base * 3] = color.r;
+        gemConstellationColors[base * 3 + 1] = color.g;
+        gemConstellationColors[base * 3 + 2] = color.b;
+        gemConstellationColors[base * 3 + 3] = color.r;
+        gemConstellationColors[base * 3 + 4] = color.g;
+        gemConstellationColors[base * 3 + 5] = color.b;
+        gemConstellationAlphas[base] = gemConstellationStrength * (0.08 + (i % 4) * 0.035);
+        gemConstellationAlphas[base + 1] = gemConstellationStrength * 0.26;
+      }
+      gemConstellationMesh.visible = gemConstellationStrength > 0.01;
+      gemConstellationGeometry.attributes.position.needsUpdate = true;
+      gemConstellationGeometry.attributes.color.needsUpdate = true;
+      gemConstellationGeometry.attributes.alpha.needsUpdate = true;
+    }
+
+    const GEM_RAY_COUNT = 54;
+    const gemRayPositions = new Float32Array(GEM_RAY_COUNT * 2 * 3);
+    const gemRayColors = new Float32Array(GEM_RAY_COUNT * 2 * 3);
+    const gemRayAlphas = new Float32Array(GEM_RAY_COUNT * 2);
+    const gemRayOrigins = Array.from({ length: GEM_RAY_COUNT }, () => new THREE.Vector3());
+    const gemRayDirs = Array.from({ length: GEM_RAY_COUNT }, () => new THREE.Vector3());
+    const gemRayAges = new Float32Array(GEM_RAY_COUNT);
+    const gemRayLifetimes = new Float32Array(GEM_RAY_COUNT);
+    const gemRayLengths = new Float32Array(GEM_RAY_COUNT);
+    let gemRayCursor = 0;
+
+    const gemRayGeometry = new THREE.BufferGeometry();
+    gemRayGeometry.setAttribute('position', new THREE.BufferAttribute(gemRayPositions, 3));
+    gemRayGeometry.setAttribute('color', new THREE.BufferAttribute(gemRayColors, 3));
+    gemRayGeometry.setAttribute('alpha', new THREE.BufferAttribute(gemRayAlphas, 1));
+    const gemRayMaterial = new THREE.ShaderMaterial({
+      vertexShader: `
+        attribute float alpha;
+        varying vec3 vColor;
+        varying float vAlpha;
+        void main() {
+          vColor = color;
+          vAlpha = alpha;
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+      `,
+      fragmentShader: `
+        precision mediump float;
+        varying vec3 vColor;
+        varying float vAlpha;
+        void main() {
+          gl_FragColor = vec4(vColor, vAlpha);
+        }
+      `,
+      transparent: true,
+      vertexColors: true,
+      blending: THREE.AdditiveBlending,
+      depthTest: false,
+      depthWrite: false
+    });
+    const gemRayMesh = new THREE.LineSegments(gemRayGeometry, gemRayMaterial);
+    gemRayMesh.visible = false;
+    gemRayMesh.frustumCulled = false;
+    scene.add(gemRayMesh);
+
+    const GEM_BEAM_COUNT = 34;
+    const gemBeamPositions = new Float32Array(GEM_BEAM_COUNT * 3 * 3);
+    const gemBeamColors = new Float32Array(GEM_BEAM_COUNT * 3 * 3);
+    const gemBeamAlphas = new Float32Array(GEM_BEAM_COUNT * 3);
+    const gemBeamOrigins = Array.from({ length: GEM_BEAM_COUNT }, () => new THREE.Vector3());
+    const gemBeamDirs = Array.from({ length: GEM_BEAM_COUNT }, () => new THREE.Vector3());
+    const gemBeamSideDirs = Array.from({ length: GEM_BEAM_COUNT }, () => new THREE.Vector3());
+    const gemBeamAges = new Float32Array(GEM_BEAM_COUNT);
+    const gemBeamLifetimes = new Float32Array(GEM_BEAM_COUNT);
+    const gemBeamLengths = new Float32Array(GEM_BEAM_COUNT);
+    const gemBeamWidths = new Float32Array(GEM_BEAM_COUNT);
+    let gemBeamCursor = 0;
+
+    const gemBeamGeometry = new THREE.BufferGeometry();
+    gemBeamGeometry.setAttribute('position', new THREE.BufferAttribute(gemBeamPositions, 3));
+    gemBeamGeometry.setAttribute('color', new THREE.BufferAttribute(gemBeamColors, 3));
+    gemBeamGeometry.setAttribute('alpha', new THREE.BufferAttribute(gemBeamAlphas, 1));
+    const gemBeamMaterial = new THREE.ShaderMaterial({
+      vertexShader: `
+        attribute float alpha;
+        varying vec3 vColor;
+        varying float vAlpha;
+        void main() {
+          vColor = color;
+          vAlpha = alpha;
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+      `,
+      fragmentShader: `
+        precision mediump float;
+        varying vec3 vColor;
+        varying float vAlpha;
+        void main() {
+          gl_FragColor = vec4(vColor, vAlpha);
+        }
+      `,
+      transparent: true,
+      vertexColors: true,
+      blending: THREE.AdditiveBlending,
+      depthTest: false,
+      depthWrite: false,
+      side: THREE.DoubleSide
+    });
+    const gemBeamMesh = new THREE.Mesh(gemBeamGeometry, gemBeamMaterial);
+    gemBeamMesh.visible = false;
+    gemBeamMesh.frustumCulled = false;
+    gemBeamMesh.renderOrder = -1;
+    scene.add(gemBeamMesh);
+
+    const sparkTemp = new THREE.Vector3();
+    const sparkDirTemp = new THREE.Vector3();
+    const sparkSideTemp = new THREE.Vector3();
+    const sparkDepthTemp = new THREE.Vector3();
+    const rayEndTemp = new THREE.Vector3();
+    const beamEndTemp = new THREE.Vector3();
+    const beamSideTemp = new THREE.Vector3();
+    const gemUpVector = new THREE.Vector3(0, 1, 0);
+
+    function spawnGemSpark(origin, dir, power = 1, spread = 1, mode = 0) {
+      const i = gemSparkCursor;
+      gemSparkCursor = (gemSparkCursor + 1) % GEM_SPARK_COUNT;
+      const i3 = i * 3;
+      gemSparkPositions[i3] = origin.x;
+      gemSparkPositions[i3 + 1] = origin.y;
+      gemSparkPositions[i3 + 2] = origin.z;
+
+      const color = GEM_SPARK_PALETTE[Math.floor(Math.random() * GEM_SPARK_PALETTE.length)];
+      gemSparkColors[i3] = color.r;
+      gemSparkColors[i3 + 1] = color.g;
+      gemSparkColors[i3 + 2] = color.b;
+
+      sparkSideTemp.copy(gemEmitterPerp).multiplyScalar((Math.random() - 0.5) * spread);
+      sparkDepthTemp.copy(gemEmitterDepth).multiplyScalar((Math.random() - 0.5) * spread * 0.7);
+      sparkDirTemp.copy(dir).multiplyScalar(0.8 + Math.random() * 0.9).add(sparkSideTemp).add(sparkDepthTemp).normalize();
+      gemSparkVelocities[i].copy(sparkDirTemp).multiplyScalar((0.7 + Math.random() * 1.9) * power);
+      gemSparkAges[i] = 0;
+      gemSparkLifetimes[i] = 520 + Math.random() * 620;
+      gemSparkSizes[i] = 0.05 + Math.random() * 0.07 * power;
+      gemSparkAlphas[i] = 0.95;
+      gemSparkModes[i] = mode;
+      gemSparkOrbitPhases[i] = Math.random() * Math.PI * 2;
+      gemSparkOrbitRadii[i] = 0.25 + Math.random() * 1.2 * power;
+    }
+
+    function burstGemSparks(amount, power, mode = 'radial') {
+      if (!gemEmittersReady || gemSparkIntensity <= 0) return;
+      for (let i = 0; i < amount; i++) {
+        const fromLeft = Math.random() < 0.5;
+        const origin = mode === 'core'
+          ? gemEmitterCenter
+          : (fromLeft ? gemEmitterLeft : gemEmitterRight);
+        sparkTemp.copy(gemEmitterAxis).multiplyScalar(fromLeft ? -1 : 1);
+        if (mode === 'vertical') sparkTemp.set(0, 1, 0);
+        if (mode === 'core') {
+          sparkTemp
+            .copy(gemEmitterPerp).multiplyScalar(Math.random() - 0.5)
+            .addScaledVector(gemEmitterDepth, Math.random() - 0.5)
+            .addScaledVector(gemEmitterAxis, Math.random() - 0.5)
+            .normalize();
+        }
+        spawnGemSpark(
+          origin,
+          sparkTemp,
+          power * gemSparkIntensity,
+          mode === 'core' ? 1.6 : 1,
+          mode === 'orbit' ? 1 : (mode === 'vertical' ? 2 : 0)
+        );
+      }
+    }
+
+    function spawnOrbitingGemSpark(power = 1) {
+      if (!gemEmittersReady || gemSparkIntensity <= 0) return;
+      const angle = gemSpectaclePhase + Math.random() * Math.PI * 2;
+      sparkTemp
+        .copy(gemEmitterCenter)
+        .addScaledVector(gemEmitterPerp, Math.cos(angle) * (0.35 + gemVfxEnergy))
+        .addScaledVector(gemEmitterDepth, Math.sin(angle) * (0.25 + gemVfxEnergy * 0.7));
+      sparkDirTemp
+        .copy(gemEmitterPerp).multiplyScalar(-Math.sin(angle))
+        .addScaledVector(gemEmitterDepth, Math.cos(angle))
+        .normalize();
+      spawnGemSpark(sparkTemp, sparkDirTemp, power * gemSparkIntensity, 0.45, 1);
+    }
+
+    function spawnGemRay(origin, dir, power = 1) {
+      const i = gemRayCursor;
+      gemRayCursor = (gemRayCursor + 1) % GEM_RAY_COUNT;
+      const color = GEM_SPARK_PALETTE[Math.floor(Math.random() * GEM_SPARK_PALETTE.length)];
+      const base = i * 2;
+      const base3 = base * 3;
+      gemRayOrigins[i].copy(origin);
+      gemRayDirs[i].copy(dir).normalize();
+      gemRayAges[i] = 0;
+      gemRayLifetimes[i] = 280 + Math.random() * 360;
+      gemRayLengths[i] = (0.6 + Math.random() * 1.2) * power;
+      for (let k = 0; k < 2; k++) {
+        const idx3 = base3 + k * 3;
+        gemRayColors[idx3] = color.r;
+        gemRayColors[idx3 + 1] = color.g;
+        gemRayColors[idx3 + 2] = color.b;
+        gemRayAlphas[base + k] = k === 0 ? 0.15 : 0.9;
+      }
+    }
+
+    function burstGemRays(amount, power, mode = 'core') {
+      if (!gemEmittersReady || gemEnergyIntensity <= 0) return;
+      for (let i = 0; i < amount; i++) {
+        const origin = mode === 'tips'
+          ? (Math.random() < 0.5 ? gemEmitterLeft : gemEmitterRight)
+          : gemEmitterCenter;
+        sparkTemp
+          .copy(gemEmitterPerp).multiplyScalar(Math.random() - 0.5)
+          .addScaledVector(gemEmitterDepth, Math.random() - 0.5)
+          .addScaledVector(gemEmitterAxis, Math.random() - 0.5)
+          .normalize();
+        spawnGemRay(origin, sparkTemp, power * gemEnergyIntensity);
+      }
+    }
+
+    function spawnGemBeam(origin, dir, power = 1) {
+      const i = gemBeamCursor;
+      gemBeamCursor = (gemBeamCursor + 1) % GEM_BEAM_COUNT;
+      const colorA = GEM_SPARK_PALETTE[Math.floor(Math.random() * GEM_SPARK_PALETTE.length)];
+      const colorB = GEM_SPARK_PALETTE[Math.floor(Math.random() * GEM_SPARK_PALETTE.length)];
+      gemBeamOrigins[i].copy(origin);
+      gemBeamDirs[i].copy(dir).normalize();
+      gemBeamSideDirs[i]
+        .copy(gemEmitterPerp).multiplyScalar(Math.random() - 0.5)
+        .addScaledVector(gemEmitterDepth, Math.random() - 0.5)
+        .normalize();
+      gemBeamAges[i] = 0;
+      gemBeamLifetimes[i] = 360 + Math.random() * 420;
+      gemBeamLengths[i] = (1.2 + Math.random() * 1.8) * power;
+      gemBeamWidths[i] = (0.18 + Math.random() * 0.26) * power;
+      const base3 = i * 9;
+      for (let v = 0; v < 3; v++) {
+        const t = v / 2;
+        gemColorTemp.copy(colorA).lerp(colorB, t);
+        gemBeamColors[base3 + v * 3] = gemColorTemp.r;
+        gemBeamColors[base3 + v * 3 + 1] = gemColorTemp.g;
+        gemBeamColors[base3 + v * 3 + 2] = gemColorTemp.b;
+        gemBeamAlphas[i * 3 + v] = v === 0 ? 0.04 : 0.38;
+      }
+    }
+
+    function burstGemBeams(amount, power, mode = 'core') {
+      if (!gemEmittersReady || gemEnergyIntensity <= 0) return;
+      for (let i = 0; i < amount; i++) {
+        const origin = mode === 'tips'
+          ? (Math.random() < 0.5 ? gemEmitterLeft : gemEmitterRight)
+          : gemEmitterCenter;
+        sparkTemp
+          .copy(gemEmitterPerp).multiplyScalar(Math.random() - 0.5)
+          .addScaledVector(gemEmitterDepth, Math.random() - 0.5)
+          .addScaledVector(gemEmitterAxis, mode === 'tips' ? (Math.random() < 0.5 ? -0.9 : 0.9) : Math.random() - 0.5)
+          .normalize();
+        spawnGemBeam(origin, sparkTemp, power * gemEnergyIntensity);
+      }
+    }
+
+    function updateGemVfx(now) {
+      const dt = gemLastVfxAt === null ? 0 : Math.min(0.05, (now - gemLastVfxAt) / 1000);
+      gemLastVfxAt = now;
+      gemSpectaclePhase += dt * (0.8 + gemVfxEnergy * 1.6 + gemVfxSpinBoost * 3.2);
+      gemMaterialUniforms.uTime.value = now / 1000;
+      gemMaterialUniforms.uEnergy.value = gemEnergyIntensity * (0.8 + gemVfxEnergy * 0.55);
+      gemMaterialUniforms.uPulse.value = Math.max(gemVfxBurst, gemVfxSpinBoost);
+      const facetFlashT = Math.max(0, 1 - (now - gemScreenPulseStartAt) / 620);
+      gemMaterialUniforms.uFacetFlash.value = Math.max(gemVfxBurst * 0.7, facetFlashT * gemScreenPulsePower);
+
+      const active = actTwoActive && gemShape.mesh.visible;
+      gemSparkMesh.visible = actTwoActive;
+      gemStarMesh.visible = actTwoActive;
+      gemAuraMesh.visible = actTwoActive;
+      gemBeamMesh.visible = actTwoActive;
+      gemFilamentMesh.visible = actTwoActive && gemEmittersReady;
+      gemConstellationMesh.visible = actTwoActive && gemConstellationStrength > 0.01;
+      gemVfxBurst *= 0.9;
+      gemVfxSpinBoost *= 0.94;
+
+      for (let i = 0; i < GEM_GHOST_COUNT; i++) {
+        const ghost = gemGhosts[i];
+        ghost.age += dt * 1000;
+        ghost.mesh.visible = actTwoActive && ghost.age < ghost.life;
+        ghost.mesh.material.uniforms.uOpacity.value = ghost.mesh.visible
+          ? 0.24 * Math.pow(1 - ghost.age / ghost.life, 1.35)
+          : 0;
+      }
+      if (active && (gemVfxEnergy > 0.18 || Math.abs(gemSpinVelocity) > 1.5)) captureGemGhost(now);
+
+      if (active && gemEmittersReady && gemSparkIntensity > 0) {
+        const baseCount = Math.ceil((1 + gemVfxEnergy * 4 + gemVfxBurst * 10 + gemVfxSpinBoost * 4) * gemSparkIntensity);
+        for (let i = 0; i < baseCount; i++) {
+          const fromLeft = Math.random() < 0.5;
+          const origin = fromLeft ? gemEmitterLeft : gemEmitterRight;
+          sparkTemp.copy(gemEmitterAxis).multiplyScalar(fromLeft ? -1 : 1);
+          spawnGemSpark(origin, sparkTemp, 0.7 + gemVfxEnergy * 0.55 + gemVfxBurst, 0.8 + gemVfxSpinBoost);
+        }
+        if (gemVfxSpinBoost > 0.15 || Math.abs(gemSpinVelocity) > 3) {
+          const orbitCount = Math.ceil((1 + gemVfxSpinBoost * 5) * gemSparkIntensity);
+          for (let i = 0; i < orbitCount; i++) spawnOrbitingGemSpark(0.7 + gemVfxSpinBoost * 0.8);
+        }
+        if (gemVfxEnergy > 0.78 && Math.random() < 0.08 * gemEnergyIntensity) {
+          burstGemRays(1, 0.75 + gemVfxEnergy * 0.6, 'tips');
+          if (Math.random() < 0.45) burstGemBeams(1, 0.85 + gemVfxEnergy * 0.7, 'tips');
+        }
+      }
+
+      for (let i = 0; i < GEM_SPARK_COUNT; i++) {
+        if (gemSparkAlphas[i] <= 0) continue;
+        gemSparkAges[i] += dt * 1000;
+        const lifeT = gemSparkAges[i] / gemSparkLifetimes[i];
+        if (lifeT >= 1) {
+          gemSparkAlphas[i] = 0;
+          continue;
+        }
+        const i3 = i * 3;
+        const swirl = (gemVfxSpinBoost + Math.abs(gemSpinVelocity) / GEM_SPIN_MAX_VELOCITY) * 0.35;
+        if (gemSparkModes[i] === 1 && active) {
+          gemSparkOrbitPhases[i] += dt * (4.5 + gemVfxSpinBoost * 7);
+          const orbitT = gemSparkOrbitPhases[i];
+          const radius = gemSparkOrbitRadii[i] * (0.7 + Math.sin(lifeT * Math.PI) * 0.45);
+          gemSparkPositions[i3] = gemEmitterCenter.x + gemEmitterPerp.x * Math.cos(orbitT) * radius + gemEmitterDepth.x * Math.sin(orbitT) * radius * 0.75;
+          gemSparkPositions[i3 + 1] = gemEmitterCenter.y + gemEmitterPerp.y * Math.cos(orbitT) * radius + gemEmitterDepth.y * Math.sin(orbitT) * radius * 0.75;
+          gemSparkPositions[i3 + 2] = gemEmitterCenter.z + gemEmitterPerp.z * Math.cos(orbitT) * radius + gemEmitterDepth.z * Math.sin(orbitT) * radius * 0.75;
+        } else {
+          if (gemSparkModes[i] === 2) gemSparkVelocities[i].addScaledVector(gemUpVector, 0.65 * dt);
+          gemSparkVelocities[i].addScaledVector(gemEmitterPerp, swirl * dt);
+          gemSparkPositions[i3] += gemSparkVelocities[i].x * dt;
+          gemSparkPositions[i3 + 1] += gemSparkVelocities[i].y * dt;
+          gemSparkPositions[i3 + 2] += gemSparkVelocities[i].z * dt;
+        }
+        gemSparkVelocities[i].multiplyScalar(0.985);
+        gemSparkAlphas[i] = Math.pow(1 - lifeT, 1.45);
+        gemSparkSizes[i] *= 0.992;
+      }
+      gemSparkGeometry.attributes.position.needsUpdate = true;
+      gemSparkGeometry.attributes.color.needsUpdate = true;
+      gemSparkGeometry.attributes.size.needsUpdate = true;
+      gemSparkGeometry.attributes.alpha.needsUpdate = true;
+
+      const starScale = actTwoActive ? gemStarIntensity * (0.55 + gemVfxEnergy * 0.35 + gemVfxBurst * 0.45) : 0;
+      for (let i = 0; i < GEM_STAR_COUNT; i++) {
+        const i3 = i * 3;
+        gemStarPositions[i3 + 2] += dt * (0.28 + gemVfxEnergy * 1.4 + gemVfxBurst * 2.4 + gemVfxSpinBoost * 0.8);
+        gemStarPositions[i3] += Math.sin(gemSpectaclePhase + i * 1.7) * dt * gemVfxSpinBoost * 0.12;
+        gemStarPositions[i3 + 1] += Math.cos(gemSpectaclePhase + i * 1.31) * dt * gemVfxBurst * 0.18;
+        if (gemStarPositions[i3 + 2] > 3.2) {
+          gemStarPositions[i3] = (Math.random() - 0.5) * starFrustum.width * 1.5;
+          gemStarPositions[i3 + 1] = (Math.random() - 0.5) * starFrustum.height * 1.5;
+          gemStarPositions[i3 + 2] = -12 - Math.random() * 4;
+        }
+        gemStarSizes[i] = gemStarBaseSizes[i] * starScale;
+      }
+      gemStarMesh.rotation.z += dt * (0.03 + gemVfxSpinBoost * 0.1);
+      gemStarMesh.scale.setScalar(1 + gemVfxBurst * 0.04);
+      gemStarGeometry.attributes.position.needsUpdate = true;
+      gemStarGeometry.attributes.size.needsUpdate = true;
+
+      if (actTwoActive && gemEmittersReady) {
+        gemAuraMesh.position.copy(gemShape.mesh.position);
+        gemAuraMesh.scale.copy(gemShape.mesh.scale);
+        gemAuraUniforms.uTime.value = now / 1000;
+        gemAuraUniforms.uOpacity.value = gemShape.material.opacity * gemEnergyIntensity * (0.8 + gemVfxEnergy * 0.45);
+        gemAuraUniforms.uEnergy.value = gemVfxEnergy;
+        gemAuraUniforms.uPulse.value = Math.max(gemVfxBurst, gemVfxSpinBoost);
+      } else {
+        gemAuraUniforms.uOpacity.value = 0;
+      }
+
+      if (gemEmittersReady) {
+        const filamentColorA = GEM_SPARK_PALETTE[1];
+        const filamentColorB = GEM_SPARK_PALETTE[3];
+        const filamentLength = gemEmitterLeft.distanceTo(gemEmitterRight);
+        const filamentBend = 0.08 + gemVfxEnergy * 0.22 + gemVfxBurst * 0.16;
+        for (let i = 0; i < GEM_FILAMENT_POINTS; i++) {
+          const t = i / (GEM_FILAMENT_POINTS - 1);
+          const wave = Math.sin(t * Math.PI * 4.0 + gemSpectaclePhase * 3.0) * filamentBend;
+          sparkTemp.copy(gemEmitterLeft).lerp(gemEmitterRight, t)
+            .addScaledVector(gemEmitterPerp, wave)
+            .addScaledVector(gemEmitterDepth, Math.sin(t * Math.PI * 2.0 + gemSpectaclePhase) * filamentBend * 0.45);
+          gemFilamentPositions[i * 3] = sparkTemp.x;
+          gemFilamentPositions[i * 3 + 1] = sparkTemp.y;
+          gemFilamentPositions[i * 3 + 2] = sparkTemp.z;
+          const c = gemColorTemp.copy(filamentColorA).lerp(filamentColorB, t);
+          gemFilamentColors[i * 3] = c.r;
+          gemFilamentColors[i * 3 + 1] = c.g;
+          gemFilamentColors[i * 3 + 2] = c.b;
+          gemFilamentAlphas[i] = Math.sin(Math.PI * t) * (0.22 + gemVfxEnergy * 0.48 + gemVfxBurst * 0.35);
+        }
+        gemFilamentGeometry.attributes.position.needsUpdate = true;
+        gemFilamentGeometry.attributes.color.needsUpdate = true;
+        gemFilamentGeometry.attributes.alpha.needsUpdate = true;
+      }
+      updateGemConstellation(dt, now, active);
+
+      if (bgUniforms && bgUniforms.uScreenPulse) {
+        const pulseT = Math.max(0, 1 - (now - gemScreenPulseStartAt) / 720);
+        bgUniforms.uScreenPulse.value = pulseT * gemScreenPulsePower;
+        gemScreenPulsePower *= 0.94;
+      }
+
+      gemRayMesh.visible = actTwoActive;
+      for (let i = 0; i < GEM_RAY_COUNT; i++) {
+        if (gemRayAlphas[i * 2 + 1] <= 0) continue;
+        gemRayAges[i] += dt * 1000;
+        const lifeT = gemRayAges[i] / gemRayLifetimes[i];
+        if (lifeT >= 1) {
+          gemRayAlphas[i * 2] = 0;
+          gemRayAlphas[i * 2 + 1] = 0;
+          continue;
+        }
+        const alpha = Math.pow(1 - lifeT, 1.25);
+        const base = i * 2;
+        const base3 = base * 3;
+        rayEndTemp.copy(gemRayOrigins[i]).addScaledVector(gemRayDirs[i], gemRayLengths[i] * (0.7 + lifeT * 0.9));
+        gemRayPositions[base3] = gemRayOrigins[i].x;
+        gemRayPositions[base3 + 1] = gemRayOrigins[i].y;
+        gemRayPositions[base3 + 2] = gemRayOrigins[i].z;
+        gemRayPositions[base3 + 3] = rayEndTemp.x;
+        gemRayPositions[base3 + 4] = rayEndTemp.y;
+        gemRayPositions[base3 + 5] = rayEndTemp.z;
+        gemRayAlphas[base] = alpha * 0.18;
+        gemRayAlphas[base + 1] = alpha * 0.95;
+      }
+      gemRayGeometry.attributes.position.needsUpdate = true;
+      gemRayGeometry.attributes.color.needsUpdate = true;
+      gemRayGeometry.attributes.alpha.needsUpdate = true;
+
+      for (let i = 0; i < GEM_BEAM_COUNT; i++) {
+        if (gemBeamAlphas[i * 3 + 1] <= 0) continue;
+        gemBeamAges[i] += dt * 1000;
+        const lifeT = gemBeamAges[i] / gemBeamLifetimes[i];
+        if (lifeT >= 1) {
+          gemBeamAlphas[i * 3] = 0;
+          gemBeamAlphas[i * 3 + 1] = 0;
+          gemBeamAlphas[i * 3 + 2] = 0;
+          continue;
+        }
+        const alpha = Math.pow(1 - lifeT, 1.55);
+        const base = i * 3;
+        const base3 = base * 3;
+        beamEndTemp.copy(gemBeamOrigins[i]).addScaledVector(gemBeamDirs[i], gemBeamLengths[i] * (0.65 + lifeT * 0.85));
+        beamSideTemp.copy(gemBeamSideDirs[i]).multiplyScalar(gemBeamWidths[i] * (0.35 + Math.sin(lifeT * Math.PI) * 0.9));
+        gemBeamPositions[base3] = gemBeamOrigins[i].x;
+        gemBeamPositions[base3 + 1] = gemBeamOrigins[i].y;
+        gemBeamPositions[base3 + 2] = gemBeamOrigins[i].z;
+        gemBeamPositions[base3 + 3] = beamEndTemp.x + beamSideTemp.x;
+        gemBeamPositions[base3 + 4] = beamEndTemp.y + beamSideTemp.y;
+        gemBeamPositions[base3 + 5] = beamEndTemp.z + beamSideTemp.z;
+        gemBeamPositions[base3 + 6] = beamEndTemp.x - beamSideTemp.x;
+        gemBeamPositions[base3 + 7] = beamEndTemp.y - beamSideTemp.y;
+        gemBeamPositions[base3 + 8] = beamEndTemp.z - beamSideTemp.z;
+        gemBeamAlphas[base] = alpha * 0.03;
+        gemBeamAlphas[base + 1] = alpha * 0.34;
+        gemBeamAlphas[base + 2] = alpha * 0.34;
+      }
+      gemBeamGeometry.attributes.position.needsUpdate = true;
+      gemBeamGeometry.attributes.color.needsUpdate = true;
+      gemBeamGeometry.attributes.alpha.needsUpdate = true;
+    }
+
     // ========== CÁMARA ==========
     const videoEl = document.getElementById('cam-video');
 
@@ -709,7 +2035,8 @@
       // 0 = cámara normal, 1 = deslizada del todo fuera de cuadro (negro).
       // La anima updateCameraSlideAnimation() al entrar al Acto 2 — ver esa
       // función y ACTO 2 más abajo.
-      uSlideOffset: { value: 0 }
+      uSlideOffset: { value: 0 },
+      uScreenPulse: { value: 0 }
     };
 
     const bgVertexShader = `
@@ -811,6 +2138,7 @@
       precision mediump float;
       uniform float uMix;
       uniform float uSlideOffset;
+      uniform float uScreenPulse;
       varying vec2 vUv;
       ${gradingGLSL}
       void main() {
@@ -824,13 +2152,14 @@
         // deslizando hacia abajo hasta desaparecer del todo (Acto 2, ver
         // updateCameraSlideAnimation).
         vec2 slidUv = mirroredUv + vec2(0.0, uSlideOffset);
-        if (slidUv.y > 1.0) {
-          gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
-          return;
-        }
+        float inFrame = 1.0 - step(1.0, slidUv.y);
         // uMix: mezcla con el video sin procesar — esto es lo que anima
         // launchTriangle()/resetColorEffect() al disparar/chasquear.
-        vec3 finalColor = mix(sampleOriginalVideo(slidUv), sampleGradedVideo(slidUv), uMix);
+        vec3 finalColor = mix(sampleOriginalVideo(slidUv), sampleGradedVideo(slidUv), uMix) * inFrame;
+        float pulseRadius = length(vUv - vec2(0.5));
+        float pulseRing = 1.0 - smoothstep(0.0, 0.034, abs(pulseRadius - (1.0 - clamp(uScreenPulse, 0.0, 1.0)) * 0.62));
+        float pulseCore = exp(-pulseRadius * 7.0) * uScreenPulse * 0.26;
+        finalColor += vec3(0.05, 0.72, 1.0) * (pulseRing * uScreenPulse * 0.9 + pulseCore);
         gl_FragColor = vec4(finalColor, 1.0);
       }
     `;
@@ -1066,6 +2395,15 @@
     });
     document.getElementById('ctrl-neon-radius').addEventListener('input', (e) => {
       triGlowRadius = parseFloat(e.target.value);
+    });
+    document.getElementById('ctrl-gem-sparks').addEventListener('input', (e) => {
+      gemSparkIntensity = parseFloat(e.target.value);
+    });
+    document.getElementById('ctrl-gem-energy').addEventListener('input', (e) => {
+      gemEnergyIntensity = parseFloat(e.target.value);
+    });
+    document.getElementById('ctrl-gem-stars').addEventListener('input', (e) => {
+      gemStarIntensity = parseFloat(e.target.value);
     });
 
     // Botón flotante: simple toggle de la clase "open" — el panel entero
@@ -1384,10 +2722,25 @@
     function fireGemCommand(n, now) {
       if (n === 1) {
         gemSpinVelocity = THREE.MathUtils.clamp(gemSpinVelocity + GEM_COMMAND_SPIN_KICK, -GEM_SPIN_MAX_VELOCITY, GEM_SPIN_MAX_VELOCITY);
+        gemVfxSpinBoost = 1;
+        triggerGemScreenPulse(now, 0.55);
+        burstGemSparks(120, 1.25, 'orbit');
+        burstGemRays(14, 1.1, 'core');
+        burstGemBeams(8, 1.05, 'core');
       } else if (n === 2) {
         triggerGemPulse(now);
+        triggerGemScreenPulse(now, 0.85);
+        gemVfxBurst = 1;
+        burstGemSparks(130, 1.55, 'radial');
+        burstGemRays(22, 1.35, 'core');
+        burstGemBeams(14, 1.28, 'core');
       } else if (n === 3) {
         triggerGemJump(now);
+        triggerGemScreenPulse(now, 1.05);
+        gemVfxBurst = 1.2;
+        burstGemSparks(190, 1.75, 'vertical');
+        burstGemRays(28, 1.55, 'tips');
+        burstGemBeams(18, 1.48, 'tips');
       }
     }
 
@@ -1421,6 +2774,10 @@
     let gemSpinPhase = 0;
     let gemSpinVelocity = 0;
     let gemLastUpdateAt = null;
+    let gemLastRawHandDist = null;
+    let gemOpeningCooldownUntil = 0;
+    const GEM_OPENING_SPEED_THRESHOLD = 2.35;
+    const GEM_OPENING_COOLDOWN_MS = 1200;
 
     // Latido: un pulso de tamaño que sube y vuelve a bajar solo.
     const GEM_PULSE_DURATION_MS = 400;
@@ -1435,6 +2792,22 @@
     function triggerGemPulse(now) { gemPulseStartAt = now; }
     function triggerGemJump(now) { gemJumpStartAt = now; }
 
+    function checkGemOpeningGesture(rawDist, timestamp, dt) {
+      const speed = gemLastRawHandDist === null || dt <= 0
+        ? 0
+        : (rawDist - gemLastRawHandDist) / dt;
+      gemLastRawHandDist = rawDist;
+      if (speed > GEM_OPENING_SPEED_THRESHOLD && timestamp >= gemOpeningCooldownUntil) {
+        gemOpeningCooldownUntil = timestamp + GEM_OPENING_COOLDOWN_MS;
+        gemVfxBurst = 1.55;
+        gemVfxSpinBoost = Math.max(gemVfxSpinBoost, 0.5);
+        triggerGemScreenPulse(timestamp, 1.35);
+        burstGemSparks(260, 2.0, 'radial');
+        burstGemRays(34, 1.8, 'tips');
+        burstGemBeams(24, 1.8, 'tips');
+      }
+    }
+
     // Se llama al ocultar la gema (ver hideShape) — sin esto, al
     // reaparecer heredaría un dt gigante (todo el tiempo que estuvo
     // oculta) y lo leería como un giro brusco que nunca pasó.
@@ -1446,6 +2819,11 @@
       gemCommandCandidate = null;
       gemCommandCandidateSince = 0;
       gemCommandCooldownUntil = 0;
+      gemLastRawHandDist = null;
+      gemOpeningCooldownUntil = 0;
+      gemConstellationStillSince = null;
+      gemConstellationSeeded = false;
+      gemConstellationStrength = 0;
     }
 
     function gemPulseFactor(now) {
@@ -1540,6 +2918,18 @@
       const apexRight = centerRight.clone().addScaledVector(spine, radiusRight * GEM_TAPER_RATIO);
       posAttr.setXYZ(0, apexLeft.x, apexLeft.y, apexLeft.z);
       posAttr.setXYZ(1 + 2 * sides, apexRight.x, apexRight.y, apexRight.z);
+
+      gemEmitterLeft.copy(apexLeft);
+      gemEmitterRight.copy(apexRight);
+      gemEmitterCenter.copy(mid);
+      gemEmitterAxis.copy(spine);
+      gemEmitterPerp.copy(perpRight);
+      gemVfxEnergy = (
+        THREE.MathUtils.clamp((openLeft - GEM_OPENNESS_MIN) / (GEM_OPENNESS_MAX - GEM_OPENNESS_MIN), 0, 1) +
+        THREE.MathUtils.clamp((openRight - GEM_OPENNESS_MIN) / (GEM_OPENNESS_MAX - GEM_OPENNESS_MIN), 0, 1)
+      ) * 0.5;
+      gemEmittersReady = true;
+      checkGemOpeningGesture(rawDist, timestamp, dt);
 
       posAttr.needsUpdate = true;
       gemShape.geometry.computeVertexNormals();
@@ -2348,12 +3738,12 @@
         frameCounter++;
         const now = performance.now();
 
-        if (videoEl.readyState >= 2 && frameCounter % POSE_DETECT_EVERY_N === 0) {
+        if (introExperienceReady && videoEl.readyState >= 2 && frameCounter % POSE_DETECT_EVERY_N === 0) {
           const poseResult = poseLandmarker.detectForVideo(videoEl, now);
           elbowVisible = isElbowVisible(poseResult.landmarks);
         }
 
-        if (videoEl.readyState >= 2 && frameCounter % DETECT_EVERY_N === 0) {
+        if (introExperienceReady && videoEl.readyState >= 2 && frameCounter % DETECT_EVERY_N === 0) {
           const result = handLandmarker.detectForVideo(videoEl, now);
           processHandDetection(result.landmarks || [], now);
         }
@@ -2362,7 +3752,7 @@
         // alguna detección) porque acumula tiempo sostenido — usa el último
         // valor conocido de elbowVisible/anyHandIsFist, sin esperar a que
         // ambas detecciones coincidan en el mismo frame.
-        checkElbowClearGesture(now);
+        if (introExperienceReady) checkElbowClearGesture(now);
 
         // El pop-in y el render corren SIEMPRE, aunque este tick no haya
         // corrido detección — es lo que mantiene todo a 60 FPS reales.
@@ -2377,6 +3767,7 @@
         updateTriGlow(); // recalcula el halo detrás del triángulo con sus vértices YA actualizados
         updateColorMixAnimation(now);
         updateCameraSlideAnimation(now);
+        updateGemVfx(now);
         renderBoth();
 
         frames++;
@@ -2391,6 +3782,304 @@
       }
       tick();
     }
+
+    // ========== PORTADA / UMBRAL DE PRISMA ==========
+    // El micrófono solo se solicita después de una interacción explícita del
+    // visitante. El análisis usa un único AnalyserNode y buffers reutilizados
+    // para que la portada sea expresiva sin añadir carga significativa.
+    const introOverlay = document.getElementById('intro-overlay');
+    const introStartButton = document.getElementById('intro-start');
+    const introInstruction = document.getElementById('intro-instruction');
+    const introNote = document.getElementById('intro-note');
+    let introAudioContext = null;
+    let introAnalyser = null;
+    let introAudioData = null;
+    let introAudioStream = null;
+    let introAudioLevel = 0;
+    let introNoiseSince = null;
+    let introExploded = false;
+    let introAnimationStarted = false;
+    let introManualEntry = false;
+    let introExperienceReady = false;
+    let introRevealStarted = false;
+    let introRevealStartedAt = 0;
+    let introListeningStartedAt = null;
+    let introExplodedAt = null;
+    let introChargeStartedAt = null;
+    let introChargeBaseScale = 0.72;
+    let introChargeBaseRotationX = 0;
+    let introChargeBaseRotationY = 0;
+    let introChargeBaseRotationZ = 0;
+    const introChargeOrigin = new THREE.Vector3();
+    const INTRO_REVEAL_DURATION_MS = 4500;
+    const INTRO_SETTLE_PAUSE_MS = 700;
+    // El objeto puede reaccionar al ambiente, pero la detonación está
+    // pensada para un grito o aplauso deliberado de un grupo grande.
+    const INTRO_AUDIO_GAIN = 2.6;
+    const INTRO_NOISE_THRESHOLD = 0.25;
+    const INTRO_NOISE_HOLD_MS = 800;
+    const INTRO_CHARGE_DURATION_MS = 1800;
+
+    function closeIntroAudio() {
+      if (introAudioStream) introAudioStream.getTracks().forEach((track) => track.stop());
+      if (introAudioContext && introAudioContext.state !== 'closed') introAudioContext.close();
+      introAudioStream = null;
+      introAudioContext = null;
+      introAnalyser = null;
+      introAudioData = null;
+    }
+
+    function explodeIntro(now) {
+      if (introExploded) return;
+      introExploded = true;
+      introExperienceReady = true;
+      introExplodedAt = now;
+      spawnIntroBlast();
+      introNoiseSince = null;
+      introChargeStartedAt = null;
+      introInstruction.textContent = 'La luz ha despertado';
+      introStartButton.style.opacity = '0';
+      introOverlay.classList.add('exploding');
+      // El fade deja que la cámara y el primer acto aparezcan debajo como una
+      // revelación, en vez de cambiar de pantalla de forma abrupta.
+      window.setTimeout(closeIntroAudio, 1500);
+    }
+
+    function updateIntro(now) {
+      if (introExploded) {
+        const explosionT = Math.min(1, (now - introExplodedAt) / 1500);
+        const blastSeconds = (now - introExplodedAt) / 1000;
+        introIcoGroup.visible = explosionT < 0.78;
+        introIcoGroup.scale.setScalar(1 + explosionT * 7.2);
+        introIcoGroup.rotation.x += 0.065;
+        introIcoGroup.rotation.y += 0.12;
+        const cameraShake = Math.pow(Math.max(0, 1 - explosionT), 1.8) * 0.075;
+        intro3dCamera.position.x = Math.sin(now * 0.19) * cameraShake;
+        intro3dCamera.position.y = Math.cos(now * 0.23) * cameraShake;
+        introIcoUniforms.uBurst.value = Math.max(0, 1.8 - explosionT * 1.45);
+        introIcoUniforms.uAudio.value = Math.max(0, 1 - explosionT);
+        introIcoWire.material.opacity = Math.max(0, 0.72 * (1 - explosionT));
+        for (let i = 0; i < INTRO_BLAST_COUNT; i++) {
+          const i3 = i * 3;
+          const velocity = introBlastVelocities[i];
+          introBlastPositions[i3] = introBlastOrigin.x + velocity.x * blastSeconds;
+          introBlastPositions[i3 + 1] = introBlastOrigin.y + velocity.y * blastSeconds - blastSeconds * blastSeconds * 0.28;
+          introBlastPositions[i3 + 2] = introBlastOrigin.z + velocity.z * blastSeconds;
+          introBlastAlphas[i] = Math.pow(Math.max(0, 1 - explosionT), 1.35) * (0.72 + (i % 5) * 0.06);
+          introBlastSizes[i] = (0.018 + (i % 7) * 0.006) * (1 + explosionT * 0.7);
+        }
+        introBlastGeometry.attributes.position.needsUpdate = true;
+        introBlastGeometry.attributes.alpha.needsUpdate = true;
+        introBlastGeometry.attributes.size.needsUpdate = true;
+        introBlastCore.position.copy(introBlastOrigin);
+        introBlastCore.scale.setScalar(0.08 + explosionT * 4.8);
+        introBlastCoreUniforms.uAlpha.value = Math.pow(Math.max(0, 1 - explosionT), 0.72) * 1.35;
+        introBlastCoreUniforms.uProgress.value = Math.min(1, explosionT * 1.7);
+        introBlastCore.visible = explosionT < 0.96;
+        for (const ring of introBlastRings) {
+          const ringT = THREE.MathUtils.clamp((now - introExplodedAt - ring.delay) / ring.duration, 0, 1);
+          ring.mesh.position.copy(introBlastOrigin);
+          ring.mesh.scale.setScalar(0.08 + ringT * 7.2);
+          ring.mesh.material.opacity = ringT <= 0 || ringT >= 1 ? 0 : Math.sin(Math.PI * ringT) * ring.strength * 0.92;
+          ring.mesh.visible = ringT > 0 && ringT < 1;
+          ring.mesh.rotation.z += 0.02 + ring.strength * 0.01;
+        }
+        for (let i = 0; i < INTRO_SHARD_COUNT; i++) {
+          const base = i * 2;
+          const base3 = base * 3;
+          const velocity = introShardVelocities[i];
+          introShardPositions[base3] = introBlastOrigin.x + velocity.x * blastSeconds;
+          introShardPositions[base3 + 1] = introBlastOrigin.y + velocity.y * blastSeconds - blastSeconds * blastSeconds * 0.34;
+          introShardPositions[base3 + 2] = introBlastOrigin.z + velocity.z * blastSeconds;
+          introBlastDirection.copy(velocity).normalize();
+          const trail = introShardLengths[i] * Math.min(1.8, blastSeconds * 4.4);
+          introShardPositions[base3 + 3] = introShardPositions[base3] - introBlastDirection.x * trail;
+          introShardPositions[base3 + 4] = introShardPositions[base3 + 1] - introBlastDirection.y * trail;
+          introShardPositions[base3 + 5] = introShardPositions[base3 + 2] - introBlastDirection.z * trail;
+          introShardAlphas[base] = Math.pow(Math.max(0, 1 - explosionT), 1.1) * 0.92;
+          introShardAlphas[base + 1] = introShardAlphas[base] * 0.12;
+        }
+        introShardGeometry.attributes.position.needsUpdate = true;
+        introShardGeometry.attributes.alpha.needsUpdate = true;
+        introBlastMesh.visible = explosionT < 1;
+        introShardMesh.visible = explosionT < 1;
+        syncIntroBlastOrigin();
+        renderIntro3d();
+        if (explosionT < 1) requestAnimationFrame(updateIntro);
+        else intro3dCamera.position.set(0, 0, 4.6);
+        return;
+      }
+      let targetLevel = 0;
+      if (introAnalyser && introAudioData) {
+        introAnalyser.getByteTimeDomainData(introAudioData);
+        let sum = 0;
+        for (let i = 0; i < introAudioData.length; i++) {
+          const centered = (introAudioData[i] - 128) / 128;
+          sum += centered * centered;
+        }
+        targetLevel = Math.min(1, Math.sqrt(sum / introAudioData.length) * INTRO_AUDIO_GAIN);
+      }
+      introAudioLevel += (targetLevel - introAudioLevel) * 0.16;
+      introOverlay.style.setProperty('--audio', introAudioLevel.toFixed(3));
+      introOverlay.style.setProperty('--prism-scale', (1 + introAudioLevel * 0.22).toFixed(3));
+      introOverlay.style.setProperty('--particle-distance', (52 + introAudioLevel * 55).toFixed(1) + 'px');
+      introOverlay.style.setProperty('--particle-opacity', (0.3 + introAudioLevel * 0.7).toFixed(3));
+      const charge = THREE.MathUtils.clamp(introAudioLevel / INTRO_NOISE_THRESHOLD, 0, 1);
+      introOverlay.style.setProperty('--charge', charge.toFixed(3));
+
+      if (introRevealStarted) {
+        introIcoGroup.visible = true;
+        let x = 0;
+        let y = 0;
+        let scale = 1;
+        let rotationBoost = 0;
+        if (introListeningStartedAt === null) {
+          const t = THREE.MathUtils.clamp((now - introRevealStartedAt) / INTRO_REVEAL_DURATION_MS, 0, 1);
+          const eased = t * t * (3 - 2 * t);
+          const phase = t < 0.28 ? 0 : t < 0.56 ? 1 : t < 0.78 ? 2 : 3;
+          const points = [
+            { x: 0, y: 0 },
+            { x: -intro3dCamera.aspect * 1.18, y: 0.72 },
+            { x: intro3dCamera.aspect * 1.22, y: -0.45 },
+            { x: -intro3dCamera.aspect * 0.9, y: -0.82 },
+            { x: 0, y: 0 }
+          ];
+          const segmentT = phase === 0 ? t / 0.28 : phase === 1 ? (t - 0.28) / 0.28 : phase === 2 ? (t - 0.56) / 0.22 : (t - 0.78) / 0.22;
+          const a = points[phase];
+          const b = points[phase + 1];
+          x = THREE.MathUtils.lerp(a.x, b.x, THREE.MathUtils.clamp(segmentT * segmentT * (3 - 2 * segmentT), 0, 1));
+          y = THREE.MathUtils.lerp(a.y, b.y, THREE.MathUtils.clamp(segmentT * segmentT * (3 - 2 * segmentT), 0, 1));
+          scale = THREE.MathUtils.lerp(0.08, 0.82, eased);
+          rotationBoost = 0.025;
+        } else {
+          const elapsed = (now - introListeningStartedAt) / 1000;
+          const acceleration = THREE.MathUtils.smoothstep(elapsed, 0, 1.8);
+          const t = elapsed * (0.3 + acceleration * 1.7);
+          x = Math.sin(t * 0.72) * intro3dCamera.aspect * 1.14;
+          y = Math.cos(t * 0.51) * 0.72 + Math.sin(t * 1.17) * 0.18;
+          scale = 0.72 + introAudioLevel * 0.22;
+          rotationBoost = 0.012 + acceleration * 0.045;
+        }
+        introIcoGroup.position.set(x, y, 0);
+        introIcoGroup.scale.setScalar(scale);
+        introIcoGroup.rotation.x += rotationBoost;
+        introIcoGroup.rotation.y += 0.018 + introAudioLevel * 0.035;
+        introIcoGroup.rotation.z = Math.sin(now / 1300) * 0.12;
+        introIcoUniforms.uTime.value = now / 1000;
+        introIcoUniforms.uAudio.value = introAudioLevel;
+        introIcoUniforms.uBurst.value = 0;
+        introIcoWire.material.opacity = 0.52 + introAudioLevel * 0.5;
+      } else {
+        introIcoGroup.visible = false;
+      }
+
+      // Cuando el ruido supera el umbral, la figura deja de viajar y entra
+      // en una carga visible: conserva su posición y palpita cada vez más
+      // fuerte hasta que la detonación se vuelve inevitable.
+      if (introChargeStartedAt !== null) {
+        const chargeT = THREE.MathUtils.clamp((now - introChargeStartedAt) / INTRO_CHARGE_DURATION_MS, 0, 1);
+        const pulse = 0.5 + 0.5 * Math.sin(chargeT * Math.PI * 8.0);
+        const envelope = THREE.MathUtils.smoothstep(chargeT, 0, 1);
+        introIcoGroup.position.copy(introChargeOrigin);
+        const finalCollapse = THREE.MathUtils.smoothstep(chargeT, 0.72, 1);
+        introIcoGroup.scale.setScalar(introChargeBaseScale * (1 + pulse * (0.045 + envelope * 0.16) + envelope * 0.08) * (1 - finalCollapse * 0.42));
+        introIcoGroup.rotation.set(introChargeBaseRotationX, introChargeBaseRotationY, introChargeBaseRotationZ);
+        introIcoUniforms.uBurst.value = pulse * (0.5 + envelope * 1.8);
+        introIcoUniforms.uAudio.value = Math.max(introAudioLevel, pulse * envelope);
+        introIcoWire.material.opacity = 0.62 + pulse * 0.38 + envelope * 0.25;
+      }
+      syncIntroBlastOrigin();
+      renderIntro3d();
+
+      if (introAnalyser && introAudioLevel >= INTRO_NOISE_THRESHOLD) {
+        if (introNoiseSince === null) introNoiseSince = now;
+        const held = now - introNoiseSince;
+        introInstruction.textContent = held > 260 ? 'Sigue... el prisma está cargando' : '¡Eso es! Mantengan el ruido';
+        if (held >= INTRO_NOISE_HOLD_MS && introChargeStartedAt === null) {
+          introChargeStartedAt = now;
+          introChargeOrigin.copy(introIcoGroup.position);
+          introChargeBaseScale = introIcoGroup.scale.x;
+          introChargeBaseRotationX = introIcoGroup.rotation.x;
+          introChargeBaseRotationY = introIcoGroup.rotation.y;
+          introChargeBaseRotationZ = introIcoGroup.rotation.z;
+        }
+      } else if (introAnalyser && introChargeStartedAt === null) {
+        introNoiseSince = null;
+        introInstruction.textContent = introAudioLevel > 0.025 ? 'Más fuerte... despierten la luz' : 'Hagan ruido para despertar el prisma';
+      }
+      if (introChargeStartedAt !== null && now - introChargeStartedAt >= INTRO_CHARGE_DURATION_MS) explodeIntro(now);
+      requestAnimationFrame(updateIntro);
+    }
+
+    async function activateIntroAudio() {
+      if (introExploded) return;
+      if (introManualEntry) {
+        explodeIntro(performance.now());
+        return;
+      }
+      if (introAnalyser) {
+        explodeIntro(performance.now());
+        return;
+      }
+      introStartButton.disabled = true;
+      introStartButton.textContent = 'Escuchando...';
+      try {
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || !AudioContextClass) throw new Error('Audio no disponible');
+        introAudioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        introAudioContext = new AudioContextClass();
+        await introAudioContext.resume();
+        introAnalyser = introAudioContext.createAnalyser();
+        introAnalyser.fftSize = 512;
+        introAnalyser.smoothingTimeConstant = 0.72;
+        introAudioData = new Uint8Array(introAnalyser.fftSize);
+        introAudioContext.createMediaStreamSource(introAudioStream).connect(introAnalyser);
+        introInstruction.textContent = 'Hagan ruido para despertar el prisma';
+        introNote.textContent = 'La luz reacciona a sus voces';
+        introOverlay.classList.add('listening');
+        introListeningStartedAt = performance.now();
+        introStartButton.disabled = false;
+        introStartButton.textContent = 'Entrar sin ruido';
+        if (!introAnimationStarted) {
+          introAnimationStarted = true;
+          requestAnimationFrame(updateIntro);
+        }
+      } catch (error) {
+        console.warn('No se pudo activar el micrófono:', error);
+        introInstruction.textContent = 'El micrófono no está disponible';
+        introNote.textContent = 'Puedes entrar manualmente para comenzar';
+        introOverlay.classList.add('listening');
+        introListeningStartedAt = performance.now();
+        introManualEntry = true;
+        introStartButton.disabled = false;
+        introStartButton.textContent = 'Entrar a Prisma';
+      }
+    }
+
+    function startIntroSequence() {
+      if (introRevealStarted || introExploded) return;
+      introRevealStarted = true;
+      introRevealStartedAt = performance.now();
+      introOverlay.classList.add('revealing');
+      introStartButton.disabled = true;
+      introStartButton.textContent = 'Despertando...';
+      introInstruction.textContent = 'Observa cómo despierta la luz';
+      if (!introAnimationStarted) {
+        introAnimationStarted = true;
+        requestAnimationFrame(updateIntro);
+      }
+      window.setTimeout(() => {
+        if (!introExploded) activateIntroAudio();
+      }, INTRO_REVEAL_DURATION_MS + INTRO_SETTLE_PAUSE_MS);
+    }
+
+    introStartButton.addEventListener('click', () => {
+      if (introManualEntry || introAnalyser) {
+        explodeIntro(performance.now());
+      } else {
+        startIntroSequence();
+      }
+    });
 
     async function main() {
       setHandStatus('cargando modelo…', 'bad');
